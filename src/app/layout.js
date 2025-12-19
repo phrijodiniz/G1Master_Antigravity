@@ -21,7 +21,7 @@ import { AuthProvider } from "@/context/AuthContext";
 export default function RootLayout({ children }) {
     return (
         <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning={true}>
-            <body>
+            <body suppressHydrationWarning={true}>
                 <AuthProvider>
                     {children}
                 </AuthProvider>
