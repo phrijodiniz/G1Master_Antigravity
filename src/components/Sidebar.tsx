@@ -1,0 +1,63 @@
+"use client";
+
+import styles from "./Sidebar.module.css";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, BookOpen, BarChart2, Calendar, Settings, LogOut, FileText, User, History as HistoryIcon, GraduationCap } from "lucide-react";
+
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+
+export default function Sidebar() {
+    const pathname = usePathname();
+    const { logout } = useAuth();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.push("/"); // Redirect to home/login after logout
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
+
+    const menuItems = [
+        { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+        { name: "Account", icon: User, path: "/account" },
+        { name: "History", icon: HistoryIcon, path: "/history" },
+        { name: "Study Now", icon: GraduationCap, path: "/study" },
+    ];
+
+    return (
+        <aside className={styles.sidebar}>
+            <div className={styles.logoContainer}>
+                <Image src="/G1MasterApp_Logo.png" alt="G1 Master Logo" width={100} height={100} style={{ width: 'auto', height: 'auto', maxWidth: '100%' }} />
+            </div>
+
+            <nav className={styles.nav}>
+                {menuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.path ||
+                        (item.path === '/study' && (pathname === '/practice' || pathname?.startsWith('/quiz')));
+                    return (
+                        <Link
+                            key={item.path}
+                            href={item.path}
+                            className={`${styles.navItem} ${isActive ? styles.active : ""}`}
+                        >
+                            <Icon size={20} />
+                            <span>{item.name}</span>
+                        </Link>
+                    );
+                })}
+            </nav>
+
+            <button onClick={handleLogout} className={`${styles.navItem} ${styles.logout}`}>
+                <LogOut size={20} />
+                <span>Logout</span>
+            </button>
+        </aside>
+    );
+}

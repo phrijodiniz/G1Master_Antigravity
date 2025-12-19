@@ -1,0 +1,78 @@
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 280px;
+    height: 100vh;
+    padding: 2rem;
+    background: #000000;
+    border-right: 1px solid var(--glass-border);
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50;
+    font-family: var(--font-main);
+}
+
+.logoContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 3rem;
+}
+
+.logoText {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: -0.5px;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.navItem:hover {
+    background: var(--glass-highlight);
+    opacity: 1;
+    transform: translateX(4px);
+}
+
+.active {
+    background: linear-gradient(90deg, rgba(225, 255, 33, 0.2) 0%, #000000 100%);
+    color: #e1ff21;
+    opacity: 1;
+    font-weight: 600;
+    border-left: 3px solid #e1ff21;
+}
+
+.logout {
+    margin-top: auto;
+    background: #e1ff21;
+    color: #000000;
+    opacity: 1;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(225, 255, 33, 0.2);
+    cursor: pointer;
+}
+
+.logout:hover {
+    background: #f6f6f6;
+    color: #000000;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}

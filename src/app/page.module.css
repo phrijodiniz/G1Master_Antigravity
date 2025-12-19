@@ -1,0 +1,15 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: 2rem;
+  }
+}

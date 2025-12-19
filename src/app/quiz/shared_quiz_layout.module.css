@@ -1,0 +1,173 @@
+.quizLayout {
+    display: flex;
+    min-height: 100vh;
+    background: #f6f6f6;
+    font-family: var(--font-main);
+}
+
+.mainWrapper {
+    margin-left: 280px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    /* Main wrapper takes full remaining width */
+}
+
+.header {
+    background: white;
+    padding: 1.5rem 3rem;
+    /* Match sidebar padding roughly */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.stats {
+    display: flex;
+    gap: 2rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.exitBtn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-md);
+    background: white;
+    color: #64748b;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.exitBtn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+/* Content Grid for Side-by-Side */
+.contentGrid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    /* Question Card takes available, Navigator fixed */
+    gap: 2rem;
+    padding: 3rem;
+    max-width: 1600px;
+    /* Allow wider layout */
+    margin: 0 auto;
+    width: 100%;
+    align-items: start;
+    /* Align to top */
+}
+
+/* Reuse Button Styles */
+.resultPrimaryBtn {
+    background: #0f172a;
+    color: white;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.resultPrimaryBtn:hover {
+    transform: translateY(-2px);
+    background: #1e293b;
+    box-shadow: 0 6px 15px -3px rgba(15, 23, 42, 0.3);
+}
+
+.secondaryBtn {
+    background: white;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.secondaryBtn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+}
+
+.primaryBtn {
+    background: #e1ff21;
+    color: #000000;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.primaryBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px -3px rgba(225, 255, 33, 0.3);
+    background: #d4f010;
+}
+
+/* Navigator Container Specifics */
+.navigatorCard {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 100px;
+    /* Stick below header */
+}
+
+/* Results Screen specific */
+.resultsContainer {
+    background: white;
+    padding: 3rem;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 100%;
+    margin: 0 auto;
+    color: #0f172a;
+    grid-column: 1 / -1;
+    /* Full width if inside grid, or used outside */
+}
+
+.reviewSection {
+    margin-top: 3rem;
+    color: #0f172a;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.reviewCard {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+    text-align: left;
+    color: #0f172a;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}

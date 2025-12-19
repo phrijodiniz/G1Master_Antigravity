@@ -1,0 +1,509 @@
+.mainLayout {
+    display: flex;
+    height: 100vh;
+    background: #f6f6f6;
+    font-family: var(--font-main);
+    color: #0f172a;
+    overflow: hidden;
+    /* Prevent page scroll */
+}
+
+.contentWrapper {
+    margin-left: 280px;
+    flex: 1;
+    padding: 2.5rem;
+    max-width: 1600px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+}
+
+.dashboardGrid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    height: 100%;
+    overflow: hidden;
+    /* Strict no scroll */
+    padding-bottom: 0;
+}
+
+/* Middle Column Sections */
+.leftColumn {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.banner {
+    background: #e1ff21;
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    color: #000000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 200px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+/* ... existing styles ... */
+
+
+
+.widgetsColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    height: 100%;
+    overflow: hidden;
+}
+
+.widget {
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    /* justify-content: center; Optional: center content if widget is tall */
+}
+
+/* Make action cards fill available space */
+.actionCardsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 0;
+    /* Remove bottom margin */
+    flex: 1;
+    /* Grow to fill space */
+    min-height: 0;
+    /* Prevent overflow issue */
+}
+
+.actionCard {
+    /* ... existing ... */
+    height: 100%;
+    /* Match container height */
+    padding: 2rem;
+    /* Reduce padding slightly */
+    justify-content: center;
+}
+
+/* Scroll adjustments for smaller screens */
+@media (max-width: 1024px) {
+    .mainLayout {
+        height: auto;
+        overflow: auto;
+    }
+
+    .contentWrapper {
+        height: auto;
+        margin-left: 0;
+        /* Assuming mobile nav handles this */
+        overflow: visible;
+    }
+
+    .dashboardGrid {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+    }
+
+    .actionCardsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Middle Column Sections */
+.banner {
+    background: #e1ff21;
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    /* Reduced margin */
+    color: #000000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 180px;
+    /* Reduced min-height */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+/* ... */
+/* Action Cards - Flexible */
+.actionCardsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 0;
+    flex: 1;
+    /* Take remaining height in left column */
+    min-height: 0;
+    /* Allow shrinking */
+}
+
+.actionCard {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    /* Compact padding */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+    height: 100%;
+    overflow: hidden;
+}
+
+.cardIcon {
+    margin-bottom: 1rem;
+    color: #0f172a;
+}
+
+.actionTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #0f172a;
+}
+
+.actionSubtitle {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.actionDescription {
+    font-size: 0.8rem;
+    color: #475569;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    max-width: 90%;
+}
+
+.actionBtn {
+    background: #e1ff21;
+    /* Yellow like Logout */
+    color: #000000;
+    width: 100%;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: none;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(225, 255, 33, 0.2);
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+}
+
+.actionBtn:hover {
+    background: #f6f6f6;
+    color: #000000;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+/* Widgets Column - Fix height and spacing */
+.widgetsColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    /* Reduced gap */
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Make Test History flexible to fill remaining space */
+.widget:nth-child(2) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Allow table to scroll internally if screen is tiny, but hide main scroll */
+.widget:nth-child(2)>div {
+    flex: 1;
+    overflow-y: auto;
+}
+
+
+
+.bannerDate {
+    font-size: 0.9rem;
+    font-weight: 600;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+}
+
+.bannerTitle {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    line-height: 1.1;
+}
+
+.bannerSubtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin-bottom: 1.5rem;
+}
+
+
+
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: #1e293b;
+}
+
+.cardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.card {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 160px;
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+
+.cardYellow {
+    background: #fcd34d;
+    color: #0f172a;
+}
+
+.cardGreen {
+    background: var(--success);
+    color: #0f172a;
+}
+
+.cardGlass {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.cardTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.cardBadge {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.progressBar {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    margin: 1rem 0 0.5rem 0;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: currentColor;
+    opacity: 0.7;
+    border-radius: 3px;
+}
+
+.cardAction {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+.continueBtn {
+    background: #0f172a;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+/* Right Column Widgets */
+.widgetsColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.widget {
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-lg);
+}
+
+.chartCircle {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 15px solid var(--glass-border);
+    border-top-color: var(--success);
+    border-right-color: var(--success);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.chartValue {
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.todoList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.todoItem {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.todoIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.iconGreen {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--success);
+}
+
+.iconYellow {
+    background: rgba(253, 224, 71, 0.2);
+    color: #facc15;
+}
+
+.iconBlue {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--primary);
+}
+
+.todoContent h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.todoContent p {
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+/* Readiness Meter */
+.gaugeContainer {
+    margin-bottom: 0px;
+}
+
+.readinessText {
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.35;
+    text-align: center;
+    max-width: 90%;
+    margin: 0.25rem 0 0 0;
+}
+
+
+
+.historyTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.historyTable th {
+    text-align: left;
+    padding: 0.75rem 0;
+    color: #64748b;
+    font-weight: 500;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.historyTable td {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    color: #0f172a;
+}
+
+.historyTable tr:last-child td {
+    border-bottom: none;
+}
+
+.statusBadge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.passBadge {
+    background: rgba(74, 222, 128, 0.2);
+    color: #16a34a;
+}
+
+.failBadge {
+    background: rgba(248, 113, 113, 0.2);
+    color: #dc2626;
+}

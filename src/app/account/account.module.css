@@ -1,0 +1,148 @@
+.accountLayout {
+    display: flex;
+    min-height: 100vh;
+    background: #f6f6f6;
+    font-family: var(--font-main);
+}
+
+.contentWrapper {
+    margin-left: 280px;
+    flex: 1;
+    padding: 3rem;
+    max-width: 1600px;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+}
+
+.sectionTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.input {
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    color: #0f172a;
+    transition: all 0.2s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+.inputDisabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+.planBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: #e1ff21;
+    color: #000000;
+    font-weight: 600;
+    border-radius: 99px;
+    font-size: 0.9rem;
+    width: fit-content;
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    align-items: center;
+}
+
+.saveBtn {
+    background: #0f172a;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.saveBtn:hover {
+    background: #1e293b;
+}
+
+.resetBtn {
+    background: transparent;
+    color: #ef4444;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #ef4444;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.resetBtn:hover {
+    background: #fef2f2;
+}
+
+.successMessage {
+    color: #22c55e;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+.errorMessage {
+    color: #ef4444;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+.infoMessage {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    border: 1px solid #bae6fd;
+}

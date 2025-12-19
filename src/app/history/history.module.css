@@ -1,0 +1,100 @@
+.historyLayout {
+    display: flex;
+    min-height: 100vh;
+    background: #f6f6f6;
+    font-family: var(--font-main);
+}
+
+.contentWrapper {
+    margin-left: 280px;
+    flex: 1;
+    padding: 3rem;
+    max-width: 1600px;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2rem;
+}
+
+.tableContainer {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.table th {
+    text-align: left;
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #0f172a;
+    font-size: 0.95rem;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.passBadge {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.failBadge {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.typeBadge {
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.typeSimulation {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.typeRoadSigns {
+    background: #fdf4ff;
+    color: #86198f;
+}
+
+.typeRules {
+    background: #fff7ed;
+    color: #9a3412;
+}
