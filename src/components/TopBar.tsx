@@ -36,29 +36,8 @@ export default function TopBar() {
         <div className={styles.topbar}>
             <div></div>
 
-            <div className={styles.profileSection}>
-                <div className={styles.profileInfo}>
-                    <div>
-                        <span className={styles.userName}>{displayName}</span>
-                        <span className={styles.userRole}>{user?.email || "No Email"}</span>
-                    </div>
-                    <div className={styles.avatarPlaceholder}>
-                        <div style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: '50%',
-                            background: '#334155',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 600
-                        }}>
-                            {initials}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* User profile removed as per request */}
+
         </div>
     );
 }

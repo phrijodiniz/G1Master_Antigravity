@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from 'next/navigation';
 import styles from "./account.module.css";
 import Sidebar from "../../components/Sidebar"; // Assuming relative path
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function AccountPage() {
-    const { user } = useAuth();
+    const { user, isPremium } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
@@ -24,7 +27,6 @@ export default function AccountPage() {
             const meta = user.user_metadata || {};
             setFirstName(meta.first_name || "");
             setLastName(meta.last_name || "");
-            setPlan(meta.plan || "Standard");
 
             // Check for Google Auth
             const isGoogle = user.app_metadata?.provider === 'google' ||
@@ -32,6 +34,31 @@ export default function AccountPage() {
             setIsGoogleAuth(!!isGoogle);
         }
     }, [user]);
+
+    // Update plan display based on isPremium context which fetches from profiles table
+    useEffect(() => {
+        if (isPremium) {
+            setPlan("Premium");
+        } else {
+            setPlan("Standard");
+        }
+    }, [isPremium]);
+
+    // Handle Stripe redirect - Separate effect
+    useEffect(() => {
+        if (searchParams.get('session_id')) {
+            setMsg({ type: "success", text: "Payment successful! Your account is being upgraded..." });
+
+            // Force strict refresh of user data to get the new 'Premium' claim
+            const refreshUser = async () => {
+                const { error } = await supabase.auth.refreshSession();
+                if (!error) {
+                    router.replace('/account');
+                }
+            };
+            refreshUser();
+        }
+    }, [searchParams, router]);
 
     const handleSave = async () => {
         setLoading(true);
@@ -69,6 +96,38 @@ export default function AccountPage() {
         }
     };
 
+    const handleUpgrade = async () => {
+        setLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error("Please log in to upgrade.");
+            }
+
+            const response = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+            });
+
+            const { url, error } = await response.json();
+
+            if (error) throw new Error(error);
+
+            if (url) {
+                window.location.href = url;
+            } else {
+                throw new Error("Failed to create checkout session");
+            }
+
+        } catch (error: any) {
+            setMsg({ type: "error", text: error.message || "Failed to initiate checkout" });
+            setLoading(false);
+        }
+    };
+
     return (
         <div className={styles.accountLayout}>
             <Sidebar />
@@ -86,6 +145,7 @@ export default function AccountPage() {
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 placeholder="Jane"
+                                autoComplete="given-name"
                             />
                         </div>
 
@@ -96,6 +156,7 @@ export default function AccountPage() {
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                                 placeholder="Doe"
+                                autoComplete="family-name"
                             />
                         </div>
 
@@ -111,8 +172,19 @@ export default function AccountPage() {
 
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Current Plan</label>
-                            <div className={styles.planBadge}>
-                                {plan} Plan
+                            <div className={styles.planContainer}>
+                                <div className={`${styles.planBadge} ${isPremium ? styles.premium : ''}`}>
+                                    {isPremium ? "Premium Member" : `${plan} Plan`}
+                                </div>
+                                {!isPremium && (
+                                    <button
+                                        className={styles.upgradeBtn}
+                                        onClick={handleUpgrade}
+                                        disabled={loading}
+                                    >
+                                        Upgrade to Premium
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

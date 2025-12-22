@@ -7,26 +7,40 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function HistoryPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function fetchHistory() {
-            if (!user) return;
-            const { data, error } = await supabase
-                .from('simulation_results')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
+            if (authLoading) return;
 
-            if (data) {
-                setHistory(data);
+            if (!user) {
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+
+            try {
+                const { data, error } = await supabase
+                    .from('simulation_results')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+
+                if (data) {
+                    setHistory(data);
+                }
+            } catch (error) {
+                console.error("Error fetching history:", error);
+            } finally {
+                setLoading(false);
+            }
         }
         fetchHistory();
-    }, [user]);
+    }, [user, authLoading]);
 
     const getTestTypeLabel = (type: string) => {
         if (!type || type === 'Simulation') return <span className={`${styles.typeBadge} ${styles.typeSimulation}`}>G1 Simulation</span>;

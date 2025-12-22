@@ -14,7 +14,10 @@ export default function Dashboard() {
     // Helper to capitalize
     const formatName = (name: string) => {
         if (!name) return "";
-        return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+        return name
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
     };
 
     const meta = user?.user_metadata || {};

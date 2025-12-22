@@ -11,6 +11,7 @@ interface AuthContextType {
     loginWithEmail: (email: string, password: string) => Promise<any>;
     signupWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<any>;
     logout: () => Promise<void>;
+    isPremium: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -19,24 +20,104 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const [profile, setProfile] = useState<any>(null);
+
     useEffect(() => {
+        let profileSubscription: any = null;
+
         // Check active session
         const getSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            setUser(session?.user ?? null);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+
+            if (currentUser) {
+                // Initial fetch
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                setProfile(data);
+
+                // Setup Realtime subscription
+                profileSubscription = supabase
+                    .channel('profile-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'profiles',
+                            filter: `id=eq.${currentUser.id}`,
+                        },
+                        (payload) => {
+                            console.log('Realtime profile update:', payload);
+                            setProfile(payload.new);
+                        }
+                    )
+                    .subscribe();
+
+            } else {
+                setProfile(null);
+            }
             setLoading(false);
         };
 
         getSession();
 
-        // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
-            setUser(session?.user ?? null);
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+
+            // Clean up previous subscription if exists
+            if (profileSubscription) {
+                supabase.removeChannel(profileSubscription);
+                profileSubscription = null;
+            }
+
+            if (currentUser) {
+                // Fetch profile
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                setProfile(data);
+
+                // Setup Realtime subscription for new user
+                profileSubscription = supabase
+                    .channel('profile-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'profiles',
+                            filter: `id=eq.${currentUser.id}`,
+                        },
+                        (payload) => {
+                            console.log('Realtime profile update:', payload);
+                            setProfile(payload.new);
+                        }
+                    )
+                    .subscribe();
+            } else {
+                setProfile(null);
+            }
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            if (profileSubscription) {
+                supabase.removeChannel(profileSubscription);
+            }
+        };
     }, []);
+
+    const isPremium = profile?.is_premium === true;
 
     const loginWithGoogle = async () => {
         await supabase.auth.signInWithOAuth({
@@ -77,7 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium }}>
             {children}
         </AuthContext.Provider>
     );
