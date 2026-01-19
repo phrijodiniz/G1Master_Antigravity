@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
 import styles from "./account.module.css";
 import Sidebar from "../../components/Sidebar"; // Assuming relative path
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function AccountPage() {
+function AccountContent() {
     const { user, isPremium } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -53,7 +53,7 @@ export default function AccountPage() {
             const refreshUser = async () => {
                 const { error } = await supabase.auth.refreshSession();
                 if (!error) {
-                    router.replace('/account');
+                    window.location.href = '/account';
                 }
             };
             refreshUser();
@@ -61,6 +61,7 @@ export default function AccountPage() {
     }, [searchParams, router]);
 
     const handleSave = async () => {
+        console.log("DEBUG: handleSave started");
         setLoading(true);
         setMsg({ type: "", text: "" });
         try {
@@ -82,7 +83,22 @@ export default function AccountPage() {
                 updates.password = newPassword;
             }
 
-            const { error } = await supabase.auth.updateUser(updates);
+            console.log("DEBUG: Calling supabase.auth.updateUser with", updates);
+
+            // Add a timeout to prevent hanging indefinitely
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Request timed out - check network or Supabase config")), 15000)
+            );
+
+            // Race the update against the timeout
+            const result: any = await Promise.race([
+                supabase.auth.updateUser(updates),
+                timeoutPromise
+            ]);
+
+            const { error } = result;
+
+            console.log("DEBUG: supabase.auth.updateUser returned", result);
 
             if (error) throw error;
 
@@ -90,8 +106,10 @@ export default function AccountPage() {
             setNewPassword("");
             setConfirmPassword("");
         } catch (error: any) {
+            console.error("DEBUG: handleSave error", error);
             setMsg({ type: "error", text: error.message || "Failed to update profile" });
         } finally {
+            console.log("DEBUG: handleSave finally");
             setLoading(false);
         }
     };
@@ -235,5 +253,13 @@ export default function AccountPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AccountPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <AccountContent />
+        </Suspense>
     );
 }

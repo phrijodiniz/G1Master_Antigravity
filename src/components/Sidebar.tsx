@@ -41,6 +41,18 @@ export default function Sidebar() {
                     const Icon = item.icon;
                     const isActive = pathname === item.path ||
                         (item.path === '/study' && (pathname === '/practice' || pathname?.startsWith('/quiz')));
+                    if (item.path === '/history' || item.path === '/dashboard') {
+                        return (
+                            <a
+                                key={item.path}
+                                href={item.path}
+                                className={`${styles.navItem} ${isActive ? styles.active : ""}`}
+                            >
+                                <Icon size={20} />
+                                <span>{item.name}</span>
+                            </a>
+                        );
+                    }
                     return (
                         <Link
                             key={item.path}

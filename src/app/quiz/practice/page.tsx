@@ -11,7 +11,7 @@ import LoginModal from '@/components/LoginModal';
 import ExitModal from '@/components/ExitModal';
 
 function QuizContent() {
-    const { user } = useAuth();
+    const { user, isPremium, practiceCredits, refreshProfile } = useAuth();
     const searchParams = useSearchParams();
     const category = searchParams.get('category'); // e.g., "Rules of the Road"
 
@@ -37,11 +37,18 @@ function QuizContent() {
                 fetchQuestions();
             }
         }
-    }, [user]);
+    }, [user, category]);
 
     async function fetchQuestions() {
         if (!category) return;
         setLoading(true);
+
+        // Check credits
+        if (!isPremium && practiceCredits <= 0) {
+            alert("You have no practice credits remaining. Please upgrade to Premium.");
+            window.location.href = '/dashboard';
+            return;
+        }
 
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -91,18 +98,32 @@ function QuizContent() {
             setResultSaved(true); // Prevent double save
             const saveToDB = async () => {
                 const isRules = category === 'Rules of the Road';
-                await supabase.from('simulation_results').insert({
+                const payload = {
                     user_id: user.id,
                     score: Math.round((score / questions.length) * 100),
                     rules_score: isRules ? score : 0,
                     signs_score: !isRules ? score : 0,
                     passed: score >= 16,
                     test_type: category || 'Practice'
-                });
+                };
+                console.log('Attempting to save result:', payload);
+                const { data, error } = await supabase.from('simulation_results').insert(payload).select();
+
+                if (error) {
+                    console.error('Error saving result:', error);
+                    alert('Error saving result: ' + error.message);
+                } else {
+                    console.log('Result saved successfully:', data);
+
+                    // Consume Credit (Implicit)
+                    if (!isPremium) {
+                        refreshProfile();
+                    }
+                }
             };
             saveToDB();
         }
-    }, [completed, user, category, score, questions.length]);
+    }, [completed, user, category, score, questions.length, isPremium, practiceCredits, refreshProfile]);
 
     const handleNext = (wasCorrect: boolean, selectedIndex: number) => {
         if (wasCorrect) setScore(p => p + 1);
@@ -263,6 +284,7 @@ function QuizContent() {
                             // But if user navigates back, it will be blank. That's acceptable for "Practice" mode usually.
                             // Better: Pass selected if found.
                             selected={userAnswers.find(a => a.question.id === questions[currentindex].id)?.selectedIndex}
+                            onAnswer={() => { }}
                         />
                     </div>
 

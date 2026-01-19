@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import styles from './QuestionCard.module.css';
 
-export default function QuestionCard({ question, onNext, isLast, mode = 'practice', selected, onAnswer }) {
+export default function QuestionCard({ question, onNext, isLast, mode = 'practice', selected, onAnswer, progressLabel }) {
     const [selectedOption, setSelectedOption] = useState(selected ?? null);
     const [isAnswered, setIsAnswered] = useState(selected !== undefined && selected !== null);
 
@@ -40,6 +40,7 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
                 <div className={styles.header}>
                     {/* Category removed for practice as requested */}
                     {question.chapter && <span className={styles.chapter}>Chapter: {question.chapter}</span>}
+                    {progressLabel && <span style={{ fontWeight: 600, color: '#0f172a' }}>{progressLabel}</span>}
                 </div>
             )}
 

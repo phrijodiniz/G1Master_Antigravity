@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 stripe.exe
+
+# local scripts
+test_insert.js
+verify_db.js

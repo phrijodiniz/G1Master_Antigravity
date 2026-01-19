@@ -17,7 +17,7 @@ const formatTime = (seconds: number) => {
 };
 
 function SimulationContent() {
-    const { user } = useAuth();
+    const { user, isPremium, simulationCredits, refreshProfile } = useAuth();
     const [questions, setQuestions] = useState<any[]>([]);
     const [currentindex, setCurrentIndex] = useState(0);
 
@@ -70,9 +70,17 @@ function SimulationContent() {
             setLoading(false);
         } else {
             setShowLoginModal(false);
-            if (questions.length === 0 && !completed) fetchExamQuestions();
+            if (questions.length === 0 && !completed) {
+                // Check credits
+                if (!isPremium && simulationCredits <= 0) {
+                    alert("You have no simulation credits remaining. Please upgrade to Premium.");
+                    window.location.href = '/dashboard';
+                    return;
+                }
+                fetchExamQuestions();
+            }
         }
-    }, [user]);
+    }, [user, isPremium, simulationCredits]);
 
     // Prevent save on exit
     const isExiting = useRef(false);
@@ -132,10 +140,15 @@ function SimulationContent() {
                     passed: passedOverall,
                     test_type: 'Simulation'
                 });
+
+                // Consume credit (Implicit via insert)
+                if (!isPremium) {
+                    refreshProfile();
+                }
             };
             save();
         }
-    }, [completed, user, resultSaved, questions, answers]);
+    }, [completed, user, resultSaved, questions, answers, isPremium, simulationCredits, refreshProfile]);
 
 
     const handleAnswer = (isCorrect: boolean, selectedIndex: number) => {

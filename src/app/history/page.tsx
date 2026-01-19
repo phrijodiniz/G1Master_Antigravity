@@ -12,11 +12,13 @@ export default function HistoryPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let mounted = true;
+
         async function fetchHistory() {
             if (authLoading) return;
 
             if (!user) {
-                setLoading(false);
+                if (mounted) setLoading(false);
                 return;
             }
 
@@ -30,16 +32,20 @@ export default function HistoryPage() {
 
                 if (error) throw error;
 
-                if (data) {
+                if (mounted && data) {
                     setHistory(data);
                 }
             } catch (error) {
                 console.error("Error fetching history:", error);
             } finally {
-                setLoading(false);
+                if (mounted) setLoading(false);
             }
         }
         fetchHistory();
+
+        return () => {
+            mounted = false;
+        };
     }, [user, authLoading]);
 
     const getTestTypeLabel = (type: string) => {

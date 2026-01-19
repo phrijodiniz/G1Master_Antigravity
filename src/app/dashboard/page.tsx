@@ -10,7 +10,7 @@ import { Clock, Book, Video, FileText, Car } from "lucide-react";
 import Link from "next/link";
 
 export default function Dashboard() {
-    const { user } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits } = useAuth();
     // Helper to capitalize
     const formatName = (name: string) => {
         if (!name) return "";
@@ -59,8 +59,11 @@ export default function Dashboard() {
                         <h2 className={styles.sectionTitle}>How do you feel like studying today?</h2>
                         <div className={styles.actionCardsGrid}>
                             <div className={styles.actionCard}>
-                                <div className={styles.cardIcon}>
-                                    <FileText size={48} strokeWidth={1.5} />
+                                <div className={styles.cardHeader}>
+                                    <div className={styles.cardIcon}>
+                                        <FileText size={48} strokeWidth={1.5} />
+                                    </div>
+
                                 </div>
                                 <h3 className={styles.actionTitle}>Practice Tests</h3>
                                 <p className={styles.actionSubtitle}>Build confidence at your own pace.</p>
@@ -70,11 +73,19 @@ export default function Dashboard() {
                                 <Link href="/practice">
                                     <button className={styles.actionBtn}>Practice Now</button>
                                 </Link>
+                                {!isPremium && user && (
+                                    <p className={styles.creditText}>
+                                        You have {practiceCredits} practice test {practiceCredits === 1 ? 'credit' : 'credits'} left
+                                    </p>
+                                )}
                             </div>
 
                             <div className={styles.actionCard}>
-                                <div className={styles.cardIcon}>
-                                    <Car size={48} strokeWidth={1.5} />
+                                <div className={styles.cardHeader}>
+                                    <div className={styles.cardIcon}>
+                                        <Car size={48} strokeWidth={1.5} />
+                                    </div>
+
                                 </div>
                                 <h3 className={styles.actionTitle}>G1 Test Simulation</h3>
                                 <p className={styles.actionSubtitle}>Test yourself just like the real exam.</p>
@@ -84,6 +95,11 @@ export default function Dashboard() {
                                 <Link href="/quiz/simulation">
                                     <button className={styles.actionBtn}>Take a Full Test</button>
                                 </Link>
+                                {!isPremium && user && (
+                                    <p className={styles.creditText}>
+                                        You have {simulationCredits} simulation {simulationCredits === 1 ? 'credit' : 'credits'} left
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -126,12 +142,7 @@ function TestHistoryTable() {
                 .limit(10);
 
             if (data) {
-                // TEMP: Mock data to ensure 10 items are shown for visualization if user has few tests
-                let allData = [...data];
-                while (allData.length > 0 && allData.length < 10) {
-                    allData = [...allData, ...data].slice(0, 10);
-                }
-                setHistory(allData);
+                setHistory(data);
             }
         }
         fetchHistory();

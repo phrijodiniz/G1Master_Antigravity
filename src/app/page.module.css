@@ -1,15 +1,283 @@
 .main {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   min-height: 100vh;
-  padding: 1rem;
+  padding: 0;
   width: 100%;
+}
+
+.nav {
+  width: 100%;
+  background-color: #000000;
+  color: #ffffff;
+  padding: 1.2rem 3rem;
+  /* Reduced by 20% from 1.5rem */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.hero {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: left;
+  padding: 4rem 2rem;
+  width: 100%;
+  max-width: 100%;
+  background-image: url('/hero-bg.png');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.heroContainer {
+  width: 100%;
+  max-width: 1400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  justify-content: center;
+}
+
+.heroContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  z-index: 2;
+}
+
+.heroImageWrapper {
+  flex: 1;
+  width: 100%;
+  max-width: 800px;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+}
+
+.heroImageWrapper img {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 1024px) {
+  .heroContainer {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
+
+  .heroContent {
+    max-width: 50%;
+    flex: 0 0 50%;
+    padding-right: 0;
+  }
+
+  .heroImageWrapper {
+    max-width: 50%;
+    flex: 0 0 50%;
+  }
+}
+
+.quizSection {
+  background-color: #0a0a0a;
+  width: 100%;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top: 4px solid #D4FF00;
+}
+
+/* Ensure text is readable - maybe add a slight overlay if needed, 
+   but user provided a pre-faded image or requested specific look. 
+   The provided image 1 looks faded gray. */
+
+.heroTitle {
+  font-size: 5.0rem;
+  /* Reduced size */
+  font-weight: 1000;
+  line-height: 1.0;
+  color: #000000;
+  /* Changed to Black */
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  padding-top: 2rem;
+  /* Added padding as requested */
+  max-width: 100%;
+  /* Allow full width */
+  font-family: var(--font-poppins), sans-serif;
+  /* Applied Poppins */
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  color: #333;
+  color: #333;
+  margin-bottom: 2rem;
+  max-width: 90%;
+  /* Adjusted to 80% as requested */
+  line-height: 1.5;
+  font-weight: 400;
+  font-family: var(--font-poppins), sans-serif;
+  /* Applied Poppins */
+}
+
+.heroTrustText {
+  font-size: 0.9rem;
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.ctaBtn {
+  background-color: #D4FF00;
+  /* Bright Neon Yellow/Lime */
+  color: black;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ctaBtn:hover {
+  transform: scale(1.05);
+}
+
+.section {
+  width: 100%;
+  max-width: 1200px;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.quizCard {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.optionBtn {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: inherit;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.optionBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.primaryBtn {
+  background: var(--primary, #0070f3);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.primaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 112, 243, 0.4);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  width: 100%;
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+}
+
+.featureCard {
+  padding: 2.5rem;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.featureCard:hover {
+  transform: translateY(-8px);
+  background: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.microcopy {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.6;
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .featuresGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.testimonialCard {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  font-style: italic;
 }
 
 @media (min-width: 768px) {
   .main {
-    padding: 2rem;
+    padding: 0;
   }
 }

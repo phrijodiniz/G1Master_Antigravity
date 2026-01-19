@@ -12,6 +12,9 @@ interface AuthContextType {
     signupWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<any>;
     logout: () => Promise<void>;
     isPremium: boolean;
+    practiceCredits: number;
+    simulationCredits: number;
+    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -21,24 +24,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     const [profile, setProfile] = useState<any>(null);
+    const [calcPracticeCredits, setCalcPracticeCredits] = useState(5);
+    const [calcSimulationCredits, setCalcSimulationCredits] = useState(1);
 
     useEffect(() => {
         let profileSubscription: any = null;
 
         // Check active session
         const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) {
+                console.error("Error getting session:", error);
+                await supabase.auth.signOut();
+                setLoading(false);
+                return;
+            }
             const currentUser = session?.user ?? null;
             setUser(currentUser);
 
             if (currentUser) {
-                // Initial fetch
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-                setProfile(data);
+                await fetchProfile(currentUser.id);
 
                 // Setup Realtime subscription
                 profileSubscription = supabase
@@ -78,31 +83,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             if (currentUser) {
-                // Fetch profile
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-                setProfile(data);
-
-                // Setup Realtime subscription for new user
-                profileSubscription = supabase
-                    .channel('profile-changes')
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'profiles',
-                            filter: `id=eq.${currentUser.id}`,
-                        },
-                        (payload) => {
-                            console.log('Realtime profile update:', payload);
-                            setProfile(payload.new);
-                        }
-                    )
-                    .subscribe();
+                // Do not await here to avoid blocking auth state changes
+                fetchProfile(currentUser.id).then(() => {
+                    // Setup Realtime subscription for new user
+                    profileSubscription = supabase
+                        .channel('profile-changes')
+                        .on(
+                            'postgres_changes',
+                            {
+                                event: 'UPDATE',
+                                schema: 'public',
+                                table: 'profiles',
+                                filter: `id=eq.${currentUser.id}`,
+                            },
+                            (payload) => {
+                                console.log('Realtime profile update:', payload);
+                                setProfile(payload.new);
+                            }
+                        )
+                        .subscribe();
+                });
             } else {
                 setProfile(null);
             }
@@ -117,7 +117,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
     }, []);
 
+    const fetchProfile = async (userId: string) => {
+        // Fetch Profile
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+        setProfile(profileData);
+
+        // Fetch Usage History
+        const { count: simCount } = await supabase
+            .from('simulation_results')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('test_type', 'Simulation');
+
+        const { count: practiceCount } = await supabase
+            .from('simulation_results')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .neq('test_type', 'Simulation');
+
+        setCalcSimulationCredits(Math.max(0, 1 - (simCount || 0)));
+        setCalcPracticeCredits(Math.max(0, 5 - (practiceCount || 0)));
+    };
+
     const isPremium = profile?.is_premium === true;
+    const practiceCredits = calcPracticeCredits;
+    const simulationCredits = calcSimulationCredits;
+
+    const refreshProfile = async () => {
+        if (user) {
+            await fetchProfile(user.id);
+        }
+    };
 
     const loginWithGoogle = async () => {
         await supabase.auth.signInWithOAuth({
@@ -158,7 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, practiceCredits, simulationCredits, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 import { useAuth } from '@/context/AuthContext';
 import LoginModal from '@/components/LoginModal';
 import { useRouter } from 'next/navigation';
+import QuizDemo from '@/components/QuizDemo';
 
 export default function Home() {
     const { user } = useAuth();
@@ -32,73 +33,180 @@ export default function Home() {
     return (
         <main className={styles.main}>
             {/* Nav Header */}
-            <nav style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '1.5rem 3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+            <nav className={styles.nav}>
                 <div>
-                    <Image src="/G1MasterApp_Logo.png" alt="G1 Master Logo" width={150} height={150} style={{ width: 'auto', height: '40px' }} />
+                    <Image src="/logo-new.png" alt="G1 Master Logo" width={225} height={225} style={{ width: 'auto', height: '63px' }} />
                 </div>
-                <button
-                    onClick={() => setShowLoginModal(true)}
-                    style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'white', padding: '0.5rem 1.2rem', borderRadius: '20px', cursor: 'pointer' }}
-                >
-                    Log In
-                </button>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button
+                        onClick={() => setShowLoginModal(true)}
+                        style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', opacity: 0.9, fontSize: '1.1rem', fontWeight: '500' }}
+                    >
+                        Log In
+                    </button>
+                    <button
+                        onClick={() => setShowLoginModal(true)}
+                        style={{ background: 'white', color: 'black', padding: '0.8rem 1.8rem', borderRadius: '30px', cursor: 'pointer', border: 'none', fontWeight: 'bold', fontSize: '1.1rem' }}
+                    >
+                        Start Free
+                    </button>
+                </div>
             </nav>
 
             <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
 
             {/* Hero Section */}
-            <div className="glass-panel" style={{ padding: '4rem', textAlign: 'center', maxWidth: '900px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <h1 style={{
-                    fontSize: '4rem',
-                    marginBottom: '1.5rem',
-                    fontWeight: 800,
-                    lineHeight: 1.1
-                }}>
-                    Pass Your <span style={{ color: 'var(--primary)' }}>G1 Test</span><br />
-                    The First Time.
-                </h1>
+            <section className={styles.hero}>
+                <div className={styles.heroContainer}>
+                    <div className={styles.heroContent}>
+                        <h1 className={styles.heroTitle}>
+                            The Smartest Way to Pass Your G1 Test.<br />
+                        </h1>
 
-                <p style={{ fontSize: '1.25rem', opacity: 0.8, marginBottom: '3rem', maxWidth: '600px', lineHeight: 1.6 }}>
-                    Master the Ontario rules of the road with unlimited practice tests, timed simulations, and chapter-by-chapter breakdowns.
+                        <p className={styles.heroSubtitle}>
+                            Join thousands of Ontario drivers who prepared for their G1 Knowledge Test with endless exam-style practice tests created from the Official MTO Handbook.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                            <button
+                                onClick={() => {
+                                    const quizSection = document.getElementById('quiz-section');
+                                    if (quizSection) quizSection.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className={styles.ctaBtn}
+                            >
+                                Start Practicing Now
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const featuresSection = document.getElementById('features');
+                                    if (featuresSection) featuresSection.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                style={{
+                                    background: 'transparent',
+                                    border: '2px solid white',
+                                    color: 'white',
+                                    padding: '1rem 2rem',
+                                    borderRadius: '50px',
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                How It Works
+                            </button>
+                        </div>
+                        <p className={styles.heroTrustText}>
+                            Real Exam-Style Questions · Pass Guaranteed · Free Sign-Up
+                        </p>
+                    </div>
+
+                    <div className={styles.heroImageWrapper}>
+                        <Image
+                            src="/hero-product-shot-v2.png"
+                            alt="G1 Master App Interface"
+                            width={1024}
+                            height={1024}
+                            style={{ width: '100%', height: 'auto' }}
+                            priority
+                        />
+                    </div>
+                </div>
+            </section>
+
+            {/* Quiz Section */}
+            <section id="quiz-section" className={styles.quizSection}>
+                <div style={{ textAlign: 'center', marginBottom: '3rem', maxWidth: '1200px' }}>
+                    <h2 style={{ fontSize: '4.0rem', marginBottom: '1rem', color: 'white' }}>
+                        Start Your FREE 2025 Ontario G1 Practice Test Now
+                    </h2>
+                    <p style={{ fontSize: '1.3rem', opacity: 0.8, color: '#cccccc' }}>
+                        Take a quick 10-question quiz based on the official MTO handbook and check your readiness in minutes.
+                    </p>
+                </div>
+                <QuizDemo onUnlock={() => setShowLoginModal(true)} />
+            </section>
+
+            {/* Features Section */}
+            <section id="features" className={styles.section} style={{ background: '#f6f6f6', color: '#000000', width: '100%', maxWidth: '100%' }}>
+                <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <h2 style={{ textAlign: 'center', fontSize: '2.5rem', marginBottom: '1rem' }}>Why G1 Master?</h2>
+                    <p style={{ textAlign: 'center', opacity: 0.7, maxWidth: '600px' }}>The smartest way to prepare for your Ontario DriveTest.</p>
+
+                    <div className={styles.featuresGrid}>
+                        <div className={styles.featureCard}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🛡️</div>
+                            <h3 style={{ marginBottom: '0.8rem', fontSize: '1.4rem' }}>Pass Your G1 With Confidence</h3>
+                            <p style={{ fontSize: '1rem', opacity: 0.8, lineHeight: 1.6 }}>
+                                Practice real G1-style questions so you feel calm, prepared, and confident on test day.
+                            </p>
+                        </div>
+                        <div className={styles.featureCard}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🚗</div>
+                            <h3 style={{ marginBottom: '0.8rem', fontSize: '1.4rem' }}>Never Run Out of Practice</h3>
+                            <p style={{ fontSize: '1rem', opacity: 0.8, lineHeight: 1.6 }}>
+                                Access 700+ official handbook questions with endlessly fresh practice tests.
+                            </p>
+                        </div>
+                        <div className={styles.featureCard}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📈</div>
+                            <h3 style={{ marginBottom: '0.8rem', fontSize: '1.4rem' }}>Know When You’re Ready</h3>
+                            <p style={{ fontSize: '1rem', opacity: 0.8, lineHeight: 1.6 }}>
+                                Track your progress and instantly see what to improve before the real exam.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '1rem' }}>
+                        <button
+                            onClick={() => setShowLoginModal(true)}
+                            className={styles.ctaBtn}
+                            style={{ padding: '1.2rem 3rem', fontSize: '1.2rem' }}
+                        >
+                            Create a Free Account
+                        </button>
+                        <p className={styles.microcopy}>Start practicing instantly — no credit card required.</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Social Proof / Testimonials */}
+            <section className={styles.section}>
+                <h2 style={{ fontSize: '2rem', marginBottom: '3rem' }}>Join thousands of new drivers</h2>
+                <div className={styles.grid} style={{ marginTop: 0 }}>
+                    <div className={styles.testimonialCard}>
+                        <p style={{ marginBottom: '1rem' }}>"I failed my G1 twice before finding this app. The simulation mode is exactly like the real thing. Passed with 100%!"</p>
+                        <strong style={{ display: 'block', opacity: 0.9 }}>— Sarah J., Toronto</strong>
+                    </div>
+                    <div className={styles.testimonialCard}>
+                        <p style={{ marginBottom: '1rem' }}>"The chapter breakdowns helped me understand the rules, not just memorize answers. Highly recommend."</p>
+                        <strong style={{ display: 'block', opacity: 0.9 }}>— Mike T., Ottawa</strong>
+                    </div>
+                    <div className={styles.testimonialCard}>
+                        <p style={{ marginBottom: '1rem' }}>"Worth every penny. The progress tracking gave me the confidence I needed to finally book my test."</p>
+                        <strong style={{ display: 'block', opacity: 0.9 }}>— Priya K., Brampton</strong>
+                    </div>
+                </div>
+            </section>
+
+            {/* Final CTA */}
+            <section className={styles.section} style={{ padding: '6rem 2rem', textAlign: 'center' }}>
+                <h2 style={{ fontSize: '3rem', marginBottom: '1rem' }}>Don't Risk Failing.</h2>
+                <p style={{ fontSize: '1.2rem', opacity: 0.7, marginBottom: '2rem', maxWidth: '600px' }}>
+                    Re-taking the test costs time and money. Prepare with G1 Master and pass on your first try.
                 </p>
-
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                    <button
-                        onClick={() => setShowLoginModal(true)}
-                        className="btn-primary"
-                        style={{
-                            fontSize: '1.2rem',
-                            padding: '1rem 2.5rem',
-                            boxShadow: '0 0 30px rgba(225, 255, 33, 0.3)'
-                        }}
-                    >
-                        Start Practicing Free
-                    </button>
-                </div>
-
-                {/* Features Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', marginTop: '4rem', width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '3rem' }}>
-                    <div>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📚</div>
-                        <h3 style={{ marginBottom: '0.5rem' }}>Chapter Study</h3>
-                        <p style={{ fontSize: '0.9rem', opacity: 0.6 }}>Focus on individual sections of the handbook.</p>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏱️</div>
-                        <h3 style={{ marginBottom: '0.5rem' }}>Exam Simulation</h3>
-                        <p style={{ fontSize: '0.9rem', opacity: 0.6 }}>Real-time 40 question tests with time tracking.</p>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📈</div>
-                        <h3 style={{ marginBottom: '0.5rem' }}>Progress Tracking</h3>
-                        <p style={{ fontSize: '0.9rem', opacity: 0.6 }}>See your scores improve and know when you're ready.</p>
-                    </div>
-                </div>
-            </div>
+                <button
+                    onClick={() => setShowLoginModal(true)}
+                    className={styles.primaryBtn}
+                    style={{ fontSize: '1.2rem', padding: '1rem 3rem' }}
+                >
+                    Create Free Account
+                </button>
+            </section>
 
             {/* Footer */}
-            <div style={{ marginTop: 'auto', padding: '2rem', opacity: 0.4, fontSize: '0.8rem' }}>
-                &copy; {new Date().getFullYear()} G1 Master App. Unofficial study aid.
+            <div style={{ padding: '2rem', opacity: 0.4, fontSize: '0.8rem', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.1)', width: '100%' }}>
+                &copy; {new Date().getFullYear()} G1 Master App. Unofficial study aid. Not affiliated with the MTO.
             </div>
         </main>
     );

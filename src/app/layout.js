@@ -17,12 +17,14 @@ export const metadata = {
 };
 
 import { AuthProvider } from "@/context/AuthContext";
+import LockedOverlay from "@/components/LockedOverlay";
 
 export default function RootLayout({ children }) {
     return (
         <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning={true}>
             <body suppressHydrationWarning={true}>
                 <AuthProvider>
+                    <LockedOverlay />
                     {children}
                 </AuthProvider>
             </body>
