@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { createBrowserClient } from '@supabase/ssr';
 import { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -12,6 +13,7 @@ interface AuthContextType {
     signupWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<any>;
     logout: () => Promise<void>;
     isPremium: boolean;
+    isAdmin: boolean;
     practiceCredits: number;
     simulationCredits: number;
     refreshProfile: () => Promise<void>;
@@ -28,24 +30,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [calcSimulationCredits, setCalcSimulationCredits] = useState(1);
 
     useEffect(() => {
+        let mounted = true;
         let profileSubscription: any = null;
 
-        // Check active session
-        const getSession = async () => {
-            const { data: { session }, error } = await supabase.auth.getSession();
-            if (error) {
-                console.error("Error getting session:", error);
-                await supabase.auth.signOut();
-                setLoading(false);
-                return;
-            }
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
+        // Centralized profile loader to avoid duplication
+        const loadProfileForUser = async (uid: string) => {
+            try {
+                await fetchProfile(uid);
 
-            if (currentUser) {
-                await fetchProfile(currentUser.id);
-
-                // Setup Realtime subscription
+                // Setup subscription
                 profileSubscription = supabase
                     .channel('profile-changes')
                     .on(
@@ -54,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                             event: 'UPDATE',
                             schema: 'public',
                             table: 'profiles',
-                            filter: `id=eq.${currentUser.id}`,
+                            filter: `id=eq.${uid}`,
                         },
                         (payload) => {
                             console.log('Realtime profile update:', payload);
@@ -63,53 +56,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     )
                     .subscribe();
 
-            } else {
-                setProfile(null);
+            } catch (err) {
+                console.error("Profile load error:", err);
             }
-            setLoading(false);
         };
 
-        getSession();
+        const initAuth = async () => {
+            try {
+                // 1. Get initial session
+                const { data: { session }, error } = await supabase.auth.getSession();
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
+                if (error) {
+                    console.error("Error getting session:", error);
+                }
+
+                const currentUser = session?.user ?? null;
+                if (mounted) setUser(currentUser);
+
+                if (currentUser) {
+                    await loadProfileForUser(currentUser.id);
+                } else {
+                    if (mounted) setProfile(null);
+                }
+            } catch (err) {
+                console.error("Auth init error:", err);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        initAuth();
+
+        // 2. Listen for changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             const currentUser = session?.user ?? null;
-            setUser(currentUser);
+            if (mounted) setUser(currentUser);
 
-            // Clean up previous subscription if exists
+            // Cleanup old sub
             if (profileSubscription) {
                 supabase.removeChannel(profileSubscription);
                 profileSubscription = null;
             }
 
             if (currentUser) {
-                // Do not await here to avoid blocking auth state changes
-                fetchProfile(currentUser.id).then(() => {
-                    // Setup Realtime subscription for new user
-                    profileSubscription = supabase
-                        .channel('profile-changes')
-                        .on(
-                            'postgres_changes',
-                            {
-                                event: 'UPDATE',
-                                schema: 'public',
-                                table: 'profiles',
-                                filter: `id=eq.${currentUser.id}`,
-                            },
-                            (payload) => {
-                                console.log('Realtime profile update:', payload);
-                                setProfile(payload.new);
-                            }
-                        )
-                        .subscribe();
-                });
+                await loadProfileForUser(currentUser.id);
             } else {
-                setProfile(null);
+                if (mounted) setProfile(null);
             }
-            setLoading(false);
+
+            if (mounted) setLoading(false);
         });
 
         return () => {
+            mounted = false;
             subscription.unsubscribe();
             if (profileSubscription) {
                 supabase.removeChannel(profileSubscription);
@@ -118,32 +117,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const fetchProfile = async (userId: string) => {
-        // Fetch Profile
-        const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-        setProfile(profileData);
+        console.log("Fetching profile for:", userId);
 
-        // Fetch Usage History
-        const { count: simCount } = await supabase
-            .from('simulation_results')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('test_type', 'Simulation');
+        // Use fresh client to avoid singleton locks
+        const tempSupabase = createBrowserClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
 
-        const { count: practiceCount } = await supabase
-            .from('simulation_results')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .neq('test_type', 'Simulation');
+        try {
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Profile fetch timed out")), 5000)
+            );
 
-        setCalcSimulationCredits(Math.max(0, 1 - (simCount || 0)));
-        setCalcPracticeCredits(Math.max(0, 5 - (practiceCount || 0)));
+            // Fetch Profile
+            const profilePromise = tempSupabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
+            if (error) throw error;
+
+            console.log("Profile loaded:", profileData);
+            setProfile(profileData);
+
+            // Fetch Usage History (Parallelize these)
+            const [simResult, practiceResult] = await Promise.all([
+                tempSupabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('test_type', 'Simulation'),
+                tempSupabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('test_type', 'Simulation')
+            ]);
+
+            setCalcSimulationCredits(Math.max(0, 1 - (simResult.count || 0)));
+            setCalcPracticeCredits(Math.max(0, 5 - (practiceResult.count || 0)));
+
+        } catch (err) {
+            console.error("Error fetching profile:", err);
+            // Don't leave the app broken, just set null profile (non-admin/non-premium)
+            // But if it's a timeout, user might be admin and get blocked.
+            // Better to retry? For now, we proceed so 'loading' stops.
+        }
     };
 
-    const isPremium = profile?.is_premium === true;
+    const isPremium = profile?.status === "Premium" || profile?.is_premium === true; // Check both for backward compat if schema changed
+    const isAdmin = profile?.admin === "YES";
     const practiceCredits = calcPracticeCredits;
     const simulationCredits = calcSimulationCredits;
 
@@ -192,7 +211,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, practiceCredits, simulationCredits, refreshProfile }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

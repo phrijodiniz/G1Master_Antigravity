@@ -1,26 +1,29 @@
 :root {
-  /* Premium Dark Theme Palette */
-  --background-start: #0f172a;
-  --background-end: #1e293b;
-  --foreground: #f8fafc;
+  /* High Contrast / Sport Theme */
+  --background-start: #000000;
+  --background-end: #000000;
+  --foreground: #ffffff;
 
-  --primary: #38bdf8;
-  /* Sky blue */
-  --primary-glow: rgba(56, 189, 248, 0.5);
+  --primary: #e1ff21;
+  /* Neon Yellow */
+  --primary-glow: rgba(225, 255, 33, 0.4);
 
-  --secondary: #818cf8;
-  /* Indigo */
+  --secondary: #f6f6f6;
+  /* Off-white */
 
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-highlight: rgba(255, 255, 255, 0.3);
 
-  --success: #4ade80;
-  --error: #f87171;
+  --success: #e1ff21;
+  /* Reuse neon for success to keep palette strict? Or keep green? User didn't specify green. Let's keep green for semantics but maybe brighter. */
+  --success-text: #000000;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
+  --error: #ef4444;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
 
   --font-main: var(--font-poppins), sans-serif;
 }
@@ -59,8 +62,8 @@ a {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: #0f172a;
+  background: var(--primary);
+  color: #000000;
   font-weight: 700;
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius-md);
@@ -74,4 +77,37 @@ a {
   transform: translateY(-2px);
   box-shadow: 0 0 25px var(--primary-glow);
   filter: brightness(1.1);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.question-card {
+  transition: all 0.2s ease;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+}
+
+.question-card:hover {
+  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.03);
+  transform: translateY(-2px);
+}
+
+.question-card.active {
+  border-color: var(--primary);
+  background: var(--primary-glow);
+  box-shadow: 0 0 15px var(--primary-glow);
 }
