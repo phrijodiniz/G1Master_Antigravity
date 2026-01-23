@@ -1,0 +1,35 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+    background: #f6f6f6;
+    color: #0f172a;
+}
+
+.mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    transition: padding-left 0.3s ease;
+}
+
+/* Desktop: Add padding to account for fixed sidebar */
+@media (min-width: 1024px) {
+    .mainContent {
+        padding-left: 280px;
+    }
+}
+
+.contentInner {
+    flex: 1;
+    padding: 1.5rem;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.contentInnerFull {
+    flex: 1;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+}

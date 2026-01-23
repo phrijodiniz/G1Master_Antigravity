@@ -2,9 +2,12 @@
 
 import { useAuth } from "@/context/AuthContext";
 import styles from "./TopBar.module.css";
+import { useSidebar } from "./DashboardLayout";
+import { Menu } from "lucide-react";
 
 export default function TopBar() {
     const { user } = useAuth();
+    const { toggleSidebar } = useSidebar();
 
     // Get display name or part of email
     // Helper
@@ -24,16 +27,11 @@ export default function TopBar() {
         displayName = user.email.split('@')[0];
     }
 
-    // Get initials
-    const initials = displayName
-        .split(' ')
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-
     return (
         <div className={styles.topbar}>
+            <button className={styles.hamburger} onClick={toggleSidebar}>
+                <Menu size={24} />
+            </button>
             <div></div>
 
             {/* User profile removed as per request */}

@@ -11,6 +11,44 @@
     top: 0;
     z-index: 50;
     font-family: var(--font-main);
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Mobile Sidebar Logic */
+@media (max-width: 1024px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebarOpen {
+        transform: translateX(0);
+        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Overlay for Mobile */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.overlay.open {
+    display: block;
+    opacity: 1;
+}
+
+@media (min-width: 1024px) {
+    .overlay {
+        display: none !important;
+    }
 }
 
 .logoContainer {

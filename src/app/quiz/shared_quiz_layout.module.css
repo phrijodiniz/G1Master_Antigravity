@@ -6,11 +6,11 @@
 }
 
 .mainWrapper {
-    margin-left: 280px;
     flex: 1;
     display: flex;
     flex-direction: column;
     /* Main wrapper takes full remaining width */
+    width: 100%;
 }
 
 .header {
@@ -170,4 +170,32 @@
     text-align: left;
     color: #0f172a;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 1024px) {
+    .contentGrid {
+        grid-template-columns: 1fr;
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .header {
+        padding: 1rem 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .navigatorCard {
+        position: static;
+        width: 100%;
+    }
+
+    .stats {
+        gap: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .title {
+        font-size: 1.2rem;
+    }
 }

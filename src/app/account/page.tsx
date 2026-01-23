@@ -3,9 +3,9 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
 import styles from "./account.module.css";
-import Sidebar from "../../components/Sidebar"; // Assuming relative path
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
+import DashboardLayout from "@/components/DashboardLayout";
 
 function AccountContent() {
     const { user, isPremium } = useAuth();
@@ -146,113 +146,115 @@ function AccountContent() {
         }
     };
 
+
+
+    // ... existing imports ...
+
+    // ... inside AccountContent ...
     return (
-        <div className={styles.accountLayout}>
-            <Sidebar />
-            <div className={styles.contentWrapper}>
-                <h1 className={styles.title}>Account Settings</h1>
+        <DashboardLayout>
+            <h1 className={styles.title}>Account Settings</h1>
 
-                <div className={styles.card}>
-                    <h2 className={styles.sectionTitle}>Personal Information</h2>
+            <div className={styles.card}>
+                <h2 className={styles.sectionTitle}>Personal Information</h2>
 
+                <div className={styles.formGrid}>
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>First Name</label>
+                        <input
+                            className={styles.input}
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="Jane"
+                            autoComplete="given-name"
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Last Name</label>
+                        <input
+                            className={styles.input}
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="Doe"
+                            autoComplete="family-name"
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Email Address</label>
+                        <input
+                            className={`${styles.input} ${styles.inputDisabled}`}
+                            value={email}
+                            disabled
+                            readOnly
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Current Plan</label>
+                        <div className={styles.planContainer}>
+                            <div className={`${styles.planBadge} ${isPremium ? styles.premium : ''}`}>
+                                {isPremium ? "Premium Member" : `${plan} Plan`}
+                            </div>
+                            {!isPremium && (
+                                <button
+                                    className={styles.upgradeBtn}
+                                    onClick={handleUpgrade}
+                                    disabled={loading}
+                                >
+                                    Upgrade to Premium
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <h2 className={styles.sectionTitle} style={{ marginTop: '2rem' }}>Security</h2>
+
+                {isGoogleAuth ? (
+                    <div className={styles.infoMessage}>
+                        You signed in using Google. To change your password, please visit your Google Account settings.
+                    </div>
+                ) : (
                     <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>First Name</label>
+                            <label className={styles.label}>New Password</label>
                             <input
                                 className={styles.input}
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                placeholder="Jane"
-                                autoComplete="given-name"
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="New Password"
                             />
                         </div>
 
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Last Name</label>
+                            <label className={styles.label}>Confirm Password</label>
                             <input
                                 className={styles.input}
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                placeholder="Doe"
-                                autoComplete="family-name"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="Confirm New Password"
                             />
                         </div>
-
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Email Address</label>
-                            <input
-                                className={`${styles.input} ${styles.inputDisabled}`}
-                                value={email}
-                                disabled
-                                readOnly
-                            />
-                        </div>
-
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Current Plan</label>
-                            <div className={styles.planContainer}>
-                                <div className={`${styles.planBadge} ${isPremium ? styles.premium : ''}`}>
-                                    {isPremium ? "Premium Member" : `${plan} Plan`}
-                                </div>
-                                {!isPremium && (
-                                    <button
-                                        className={styles.upgradeBtn}
-                                        onClick={handleUpgrade}
-                                        disabled={loading}
-                                    >
-                                        Upgrade to Premium
-                                    </button>
-                                )}
-                            </div>
-                        </div>
                     </div>
+                )}
 
-                    <h2 className={styles.sectionTitle} style={{ marginTop: '2rem' }}>Security</h2>
-
-                    {isGoogleAuth ? (
-                        <div className={styles.infoMessage}>
-                            You signed in using Google. To change your password, please visit your Google Account settings.
-                        </div>
-                    ) : (
-                        <div className={styles.formGrid}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>New Password</label>
-                                <input
-                                    className={styles.input}
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="New Password"
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Confirm Password</label>
-                                <input
-                                    className={styles.input}
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder="Confirm New Password"
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    <div className={styles.buttonGroup}>
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
-                            {loading ? "Saving..." : "Save Changes"}
-                        </button>
-                    </div>
-
-                    {msg.text && (
-                        <div className={msg.type === 'success' ? styles.successMessage : styles.errorMessage}>
-                            {msg.text}
-                        </div>
-                    )}
+                <div className={styles.buttonGroup}>
+                    <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
+                        {loading ? "Saving..." : "Save Changes"}
+                    </button>
                 </div>
+
+                {msg.text && (
+                    <div className={msg.type === 'success' ? styles.successMessage : styles.errorMessage}>
+                        {msg.text}
+                    </div>
+                )}
             </div>
-        </div>
+        </DashboardLayout>
     );
 }
 

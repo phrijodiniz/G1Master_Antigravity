@@ -36,13 +36,11 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
     return (
         <div className={styles.card}>
             {/* Headers ... (omitted for brevity in replacement if unchanged, keeping context) */}
-            {mode !== 'simulation' && (
-                <div className={styles.header}>
-                    {/* Category removed for practice as requested */}
-                    {question.chapter && <span className={styles.chapter}>Chapter: {question.chapter}</span>}
-                    {progressLabel && <span style={{ fontWeight: 600, color: '#0f172a' }}>{progressLabel}</span>}
-                </div>
-            )}
+            <div className={styles.header}>
+                {/* Category removed for practice as requested */}
+                {question.chapter && <span className={styles.chapter}>Chapter: {question.chapter}</span>}
+                {progressLabel && <span style={{ fontWeight: 600, color: '#0f172a' }}>{progressLabel}</span>}
+            </div>
 
             <h3 className={styles.questionText}>{question.text}</h3>
 

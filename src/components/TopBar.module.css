@@ -2,8 +2,35 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem 0;
+    padding: 1rem 1.5rem;
     margin-bottom: 2rem;
+    background: #0f172a;
+    /* Black background for contrast */
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.hamburger {
+    display: flex;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.5rem;
+    margin-right: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .hamburger {
+        display: none;
+    }
+
+    .topbar {
+        background: transparent;
+        box-shadow: none;
+        color: inherit;
+        padding: 1.5rem 0;
+    }
 }
 
 .searchContainer {

@@ -1,0 +1,164 @@
+.section {
+    width: 100%;
+    background-color: #000000;
+    /* Black background */
+    color: #ffffff;
+    /* White text for high contrast */
+    padding: 10rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    /* For carousel sliding */
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    text-align: center;
+    margin: 0 auto;
+}
+
+.title {
+    font-size: 4.0rem;
+    margin-bottom: 3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.carouselContainer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.track {
+    display: flex;
+    gap: 2rem;
+    width: 100%;
+    justify-content: center;
+    transition: transform 0.5s ease-in-out;
+}
+
+.card {
+    background-color: #111111;
+    border: 1px solid #333333;
+    padding: 2rem;
+    border-radius: 16px;
+    flex: 0 0 calc(33.333% - 1.33rem);
+    /* Show 3 items with gap */
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+    min-height: 200px;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+    border-color: #D4FF00;
+    /* Brand accent color */
+    transform: translateY(-5px);
+}
+
+.quote {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    color: #e0e0e0;
+}
+
+.author {
+    font-weight: 600;
+    color: #D4FF00;
+    font-style: normal;
+}
+
+.location {
+    font-size: 0.9rem;
+    color: #888;
+    margin-left: 0.5rem;
+    font-weight: 400;
+}
+
+.controls {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.navButton {
+    background: transparent;
+    border: 1px solid #444;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.navButton:hover {
+    background: #D4FF00;
+    color: black;
+    border-color: #D4FF00;
+}
+
+.indicators {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #444;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.dotActive {
+    background-color: #D4FF00;
+    transform: scale(1.2);
+}
+
+@media (max-width: 1024px) {
+    .section {
+        padding: 6rem 2rem;
+    }
+
+    .card {
+        flex: 0 0 calc(50% - 1rem);
+        /* Show 2 items */
+    }
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: 4rem 1.5rem;
+    }
+
+    .title {
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .card {
+        flex: 0 0 100%;
+        /* Show 1 item */
+    }
+
+    /* Hide 2nd and 3rd items on mobile to prevent overflow/horizontal scrolling since JS renders 3 */
+    .card:nth-child(n+2) {
+        display: none;
+    }
+}

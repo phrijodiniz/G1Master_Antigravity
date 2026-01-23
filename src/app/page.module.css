@@ -6,14 +6,14 @@
   min-height: 100vh;
   padding: 0;
   width: 100%;
+  overflow-x: hidden;
 }
 
 .nav {
   width: 100%;
   background-color: #000000;
   color: #ffffff;
-  padding: 1.2rem 3rem;
-  /* Reduced by 20% from 1.5rem */
+  padding: 1rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -21,14 +21,55 @@
   z-index: 10;
 }
 
+.navLogoImage {
+  width: auto;
+  height: 40px;
+  /* Smaller mobile logo */
+}
+
+.navButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.navLoginBtn {
+  background: transparent;
+  color: white;
+  border: none;
+  cursor: pointer;
+  opacity: 0.9;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.navCtaBtn {
+  background: white;
+  color: black;
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  border: none;
+  font-weight: bold;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
 .hero {
-  min-height: 80vh;
+  min-height: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: left;
-  padding: 4rem 2rem;
+  padding: 3rem 1.5rem;
   width: 100%;
   max-width: 100%;
   background-image: url('/hero-bg.png');
@@ -43,7 +84,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3rem;
+  gap: 2rem;
   justify-content: center;
 }
 
@@ -54,21 +95,387 @@
   align-items: flex-start;
   text-align: left;
   z-index: 2;
+  width: 100%;
 }
 
 .heroImageWrapper {
   flex: 1;
   width: 100%;
-  max-width: 800px;
+  max-width: 500px;
   position: relative;
   z-index: 2;
-  display: flex;
+  display: none;
+  /* Hide on mobile */
   justify-content: center;
+  margin-top: 1rem;
 }
 
 .heroImageWrapper img {
   border-radius: 0;
   box-shadow: none;
+  width: 100%;
+  height: auto;
+}
+
+.heroTitle {
+  font-size: 2.5rem;
+  /* Mobile Size */
+  font-weight: 800;
+  /* Slightly reduced weight for better mobile reading */
+  line-height: 1.1;
+  color: #000000;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  padding-top: 1rem;
+  max-width: 100%;
+  font-family: var(--font-poppins), sans-serif;
+}
+
+.heroSubtitle {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 2rem;
+  max-width: 100%;
+  line-height: 1.6;
+  font-weight: 400;
+  font-family: var(--font-poppins), sans-serif;
+}
+
+.heroButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.heroTrustText {
+  font-size: 0.85rem;
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+  line-height: 1.5;
+}
+
+.ctaBtn {
+  background-color: #D4FF00;
+  color: black;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  /* Full width on mobile */
+  text-align: center;
+}
+
+.secondaryBtn {
+  background: transparent;
+  border: 2px solid white;
+  /* Override in usage context if needed or create specific class */
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 50px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+/* Specific secondary button for Hero (dark text on light bg?) 
+   Actually Hero bg is likely light based on text color #333.
+   Wait, original code had border: 2px solid white, color: white for the second button.
+   But hero title is black. Let's check original logic.
+   Ah, hero bg is an image. Original button 2: border white, color white.
+   We'll keep that.
+*/
+
+.ctaBtn:hover,
+.secondaryBtn:hover {
+  transform: scale(1.02);
+}
+
+.quizSection {
+  background-color: #0a0a0a;
+  width: 100%;
+  padding: 6rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top: 4px solid #D4FF00;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+  color: white;
+  /* Default for dark sections */
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.sectionTitleLight {
+  composes: sectionTitle;
+  color: black;
+}
+
+.sectionSubtitle {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  color: #cccccc;
+  line-height: 1.5;
+}
+
+.sectionSubtitleLight {
+  composes: sectionSubtitle;
+  color: #333;
+}
+
+.section {
+  width: 100%;
+  padding: 3rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Feature Cards & Grid */
+.featuresGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.featureCard {
+  padding: 2rem;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  color: #000000;
+}
+
+.featureCard h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.8rem;
+}
+
+.featureCard p {
+  font-size: 1rem;
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+/* Track Your Progress (Split Section) */
+.splitSection {
+  background-color: #f6f6f6;
+  width: 100%;
+  padding: 4rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  color: #000000;
+  flex-direction: column;
+  align-items: center;
+}
+
+.splitContent {
+  max-width: 1200px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.splitText {
+  flex: 1;
+  text-align: left;
+  width: 100%;
+}
+
+.splitImage {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.splitImage img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+}
+
+/* Light Section Variation */
+.lightSection {
+  background-color: #f6f6f6;
+  color: #000000;
+  width: 100%;
+}
+
+.darkSection {
+  background-color: #000000;
+  color: #ffffff;
+  width: 100%;
+}
+
+.whiteSection {
+  background-color: #ffffff;
+  color: #000000;
+  width: 100%;
+}
+
+/* Image Wrappers */
+.imageWrapperFull {
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.imageWrapperFull img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.centeredCta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.ctaBtnLimited {
+  composes: ctaBtn;
+  max-width: 400px;
+}
+
+.finalCtaTitle {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.finalCtaText {
+  font-size: 1.1rem;
+  opacity: 0.7;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+  text-align: center;
+}
+
+.footer {
+  padding: 2rem 1.5rem;
+  background-color: #000000;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8rem;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .finalCtaTitle {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav {
+    padding: 1.2rem 3rem;
+  }
+
+  .navLogoImage {
+    height: 63px;
+  }
+
+  .navButtons {
+    gap: 1rem;
+  }
+
+  .navLoginBtn {
+    font-size: 1.1rem;
+  }
+
+  .navCtaBtn {
+    padding: 0.8rem 1.8rem;
+    font-size: 1.1rem;
+  }
+
+  .hero {
+    padding: 4rem 2rem;
+    min-height: 80vh;
+  }
+
+  .heroTitle {
+    font-size: 4rem;
+    padding-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.25rem;
+    max-width: 90%;
+  }
+
+  .heroButtons {
+    flex-direction: row;
+    width: auto;
+  }
+
+  .ctaBtn,
+  .secondaryBtn {
+    width: auto;
+    font-size: 1.1rem;
+    padding: 1rem 2rem;
+  }
+
+  .sectionTitle {
+    font-size: 3.5rem;
+  }
+
+  .sectionSubtitle {
+    font-size: 1.3rem;
+  }
+
+  .featureCard h3 {
+    font-size: 1.8rem;
+  }
+
+  .section,
+  .quizSection {
+    padding: 8rem 2rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -88,196 +495,38 @@
   .heroImageWrapper {
     max-width: 50%;
     flex: 0 0 50%;
+    margin-top: 0;
+    display: flex;
+    /* Show on desktop */
   }
-}
 
-.quizSection {
-  background-color: #0a0a0a;
-  width: 100%;
-  padding: 4rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-top: 4px solid #D4FF00;
-}
+  .heroTitle {
+    font-size: 5rem;
+  }
 
-/* Ensure text is readable - maybe add a slight overlay if needed, 
-   but user provided a pre-faded image or requested specific look. 
-   The provided image 1 looks faded gray. */
-
-.heroTitle {
-  font-size: 5.0rem;
-  /* Reduced size */
-  font-weight: 1000;
-  line-height: 1.0;
-  color: #000000;
-  /* Changed to Black */
-  text-transform: uppercase;
-  margin-bottom: 2rem;
-  padding-top: 2rem;
-  /* Added padding as requested */
-  max-width: 100%;
-  /* Allow full width */
-  font-family: var(--font-poppins), sans-serif;
-  /* Applied Poppins */
-}
-
-.heroSubtitle {
-  font-size: 1.25rem;
-  color: #333;
-  color: #333;
-  margin-bottom: 2rem;
-  max-width: 90%;
-  /* Adjusted to 80% as requested */
-  line-height: 1.5;
-  font-weight: 400;
-  font-family: var(--font-poppins), sans-serif;
-  /* Applied Poppins */
-}
-
-.heroTrustText {
-  font-size: 0.9rem;
-  color: #333;
-  margin-top: 0;
-  margin-bottom: 2rem;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  opacity: 0.8;
-}
-
-.ctaBtn {
-  background-color: #D4FF00;
-  /* Bright Neon Yellow/Lime */
-  color: black;
-  font-weight: bold;
-  font-size: 1.1rem;
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: transform 0.2s;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.ctaBtn:hover {
-  transform: scale(1.05);
-}
-
-.section {
-  width: 100%;
-  max-width: 1200px;
-  padding: 4rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.quizCard {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 500px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  margin-top: 2rem;
-}
-
-.optionBtn {
-  width: 100%;
-  padding: 1rem;
-  margin-bottom: 0.5rem;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: inherit;
-  border-radius: 8px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.optionBtn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.primaryBtn {
-  background: var(--primary, #0070f3);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 30px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.primaryBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 112, 243, 0.4);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  width: 100%;
-  margin-top: 2rem;
-}
-
-.featuresGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  width: 100%;
-  margin-top: 3rem;
-  margin-bottom: 3rem;
-}
-
-.featureCard {
-  padding: 2.5rem;
-  border-radius: 24px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-}
-
-.featureCard:hover {
-  transform: translateY(-8px);
-  background: #ffffff;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.1);
-}
-
-.microcopy {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  opacity: 0.6;
-  text-align: center;
-}
-
-@media (min-width: 1024px) {
   .featuresGrid {
     grid-template-columns: repeat(3, 1fr);
   }
-}
 
-.testimonialCard {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 1.5rem;
-  border-radius: 12px;
-  font-style: italic;
-}
+  .splitSection {
+    padding: 10rem 2rem;
+  }
 
-@media (min-width: 768px) {
-  .main {
-    padding: 0;
+  .splitContent {
+    flex-direction: row;
+    gap: 4rem;
+  }
+
+  .splitText,
+  .splitImage {
+    flex: 0 0 50%;
+    /* Strict 50% width */
+    max-width: 50%;
+    /* Prevent overflow */
+    width: 50%;
+  }
+
+  .sectionTitle {
+    font-size: 4.5rem;
   }
 }

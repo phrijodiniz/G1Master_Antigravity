@@ -3,11 +3,11 @@
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./dashboard.module.css";
 import { useState, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
-import TopBar from "@/components/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { Clock, Book, Video, FileText, Car } from "lucide-react";
 import Link from "next/link";
+
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function Dashboard() {
     const { user, isPremium, practiceCredits, simulationCredits } = useAuth();
@@ -38,91 +38,86 @@ export default function Dashboard() {
         day: 'numeric'
     });
     return (
-        <div className={styles.mainLayout}>
-            <Sidebar />
-            <div className={styles.contentWrapper}>
-                <TopBar />
-
-                <div className={styles.dashboardGrid}>
-                    {/* Middle Column */}
-                    <div className={styles.leftColumn}>
-                        <div className={styles.banner}>
-                            <div className={styles.bannerDate}>{formattedDate}</div>
-                            <div>
-                                <h1 className={styles.bannerTitle}>Hello {displayName}</h1>
-                                <p className={styles.bannerSubtitle}>
-                                    Success on your G1 test comes from steady practice, not last-minute cramming.
-                                </p>
-                            </div>
+        <DashboardLayout>
+            <div className={styles.dashboardGrid}>
+                {/* Middle Column */}
+                <div className={styles.leftColumn}>
+                    <div className={styles.banner}>
+                        <div className={styles.bannerDate}>{formattedDate}</div>
+                        <div>
+                            <h1 className={styles.bannerTitle}>Hello {displayName}</h1>
+                            <p className={styles.bannerSubtitle}>
+                                Success on your G1 test comes from steady practice, not last-minute cramming.
+                            </p>
                         </div>
-
-                        <h2 className={styles.sectionTitle}>How do you feel like studying today?</h2>
-                        <div className={styles.actionCardsGrid}>
-                            <div className={styles.actionCard}>
-                                <div className={styles.cardHeader}>
-                                    <div className={styles.cardIcon}>
-                                        <FileText size={48} strokeWidth={1.5} />
-                                    </div>
-
-                                </div>
-                                <h3 className={styles.actionTitle}>Practice Tests</h3>
-                                <p className={styles.actionSubtitle}>Build confidence at your own pace.</p>
-                                <p className={styles.actionDescription}>
-                                    Start building your knowledge the smart way. Review Road Signs or Rules of the Road with instant feedback after every question.
-                                </p>
-                                <Link href="/practice">
-                                    <button className={styles.actionBtn}>Practice Now</button>
-                                </Link>
-                                {!isPremium && user && (
-                                    <p className={styles.creditText}>
-                                        You have {practiceCredits} practice test {practiceCredits === 1 ? 'credit' : 'credits'} left
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className={styles.actionCard}>
-                                <div className={styles.cardHeader}>
-                                    <div className={styles.cardIcon}>
-                                        <Car size={48} strokeWidth={1.5} />
-                                    </div>
-
-                                </div>
-                                <h3 className={styles.actionTitle}>G1 Test Simulation</h3>
-                                <p className={styles.actionSubtitle}>Test yourself just like the real exam.</p>
-                                <p className={styles.actionDescription}>
-                                    A true G1-style test with timed, mixed questions and no hints. Covers both Road Signs and Rules of the Road. See if you're ready to pass.
-                                </p>
-                                <Link href="/quiz/simulation">
-                                    <button className={styles.actionBtn}>Take a Full Test</button>
-                                </Link>
-                                {!isPremium && user && (
-                                    <p className={styles.creditText}>
-                                        You have {simulationCredits} simulation {simulationCredits === 1 ? 'credit' : 'credits'} left
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
                     </div>
 
-                    {/* Right Column */}
-                    <div className={styles.widgetsColumn}>
-                        {/* Exam Readiness Meter */}
-                        <div className={`${styles.widget} glass-panel`}>
-                            <h3 className={styles.sectionTitle}>Exam Readiness Meter</h3>
-                            <ReadinessGauge />
+                    <h2 className={styles.sectionTitle}>How do you feel like studying today?</h2>
+                    <div className={styles.actionCardsGrid}>
+                        <div className={styles.actionCard}>
+                            <div className={styles.cardHeader}>
+                                <div className={styles.cardIcon}>
+                                    <FileText size={48} strokeWidth={1.5} />
+                                </div>
+
+                            </div>
+                            <h3 className={styles.actionTitle}>Practice Tests</h3>
+                            <p className={styles.actionSubtitle}>Build confidence at your own pace.</p>
+                            <p className={styles.actionDescription}>
+                                Start building your knowledge the smart way. Review Road Signs or Rules of the Road with instant feedback after every question.
+                            </p>
+                            <Link href="/practice">
+                                <button className={styles.actionBtn}>Practice Now</button>
+                            </Link>
+                            {!isPremium && user && (
+                                <p className={styles.creditText}>
+                                    You have {practiceCredits} practice test {practiceCredits === 1 ? 'credit' : 'credits'} left
+                                </p>
+                            )}
                         </div>
 
-                        {/* Test History */}
-                        <div className={`${styles.widget} glass-panel`}>
-                            <h3 className={styles.sectionTitle}>Test History</h3>
-                            <TestHistoryTable />
+                        <div className={styles.actionCard}>
+                            <div className={styles.cardHeader}>
+                                <div className={styles.cardIcon}>
+                                    <Car size={48} strokeWidth={1.5} />
+                                </div>
+
+                            </div>
+                            <h3 className={styles.actionTitle}>G1 Test Simulation</h3>
+                            <p className={styles.actionSubtitle}>Test yourself just like the real exam.</p>
+                            <p className={styles.actionDescription}>
+                                A true G1-style test with timed, mixed questions and no hints. Covers both Road Signs and Rules of the Road. See if you're ready to pass.
+                            </p>
+                            <Link href="/quiz/simulation">
+                                <button className={styles.actionBtn}>Take a Full Test</button>
+                            </Link>
+                            {!isPremium && user && (
+                                <p className={styles.creditText}>
+                                    You have {simulationCredits} simulation {simulationCredits === 1 ? 'credit' : 'credits'} left
+                                </p>
+                            )}
                         </div>
                     </div>
 
                 </div>
+
+                {/* Right Column */}
+                <div className={styles.widgetsColumn}>
+                    {/* Exam Readiness Meter */}
+                    <div className={`${styles.widget} glass-panel`}>
+                        <h3 className={styles.sectionTitle}>Exam Readiness Meter</h3>
+                        <ReadinessGauge />
+                    </div>
+
+                    {/* Test History */}
+                    <div className={`${styles.widget} glass-panel`}>
+                        <h3 className={styles.sectionTitle}>Test History</h3>
+                        <TestHistoryTable />
+                    </div>
+                </div>
+
             </div>
-        </div>
+        </DashboardLayout>
     );
 }
 

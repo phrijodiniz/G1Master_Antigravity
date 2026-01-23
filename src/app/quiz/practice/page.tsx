@@ -5,10 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import QuestionCard from '@/components/QuestionCard';
 import styles from '../shared_quiz_layout.module.css';
-import Sidebar from '@/components/Sidebar';
+import DashboardLayout from '@/components/DashboardLayout'; // Changed from Sidebar
 import { useAuth } from '@/context/AuthContext';
 import LoginModal from '@/components/LoginModal';
 import ExitModal from '@/components/ExitModal';
+import LimitModal from '@/components/LimitModal';
 
 function QuizContent() {
     const { user, isPremium, practiceCredits, refreshProfile } = useAuth();
@@ -23,6 +24,7 @@ function QuizContent() {
     const [error, setError] = useState<string | null>(null);
     const [userAnswers, setUserAnswers] = useState<any[]>([]);
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [showLimitModal, setShowLimitModal] = useState(false);
 
     const STORAGE_KEY = `practice_session_${category}`;
 
@@ -45,8 +47,8 @@ function QuizContent() {
 
         // Check credits
         if (!isPremium && practiceCredits <= 0) {
-            alert("You have no practice credits remaining. Please upgrade to Premium.");
-            window.location.href = '/dashboard';
+            setLoading(false);
+            setShowLimitModal(true);
             return;
         }
 
@@ -153,38 +155,43 @@ function QuizContent() {
 
     // --- Renders ---
 
+    if (showLimitModal) return (
+        <DashboardLayout>
+            <div className={styles.contentWrapper}>
+                <div style={{ padding: '2rem', color: '#64748b' }}>Checking eligibility...</div>
+            </div>
+            <LimitModal isOpen={true} onClose={() => setShowLimitModal(false)} />
+        </DashboardLayout>
+    );
+
     if (loading) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout>
             <div className={styles.contentWrapper}>
                 <div style={{ padding: '2rem', color: '#64748b' }}>Loading questions...</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (!user) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout>
             <div className={styles.contentWrapper}>
                 <LoginModal isOpen={true} onClose={() => setShowLoginModal(false)} />
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (error || (questions.length === 0)) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout>
             <div className={styles.contentWrapper}>
                 <div style={{ padding: '2rem' }}>No questions found for {category}.</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (completed) {
         // Results
         return (
-            <div className={styles.quizLayout}>
-                <Sidebar />
+            <DashboardLayout>
                 <div className={styles.mainWrapper}>
                     <div className={styles.resultsContainer}>
                         <h1>Practice Complete</h1>
@@ -247,22 +254,19 @@ function QuizContent() {
                         ))}
                     </div>
                 </div>
-            </div>
+            </DashboardLayout>
         );
     }
 
     return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout fullWidth={true} hideTopBar={true}>
             <div className={styles.mainWrapper}>
                 <div className={styles.header}>
                     <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {category}
                     </div>
-                    <div className={styles.stats}>
-                        <span>Question {currentindex + 1} / {questions.length}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {/* Stats removed to prevent duplication */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
                         <button className={styles.exitBtn} onClick={handleExitClick}>Exit Practice</button>
                     </div>
                 </div>
@@ -285,6 +289,7 @@ function QuizContent() {
                             // Better: Pass selected if found.
                             selected={userAnswers.find(a => a.question.id === questions[currentindex].id)?.selectedIndex}
                             onAnswer={() => { }}
+                            progressLabel={`Question ${currentindex + 1} / ${questions.length}`}
                         />
                     </div>
 
@@ -297,7 +302,11 @@ function QuizContent() {
                 onClose={() => setShowExitModal(false)}
                 onConfirm={confirmExit}
             />
-        </div>
+            <LimitModal
+                isOpen={showLimitModal}
+                onClose={() => setShowLimitModal(false)}
+            />
+        </DashboardLayout>
     );
 }
 

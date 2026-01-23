@@ -45,6 +45,7 @@ export async function POST(req) {
             success_url: `${req.headers.get('origin')}/account?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${req.headers.get('origin')}/account`,
             client_reference_id: user.id, // Critical: Attach User ID to the session
+            customer_email: user.email, // Pre-fill and lock the email field
             metadata: {
                 userId: user.id,
             },

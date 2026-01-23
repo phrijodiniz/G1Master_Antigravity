@@ -9,10 +9,13 @@ import { LayoutDashboard, BookOpen, BarChart2, Calendar, Settings, LogOut, FileT
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
+import { useSidebar } from "./DashboardLayout";
+
 export default function Sidebar() {
     const pathname = usePathname();
     const { logout } = useAuth();
     const router = useRouter();
+    const { isSidebarOpen, closeSidebar } = useSidebar();
 
     const handleLogout = async () => {
         try {
@@ -31,45 +34,61 @@ export default function Sidebar() {
     ];
 
     return (
-        <aside className={styles.sidebar}>
-            <div className={styles.logoContainer}>
-                <Image src="/G1MasterApp_Logo.png" alt="G1 Master Logo" width={100} height={100} style={{ width: 'auto', height: 'auto', maxWidth: '100%' }} />
-            </div>
+        <>
+            {/* Mobile Overlay */}
+            <div
+                className={`${styles.overlay} ${isSidebarOpen ? styles.open : ""}`}
+                onClick={closeSidebar}
+            />
 
-            <nav className={styles.nav}>
-                {menuItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.path ||
-                        (item.path === '/study' && (pathname === '/practice' || pathname?.startsWith('/quiz')));
-                    if (item.path === '/history' || item.path === '/dashboard') {
+            <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ""}`}>
+                <div className={styles.logoContainer}>
+                    <Image src="/G1MasterApp_Logo.png" alt="G1 Master Logo" width={100} height={100} style={{ width: 'auto', height: 'auto', maxWidth: '100%' }} />
+                </div>
+
+                <nav className={styles.nav}>
+                    {menuItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.path ||
+                            (item.path === '/study' && (pathname === '/practice' || pathname === '/chapter' || pathname?.startsWith('/quiz')));
+
+                        // Handler to close sidebar on navigation (mobile)
+                        const handleClick = () => {
+                            closeSidebar();
+                        };
+
+                        if (item.path === '/history' || item.path === '/dashboard') {
+                            return (
+                                <a
+                                    key={item.path}
+                                    href={item.path}
+                                    className={`${styles.navItem} ${isActive ? styles.active : ""}`}
+                                    onClick={handleClick}
+                                >
+                                    <Icon size={20} />
+                                    <span>{item.name}</span>
+                                </a>
+                            );
+                        }
                         return (
-                            <a
+                            <Link
                                 key={item.path}
                                 href={item.path}
                                 className={`${styles.navItem} ${isActive ? styles.active : ""}`}
+                                onClick={handleClick}
                             >
                                 <Icon size={20} />
                                 <span>{item.name}</span>
-                            </a>
+                            </Link>
                         );
-                    }
-                    return (
-                        <Link
-                            key={item.path}
-                            href={item.path}
-                            className={`${styles.navItem} ${isActive ? styles.active : ""}`}
-                        >
-                            <Icon size={20} />
-                            <span>{item.name}</span>
-                        </Link>
-                    );
-                })}
-            </nav>
+                    })}
+                </nav>
 
-            <button onClick={handleLogout} className={`${styles.navItem} ${styles.logout}`}>
-                <LogOut size={20} />
-                <span>Logout</span>
-            </button>
-        </aside>
+                <button onClick={handleLogout} className={`${styles.navItem} ${styles.logout}`}>
+                    <LogOut size={20} />
+                    <span>Logout</span>
+                </button>
+            </aside>
+        </>
     );
 }

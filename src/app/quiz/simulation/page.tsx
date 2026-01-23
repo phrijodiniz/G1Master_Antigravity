@@ -4,10 +4,12 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import QuestionCard from '@/components/QuestionCard';
 import styles from '../shared_quiz_layout.module.css';
-import Sidebar from '@/components/Sidebar';
+import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from '@/context/AuthContext';
 import LoginModal from '@/components/LoginModal';
 import ExitModal from '@/components/ExitModal';
+
+import LimitModal from '@/components/LimitModal';
 
 // format seconds to MM:SS
 const formatTime = (seconds: number) => {
@@ -29,6 +31,7 @@ function SimulationContent() {
     const [completed, setCompleted] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false); // Added state
+    const [showLimitModal, setShowLimitModal] = useState(false); // Added state
     const [resultSaved, setResultSaved] = useState(false);
 
     const STORAGE_KEY = 'simulation_session';
@@ -72,9 +75,10 @@ function SimulationContent() {
             setShowLoginModal(false);
             if (questions.length === 0 && !completed) {
                 // Check credits
+                // Check credits
                 if (!isPremium && simulationCredits <= 0) {
-                    alert("You have no simulation credits remaining. Please upgrade to Premium.");
-                    window.location.href = '/dashboard';
+                    setLoading(false);
+                    setShowLimitModal(true);
                     return;
                 }
                 fetchExamQuestions();
@@ -213,31 +217,41 @@ function SimulationContent() {
 
     // --- Renders ---
 
+    if (showLimitModal) return (
+        <DashboardLayout>
+            <div className={styles.contentWrapper}>
+                <div style={{ padding: '2rem', color: '#64748b' }}>Checking eligibility...</div>
+            </div>
+            <LimitModal
+                isOpen={true}
+                onClose={() => setShowLimitModal(false)}
+                message="You have no simulation credits remaining. Please upgrade to Premium."
+            />
+        </DashboardLayout>
+    );
+
     if (loading) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout>
             <div className={styles.contentWrapper}>
                 <div style={{ padding: '2rem', color: '#64748b' }}>Preparing Exam...</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (!user) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout>
             <div className={styles.contentWrapper}>
                 <LoginModal isOpen={true} onClose={() => setShowLoginModal(false)} />
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (questions.length === 0) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout>
             <div className={styles.contentWrapper}>
                 <div style={{ padding: '2rem', color: '#dc2626' }}>Error loading questions.</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (completed) {
@@ -259,8 +273,7 @@ function SimulationContent() {
         const passedOverall = passedRules && passedSigns;
 
         return (
-            <div className={styles.quizLayout}>
-                <Sidebar />
+            <DashboardLayout>
                 <div className={styles.mainWrapper}>
                     <div className={styles.resultsContainer}>
                         <h1>Simulation Results</h1>
@@ -299,13 +312,12 @@ function SimulationContent() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </DashboardLayout>
         );
     }
 
     return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout fullWidth={true} hideTopBar={true}>
             <div className={styles.mainWrapper}>
                 <div className={styles.header}>
                     <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -314,16 +326,11 @@ function SimulationContent() {
                             {formatTime(elapsedTime)}
                         </span>
                     </div>
-                    <div className={styles.stats}>
-                        <div>
-                            Time: {formatTime(elapsedTime)}
-                        </div>
-                        <span>Question {currentindex + 1} / {questions.length}</span>
-                    </div>
+
                     <button className={styles.exitBtn} onClick={handleExitClick}>Exit Simulation</button>
                 </div>
 
-                <div className={styles.contentGrid}>
+                <div className={styles.contentGrid} style={{ gridTemplateColumns: 'minmax(0, 1000px)', justifyContent: 'center' }}>
                     {/* Left Column: Question */}
                     <div>
                         <QuestionCard
@@ -333,15 +340,16 @@ function SimulationContent() {
                             mode="simulation"
                             selected={answers[currentindex]?.selected}
                             onAnswer={handleAnswer}
+                            progressLabel={`Question ${currentindex + 1} / ${questions.length}`}
                         />
                     </div>
 
-                    {/* Right Column: Navigator */}
-                    <div className={styles.navigatorCard}>
+                    {/* Navigator - Restored below QuestionCard */}
+                    <div className={styles.navigatorCard} style={{ marginTop: '2rem', position: 'static', width: '100%' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h4 style={{ color: '#475569', margin: 0 }}>Navigator</h4>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))', gap: '0.5rem' }}>
                             {questions.map((_, idx) => {
                                 const isAnswered = answers[idx] !== undefined;
                                 const isCurrent = idx === currentindex;
@@ -391,7 +399,8 @@ function SimulationContent() {
                 onClose={() => setShowExitModal(false)}
                 onConfirm={confirmExit}
             />
-        </div>
+        </DashboardLayout>
+
     );
 }
 

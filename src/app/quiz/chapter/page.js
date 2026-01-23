@@ -4,14 +4,15 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import QuestionCard from '@/components/QuestionCard';
-import Sidebar from '@/components/Sidebar';
+import DashboardLayout from '@/components/DashboardLayout';
 import styles from '../shared_quiz_layout.module.css';
 import { useAuth } from '@/context/AuthContext';
 import LoginModal from '@/components/LoginModal';
 import ExitModal from '@/components/ExitModal';
+import LimitModal from '@/components/LimitModal';
 
 function ChapterQuizContent() {
-    const { user } = useAuth();
+    const { user, isPremium } = useAuth();
     const searchParams = useSearchParams();
     const chapter = searchParams.get('chapter');
 
@@ -21,6 +22,7 @@ function ChapterQuizContent() {
     const [completed, setCompleted] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false);
+    const [showPremiumBlocker, setShowPremiumBlocker] = useState(false);
 
     // ... (existing effects and fetchQuestions)
 
@@ -31,9 +33,14 @@ function ChapterQuizContent() {
             setLoading(false);
         } else {
             setShowLoginModal(false);
+            if (!isPremium) {
+                setShowPremiumBlocker(true);
+                setLoading(false);
+                return;
+            }
             if (questions.length === 0) fetchQuestions();
         }
-    }, [user]);
+    }, [user, isPremium]);
 
     async function fetchQuestions() {
         if (!chapter) return;
@@ -65,48 +72,56 @@ function ChapterQuizContent() {
         window.location.href = '/chapter';
     };
 
+    if (showPremiumBlocker) return (
+        <DashboardLayout fullWidth={true} hideTopBar={true}>
+            <div className={styles.mainWrapper}>
+                <div style={{ padding: '3rem', color: '#64748b' }}>Checking permissions...</div>
+            </div>
+            <LimitModal
+                isOpen={true}
+                onClose={() => { }}
+                message="Chapter questions are strictly for Premium users. Please upgrade to access this content."
+            />
+        </DashboardLayout>
+    );
+
     if (loading) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout fullWidth={true} hideTopBar={true}>
             <div className={styles.mainWrapper}>
                 <div style={{ padding: '3rem', color: '#64748b' }}>Loading questions...</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (!user) {
         return (
-            <div className={styles.quizLayout}>
-                <Sidebar />
+            <DashboardLayout fullWidth={true} hideTopBar={true}>
                 <div className={styles.mainWrapper}>
                     <LoginModal isOpen={true} />
                 </div>
-            </div>
+            </DashboardLayout>
         )
     }
 
     if (!chapter) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout fullWidth={true} hideTopBar={true}>
             <div className={styles.mainWrapper}>
                 <div style={{ padding: '3rem', color: '#64748b' }}>No chapter selected.</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (questions.length === 0) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout fullWidth={true} hideTopBar={true}>
             <div className={styles.mainWrapper}>
                 <div style={{ padding: '3rem', color: '#64748b' }}>No questions found for this chapter.</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     if (completed) {
         return (
-            <div className={styles.quizLayout}>
-                <Sidebar />
+            <DashboardLayout fullWidth={true} hideTopBar={true}>
                 <div className={styles.mainWrapper}>
                     <div className={styles.resultsContainer}>
                         <h1>Chapter Complete!</h1>
@@ -123,21 +138,18 @@ function ChapterQuizContent() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </DashboardLayout>
         );
     }
 
     return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
+        <DashboardLayout fullWidth={true} hideTopBar={true}>
             <div className={styles.mainWrapper}>
                 <div className={styles.header}>
                     <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {chapter}
                     </div>
-                    <div className={styles.stats}>
-                        <span>Question {currentindex + 1} / {questions.length}</span>
-                    </div>
+
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button className={styles.exitBtn} onClick={handleExitClick}>Exit</button>
                     </div>
@@ -150,6 +162,7 @@ function ChapterQuizContent() {
                             onNext={handleNext}
                             isLast={currentindex === questions.length - 1}
                             mode="practice"
+                            progressLabel={`Question ${currentindex + 1} / ${questions.length}`}
                         />
                     </div>
                 </div>
@@ -160,7 +173,12 @@ function ChapterQuizContent() {
                 onClose={() => setShowExitModal(false)}
                 onConfirm={confirmExit}
             />
-        </div>
+            <LimitModal
+                isOpen={showPremiumBlocker}
+                onClose={() => { }}
+                message="Chapter questions are strictly for Premium users. Please upgrade to access this content."
+            />
+        </DashboardLayout>
     );
 }
 

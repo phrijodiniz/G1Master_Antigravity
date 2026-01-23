@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import Sidebar from '@/components/Sidebar';
-import styles from '../quiz/shared_quiz_layout.module.css';
+import DashboardLayout from '@/components/DashboardLayout';
+import styles from '../practice/practice.module.css';
+import { BookOpen } from "lucide-react";
 
 export default function ChapterSelect() {
     const [chapters, setChapters] = useState([]);
@@ -20,9 +21,21 @@ export default function ChapterSelect() {
             if (error) {
                 console.error(error);
             } else {
-                // Extract distinct chapters
-                const uniqueChapters = [...new Set(data.map(item => item.chapter))].filter(Boolean).sort();
-                setChapters(uniqueChapters);
+                // Calculate counts
+                const counts = {};
+                data.forEach(item => {
+                    if (item.chapter) {
+                        counts[item.chapter] = (counts[item.chapter] || 0) + 1;
+                    }
+                });
+
+                // Create chapter objects
+                const chapterList = Object.keys(counts).sort().map(name => ({
+                    name,
+                    count: counts[name]
+                }));
+
+                setChapters(chapterList);
             }
             setLoading(false);
         }
@@ -30,65 +43,40 @@ export default function ChapterSelect() {
     }, []);
 
     if (loading) return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
-            <div className={styles.mainWrapper}>
-                <div style={{ padding: '3rem', color: '#64748b' }}>Loading Chapters...</div>
+        <DashboardLayout>
+            <div className={styles.contentWrapper} style={{ marginLeft: 0 }}>
+                <h1 className={styles.title}>Chapters</h1>
+                <div style={{ color: '#64748b' }}>Loading Chapters...</div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 
     return (
-        <div className={styles.quizLayout}>
-            <Sidebar />
-            <div className={styles.mainWrapper}>
-                <div className={styles.header}>
-                    <div className={styles.title}>Chapters</div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <Link href="/study" style={{ textDecoration: 'none' }}>
-                            <button className={styles.exitBtn}>Back to Study</button>
-                        </Link>
-                    </div>
-                </div>
+        <DashboardLayout>
+            <h1 className={styles.title}>Chapters</h1>
 
-                <div style={{ padding: '3rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
-                    {chapters.length === 0 ? (
-                        <p style={{ textAlign: 'center', color: '#64748b' }}>No chapters found.</p>
-                    ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            {chapters.map((chapter) => (
-                                <Link key={chapter} href={`/quiz/chapter?chapter=${encodeURIComponent(chapter)}`} style={{ textDecoration: 'none' }}>
-                                    <div style={{
-                                        background: 'white',
-                                        padding: '2rem',
-                                        borderRadius: '12px',
-                                        border: '1px solid #e2e8f0',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                                        height: '100%',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        justifyContent: 'center',
-                                        alignItems: 'center'
-                                    }}>
-                                        <div style={{
-                                            width: '50px', height: '50px', background: '#f1f5f9', borderRadius: '50%',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem',
-                                            fontSize: '1.5rem'
-                                        }}>
-                                            📖
-                                        </div>
-                                        <h3 style={{ color: '#0f172a', fontSize: '1.1rem', fontWeight: 600 }}>{chapter}</h3>
-                                        <span style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem' }}>Start Practice</span>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-                </div>
+            <div className={styles.grid}>
+                {chapters.length === 0 ? (
+                    <p style={{ color: '#64748b' }}>No chapters found.</p>
+                ) : (
+                    chapters.map((chapter) => (
+                        <Link key={chapter.name} href={`/quiz/chapter?chapter=${encodeURIComponent(chapter.name)}`} style={{ textDecoration: 'none' }}>
+                            <div className={styles.card}>
+                                <div className={styles.cardIcon}>
+                                    <BookOpen size={32} />
+                                </div>
+                                <h2 className={styles.cardTitle}>{chapter.name}</h2>
+                                <p className={styles.cardDescription}>
+                                    {chapter.count} Questions
+                                </p>
+                                <div className={styles.cardBtn}>
+                                    Start Practice
+                                </div>
+                            </div>
+                        </Link>
+                    ))
+                )}
             </div>
-        </div>
+        </DashboardLayout>
     );
 }
