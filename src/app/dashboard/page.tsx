@@ -128,13 +128,13 @@ function TestHistoryTable() {
     useEffect(() => {
         async function fetchHistory() {
             if (!user) return;
-            // Fetch last 10 results
+            // Fetch last 5 results
             const { data } = await supabase
                 .from('simulation_results')
                 .select('created_at, passed, score, test_type')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
-                .limit(10);
+                .limit(5);
 
             if (data) {
                 setHistory(data);
@@ -171,6 +171,21 @@ function TestHistoryTable() {
                     ))}
                 </tbody>
             </table>
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <Link href="/history" className={styles.showMoreLink} style={{
+                    display: 'inline-block',
+                    backgroundColor: '#000',
+                    color: '#fff',
+                    padding: '0.6rem 2rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.9rem',
+                    fontWeight: 500,
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease'
+                }}>
+                    Show More
+                </Link>
+            </div>
         </div>
     );
 }

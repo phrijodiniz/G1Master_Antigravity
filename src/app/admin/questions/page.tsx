@@ -176,10 +176,11 @@ export default function QuestionsReviewPage() {
                         style={{
                             width: '100%',
                             padding: '0.8rem 1rem 0.8rem 2.8rem',
-                            background: 'var(--glass-bg)',
+                            background: 'white',
+                            cursor: 'pointer',
                             border: '1px solid var(--glass-border)',
                             borderRadius: '8px',
-                            color: 'white',
+                            color: 'black',
                             appearance: 'none'
                         }}
                     >
@@ -197,10 +198,11 @@ export default function QuestionsReviewPage() {
                         style={{
                             width: '100%',
                             padding: '0.8rem 1rem 0.8rem 2.8rem',
-                            background: 'var(--glass-bg)',
+                            background: 'white',
+                            cursor: 'pointer',
                             border: '1px solid var(--glass-border)',
                             borderRadius: '8px',
-                            color: 'white',
+                            color: 'black',
                             appearance: 'none'
                         }}
                     >
@@ -218,10 +220,11 @@ export default function QuestionsReviewPage() {
                         style={{
                             width: '100%',
                             padding: '0.8rem 1rem 0.8rem 2.8rem',
-                            background: 'var(--glass-bg)',
+                            background: 'white',
+                            cursor: 'pointer',
                             border: '1px solid var(--glass-border)',
                             borderRadius: '8px',
-                            color: 'white',
+                            color: 'black',
                             appearance: 'none'
                         }}
                     >

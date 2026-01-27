@@ -127,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         try {
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Profile fetch timed out")), 5000)
+                setTimeout(() => reject(new Error("Profile fetch timed out")), 15000)
             );
 
             // Fetch Profile
@@ -145,10 +145,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setProfile(profileData);
 
             // Fetch Usage History (Parallelize these)
-            const [simResult, practiceResult] = await Promise.all([
+            const historyFetchPromise = Promise.all([
                 tempSupabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('test_type', 'Simulation'),
                 tempSupabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('test_type', 'Simulation')
             ]);
+
+            const historyTimeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("History fetch timed out")), 10000)
+            );
+
+            const [simResult, practiceResult] = await Promise.race([historyFetchPromise, historyTimeoutPromise]) as any;
 
             setCalcSimulationCredits(Math.max(0, 1 - (simResult.count || 0)));
             setCalcPracticeCredits(Math.max(0, 5 - (practiceResult.count || 0)));
