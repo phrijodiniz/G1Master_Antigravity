@@ -78,25 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
         };
 
-        const initAuth = async () => {
-            // InitAuth only sets the initial loading state and user from cache
-            // It does NOT trigger fetchProfile to avoid race conditions with stale tokens.
-            // We let onAuthStateChange handle the actual data loading.
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) console.error("Error getting session:", error);
-
-                const currentUser = session?.user ?? null;
-                if (mounted) setUser(currentUser);
-            } catch (err) {
-                console.error("Auth init error:", err);
-            }
-            // Note: We do NOT set loading=false here yet, we wait for the loop or event
-        };
-
-        initAuth();
-
-        // 2. Listen for changes - This is the SINGLE SOURCE OF TRUTH for fetching
+        // 1. Register listener FIRST to catch all events (INITIAL_SESSION, etc.)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log(`Auth event: ${event}`);
             const currentUser = session?.user ?? null;
@@ -105,9 +87,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(currentUser);
 
             // Determine if we should load the profile based on the event type
-            // INITIAL_SESSION: The client has finished initializing (safe to fetch)
-            // SIGNED_IN: User explicitly logged in
-            // TOKEN_REFRESHED: Token updated (safe to fetch) - only if we don't have data
             const shouldLoad =
                 event === "INITIAL_SESSION" ||
                 event === "SIGNED_IN" ||
@@ -128,6 +107,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             setLoading(false);
         });
+
+        // 2. Trigger initial session check (hydrate calls)
+        const initAuth = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) console.error("Error getting session:", error);
+
+                const currentUser = session?.user ?? null;
+                if (mounted) setUser(currentUser);
+            } catch (err) {
+                console.error("Auth init error:", err);
+            }
+        };
+
+        initAuth();
 
         return () => {
             mounted = false;
@@ -159,34 +153,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             while (attempts < maxAttempts) {
                 try {
                     attempts++;
+                    console.log(`Attempt ${attempts}: Fetching profile...`);
 
-                    // OPTIMISTIC FETCH STRATEGY
-                    // Attempt 1: SKIP SESSION CHECK. Assume valid token and fetch immediately.
-                    // Attempt 2+: If Attempt 1 failed (401/Timeout), perform STRICT RECOVERY (check/refresh session).
-
-                    if (attempts > 1) {
-                        const sessionTimeoutDuration = 10000; // 10s recovery window for subsequent attempts
-                        console.log(`Attempt ${attempts}: Verifying session (Recovery Mode - ${sessionTimeoutDuration}ms)...`);
-                        try {
-                            const sessionPromise = supabase.auth.getSession();
-                            const sessionTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Session check timed out")), sessionTimeoutDuration));
-                            const { data: { session }, error } = await Promise.race([sessionPromise, sessionTimeout]) as any;
-
-                            if (error || !session) {
-                                console.warn("No active session in recovery. Attempting refresh...");
-                                const refreshPromise = supabase.auth.refreshSession();
-                                const { data: { session: refreshedSession }, error: refreshError } = await Promise.race([refreshPromise, sessionTimeout]) as any;
-                                if (refreshError || !refreshedSession) throw new Error("Refresh failed");
-                                console.log("Session refreshed.");
-                            } else {
-                                console.log("Session verified.");
-                            }
-                        } catch (e) {
-                            console.warn(`Session recovery failed (Attempt ${attempts}). Retrying loop.`);
-                            throw new Error("Session recovery failed");
-                        }
-                    } else {
-                        console.log(`Attempt ${attempts}: Optimistic fetch (Skipping session check)...`);
+                    // VALIDATION CHECK
+                    // Ensure we have a valid user session on the server before querying data.
+                    // This prevents sending requests with stale tokens that result in 401s.
+                    const { data: userData, error: userErr } = await supabase.auth.getUser();
+                    if (userErr || !userData.user) {
+                        console.warn(`Attempt ${attempts}: getUser failed (invalid session).`, userErr);
+                        throw new Error("No valid user session");
                     }
 
                     // For Attempt 1, use a shorter "Fail Fast" network timeout (10s)
