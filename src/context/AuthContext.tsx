@@ -149,13 +149,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const fetchTask = async () => {
             let attempts = 0;
-            const maxAttempts = 2;
+            const maxAttempts = 3;
 
             while (attempts < maxAttempts) {
                 try {
                     attempts++;
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error("Profile fetch timed out")), 15000)
+                        setTimeout(() => reject(new Error("Profile fetch timed out")), 45000)
                     );
 
                     // Fetch Profile using singleton client
@@ -181,7 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     ]);
 
                     const historyTimeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error("History fetch timed out")), 10000)
+                        setTimeout(() => reject(new Error("History fetch timed out")), 30000)
                     );
 
                     const [simResult, practiceResult, historyData] = await Promise.race([historyFetchPromise, historyTimeoutPromise]) as any;
@@ -213,7 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         console.error("Critical: Profile fetch failed and no stale data available.", err);
                     }
                     // Wait a bit before retry?
-                    await new Promise(r => setTimeout(r, 1000));
+                    await new Promise(r => setTimeout(r, 2000));
                 }
             }
         };
