@@ -41,12 +41,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         let mounted = true;
         let profileSubscription: any = null;
 
+        const cleanupProfileSub = () => {
+            if (profileSubscription) {
+                supabase.removeChannel(profileSubscription);
+                profileSubscription = null;
+            }
+        };
+
         // Centralized profile loader to avoid duplication
         const loadProfileForUser = async (uid: string) => {
             try {
+                // Proceed with fetch
                 await fetchProfile(uid);
 
                 // Setup subscription
+                cleanupProfileSub();
                 profileSubscription = supabase
                     .channel('profile-changes')
                     .on(
@@ -59,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         },
                         (payload) => {
                             console.log('Realtime profile update:', payload);
-                            setProfile(payload.new);
+                            if (mounted) setProfile(payload.new);
                         }
                     )
                     .subscribe();
@@ -70,64 +79,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         const initAuth = async () => {
+            // InitAuth only sets the initial loading state and user from cache
+            // It does NOT trigger fetchProfile to avoid race conditions with stale tokens.
+            // We let onAuthStateChange handle the actual data loading.
             try {
-                // 1. Get initial session
                 const { data: { session }, error } = await supabase.auth.getSession();
-
-                if (error) {
-                    console.error("Error getting session:", error);
-                }
+                if (error) console.error("Error getting session:", error);
 
                 const currentUser = session?.user ?? null;
                 if (mounted) setUser(currentUser);
-
-                if (currentUser) {
-                    await loadProfileForUser(currentUser.id);
-                } else {
-                    if (mounted) setProfile(null);
-                }
             } catch (err) {
                 console.error("Auth init error:", err);
-            } finally {
-                if (mounted) setLoading(false);
             }
+            // Note: We do NOT set loading=false here yet, we wait for the loop or event
         };
 
         initAuth();
 
-        // 2. Listen for changes
+        // 2. Listen for changes - This is the SINGLE SOURCE OF TRUTH for fetching
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`Auth event: ${event}`);
             const currentUser = session?.user ?? null;
-            if (mounted) setUser(currentUser);
+            if (!mounted) return;
 
-            // Optimization: Skip profile reload on token refresh ONLY if we already have a profile.
-            // If the initial fetch failed (cold start/timeout), this fresh token event is our chance to retry.
-            if (event === 'TOKEN_REFRESHED' && profileRef.current) return;
+            setUser(currentUser);
 
-            // Cleanup old sub
-            if (profileSubscription) {
-                supabase.removeChannel(profileSubscription);
-                profileSubscription = null;
+            // Determine if we should load the profile based on the event type
+            // INITIAL_SESSION: The client has finished initializing (safe to fetch)
+            // SIGNED_IN: User explicitly logged in
+            // TOKEN_REFRESHED: Token updated (safe to fetch) - only if we don't have data
+            const shouldLoad =
+                event === "INITIAL_SESSION" ||
+                event === "SIGNED_IN" ||
+                (event === "TOKEN_REFRESHED" && !profileRef.current);
+
+            // Cleanup if no user
+            if (!currentUser) {
+                cleanupProfileSub();
+                setProfile(null);
+                setHistory([]);
+                setLoading(false);
+                return;
             }
 
-            if (currentUser) {
+            if (shouldLoad) {
                 await loadProfileForUser(currentUser.id);
-            } else {
-                if (mounted) {
-                    setProfile(null);
-                    setHistory([]);
-                }
             }
 
-            if (mounted) setLoading(false);
+            setLoading(false);
         });
 
         return () => {
             mounted = false;
             subscription.unsubscribe();
-            if (profileSubscription) {
-                supabase.removeChannel(profileSubscription);
-            }
+            cleanupProfileSub();
         };
     }, []);
 
