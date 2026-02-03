@@ -102,7 +102,7 @@ export default function Home() {
 
                     <div className={styles.heroImageWrapper}>
                         <Image
-                            src="/hero-product-shot-v2.png"
+                            src="/hero-product-shot-v4.png"
                             alt="G1 Master App Interface"
                             width={1024}
                             height={1024}

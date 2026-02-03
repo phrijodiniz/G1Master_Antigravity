@@ -104,10 +104,10 @@
   max-width: 500px;
   position: relative;
   z-index: 2;
-  display: none;
+  display: flex;
   /* Hide on mobile */
   justify-content: center;
-  margin-top: 1rem;
+  margin-top: 0.0rem;
 }
 
 .heroImageWrapper img {
@@ -412,11 +412,11 @@
 
 @media (min-width: 768px) {
   .nav {
-    padding: 1.2rem 3rem;
+    padding: 0.5rem 3rem;
   }
 
   .navLogoImage {
-    height: 63px;
+    height: 53px;
   }
 
   .navButtons {
