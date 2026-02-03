@@ -36,7 +36,7 @@ export async function POST(req) {
                             name: 'Premium Upgrade',
                             description: 'Unlock all features and unlimited practice tests.',
                         },
-                        unit_amount: 997, // $9.97 CAD
+                        unit_amount: 100, // $1.00 CAD (Temporary for testing)
                     },
                     quantity: 1,
                 },
