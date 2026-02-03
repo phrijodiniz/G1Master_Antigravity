@@ -158,7 +158,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     // VALIDATION CHECK
                     // Ensure we have a valid user session on the server before querying data.
                     // This prevents sending requests with stale tokens that result in 401s.
-                    const { data: userData, error: userErr } = await supabase.auth.getUser();
+                    // We wrap this in a timeout because the client itself can sometimes hang on this call.
+                    const getUserPromise = supabase.auth.getUser();
+                    const getUserTimeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("getUser check timed out")), 5000)
+                    );
+
+                    const { data: userData, error: userErr } = await Promise.race([getUserPromise, getUserTimeout]) as any;
+
                     if (userErr || !userData.user) {
                         console.warn(`Attempt ${attempts}: getUser failed (invalid session).`, userErr);
                         throw new Error("No valid user session");
