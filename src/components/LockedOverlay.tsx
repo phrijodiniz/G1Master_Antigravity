@@ -107,7 +107,7 @@ export default function LockedOverlay() {
                         }}
                     >
                         <span>Upgrade to Premium</span>
-                        <span style={{ background: '#e1ff21', color: 'black', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px' }}>$19.99</span>
+                        <span style={{ background: '#e1ff21', color: 'black', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px' }}>$9.97</span>
                     </button>
                     <button
                         className="text-sm text-slate-500 hover:text-slate-800"

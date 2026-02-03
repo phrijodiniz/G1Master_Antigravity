@@ -31,12 +31,12 @@ export async function POST(req) {
             line_items: [
                 {
                     price_data: {
-                        currency: 'usd', // Adjust currency as needed
+                        currency: 'cad', // Updated to CAD
                         product_data: {
                             name: 'Premium Upgrade',
                             description: 'Unlock all features and unlimited practice tests.',
                         },
-                        unit_amount: 1999, // $19.99 (Adjust price as needed)
+                        unit_amount: 997, // $9.97 CAD
                     },
                     quantity: 1,
                 },

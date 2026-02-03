@@ -88,7 +88,7 @@ export default function LimitModal({ isOpen, onClose, message }: LimitModalProps
                         }}
                     >
                         <span>Upgrade Now</span>
-                        <span style={{ background: '#e1ff21', color: 'black', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px' }}>$19.99</span>
+                        <span style={{ background: '#e1ff21', color: 'black', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px' }}>$9.97</span>
                     </button>
                     <button
                         onClick={() => window.location.href = '/dashboard'}
