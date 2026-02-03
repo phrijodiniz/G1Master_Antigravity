@@ -155,20 +155,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 try {
                     attempts++;
 
-                    // Fail Fast Session Check
-                    // We check aggressively (1s timeout) on the first attempt to fail fast and trigger a retry if stalled.
-                    if (attempts === 1) {
-                        console.log(`Attempt ${attempts}: Verifying session (Fail Fast 1s)...`);
-                        try {
-                            const sessionPromise = supabase.auth.getSession();
-                            const sessionTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Session check timed out")), 1000));
-                            const { data: { session }, error } = await Promise.race([sessionPromise, sessionTimeout]) as any;
-                            if (error || !session) throw new Error("No session");
+                    // Session Check: Run on EVERY attempt to ensure valid state
+                    // Attempt 1: Fail Fast (1s) to trigger quick retry if stuck
+                    // Attempt 2+: Give it more time (5s) to recover/refresh
+                    const sessionTimeoutDuration = attempts === 1 ? 1000 : 5000;
+                    console.log(`Attempt ${attempts}: Verifying session (${sessionTimeoutDuration}ms timeout)...`);
+
+                    try {
+                        const sessionPromise = supabase.auth.getSession();
+                        const sessionTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Session check timed out")), sessionTimeoutDuration));
+                        const { data: { session }, error } = await Promise.race([sessionPromise, sessionTimeout]) as any;
+
+                        if (error || !session) {
+                            // If no session, try refresh (but race it too)
+                            console.warn("No active session. Attempting refresh...");
+                            const refreshPromise = supabase.auth.refreshSession();
+                            const { data: { session: refreshedSession }, error: refreshError } = await Promise.race([refreshPromise, sessionTimeout]) as any;
+                            if (refreshError || !refreshedSession) throw new Error("Refresh failed");
+                            console.log("Session refreshed.");
+                        } else {
                             console.log("Session verified.");
-                        } catch (e) {
-                            console.warn("Session check fail/timeout. Triggering immediate retry.");
-                            throw new Error("Session check failed");
                         }
+                    } catch (e) {
+                        console.warn(`Session check failed (Attempt ${attempts}). Triggering retry loop.`);
+                        throw new Error("Session check failed");
                     }
 
                     const timeoutPromise = new Promise((_, reject) =>
