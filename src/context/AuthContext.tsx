@@ -100,8 +100,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const currentUser = session?.user ?? null;
             if (mounted) setUser(currentUser);
 
-            // Optimization: Skip profile reload on token refresh (subscription remains active)
-            if (event === 'TOKEN_REFRESHED') return;
+            // Optimization: Skip profile reload on token refresh ONLY if we already have a profile.
+            // If the initial fetch failed (cold start/timeout), this fresh token event is our chance to retry.
+            if (event === 'TOKEN_REFRESHED' && profileRef.current) return;
 
             // Cleanup old sub
             if (profileSubscription) {
