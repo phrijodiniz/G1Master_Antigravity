@@ -151,17 +151,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             let attempts = 0;
             const maxAttempts = 3;
 
-            // Ensure we have a valid session before starting
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            if (sessionError || !session) {
-                console.warn("No active session found during profile fetch start. Attempting refresh...");
-                const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-                if (refreshError || !refreshedSession) {
-                    console.error("Critical: Cannot fetch profile. No valid session.", refreshError);
-                    setProfile(null);
-                    setHistory([]);
-                    return;
+            // Ensure we have a valid session before starting - WITH TIMEOUT
+            console.log("Verifying session validity...");
+            try {
+                const sessionPromise = supabase.auth.getSession();
+                const sessionTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Session check timed out")), 5000));
+
+                const { data: { session }, error: sessionError } = await Promise.race([sessionPromise, sessionTimeout]) as any;
+
+                if (sessionError || !session) {
+                    console.warn("No active session found. Attempting refresh...");
+                    const refreshPromise = supabase.auth.refreshSession();
+                    const { data: { session: refreshedSession }, error: refreshError } = await Promise.race([refreshPromise, sessionTimeout]) as any;
+
+                    if (refreshError || !refreshedSession) {
+                        console.error("Critical: Cannot fetch profile. No valid session.", refreshError);
+                        setProfile(null);
+                        setHistory([]);
+                        return;
+                    }
+                    console.log("Session refreshed successfully.");
+                } else {
+                    console.log("Session is valid.");
                 }
+            } catch (err) {
+                console.error("Session verification failed/timed out:", err);
+                // We might proceed to try fetching anyway, or abort. 
+                // Aborting is safer to avoid phantom requests.
+                setProfile(null);
+                setHistory([]);
+                return;
             }
 
             while (attempts < maxAttempts) {
