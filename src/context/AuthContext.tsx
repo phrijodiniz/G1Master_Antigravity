@@ -223,7 +223,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: window.location.href
+                redirectTo: `${window.location.origin}/auth/callback`
             }
         });
     };
