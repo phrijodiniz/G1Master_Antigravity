@@ -24,7 +24,6 @@ export default function QuestionsReviewPage() {
     const fetchQuestions = useCallback(async (pageIndex: number, reset = false) => {
         setLoading(true);
         const term = searchTermRef.current;
-        console.log("Fetching questions. Reset:", reset, "Page:", pageIndex, "Search:", term);
 
         try {
             let query = supabase
@@ -314,6 +313,7 @@ export default function QuestionsReviewPage() {
                                 question={selectedQuestion}
                                 onSave={handleQuestionUpdated}
                                 onCancel={() => setSelectedQuestion(null)}
+                                onDelete={handleQuestionUpdated}
                             />
                         </div>
                     )

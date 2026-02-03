@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Check, X, AlertCircle } from "lucide-react";
+import { Save, Check, X, AlertCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { createBrowserClient } from '@supabase/ssr';
+
 
 interface Question {
     id: string;
@@ -21,12 +21,13 @@ interface QuestionEditorProps {
     question: Question;
     onSave: () => void;
     onCancel: () => void;
+    onDelete?: () => void;
 }
 
-export default function QuestionEditor({ question, onSave, onCancel }: QuestionEditorProps) {
+export default function QuestionEditor({ question, onSave, onCancel, onDelete }: QuestionEditorProps) {
     const [formData, setFormData] = useState<Question>({ ...question });
     const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState(""); // "" | "Preparing..." | "Uploading..." | "Finishing..."
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
 
@@ -46,45 +47,67 @@ export default function QuestionEditor({ question, onSave, onCancel }: QuestionE
         }
 
         const file = e.target.files[0];
-        setUploading(true);
+        setUploadStatus("Preparing...");
         setError(""); // Clear previous errors
 
-        console.log("Starting upload for:", file.name);
+        console.log("Starting upload for:", file.name, "Size:", file.size, "bytes");
+        const uploadStart = performance.now();
 
-        // Use fresh client
-        const tempSupabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
 
         try {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
             const filePath = `${fileName}`;
 
-            // Upload directly to Supabase Storage
-            const { error: uploadError } = await tempSupabase.storage
-                .from('question-images')
-                .upload(filePath, file);
 
-            if (uploadError) {
-                console.error("Supabase Storage Error:", uploadError);
-                throw uploadError;
+            // 1. Get Signed Upload URL (Server-Side)
+            const signRes = await fetch('/api/admin/questions/sign-upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filePath })
+            });
+
+            if (!signRes.ok) {
+                const errorData = await signRes.json();
+                throw new Error(errorData.error || "Failed to get signed URL");
             }
 
-            // Get Public URL
-            const { data: { publicUrl } } = tempSupabase.storage
+            const { signedUrl } = await signRes.json();
+
+            setUploadStatus("Uploading...");
+
+            // 2. Upload via standard fetch
+            const uploadRes = await fetch(signedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type,
+                    'cache-control': '3600'
+                }
+            });
+
+            if (!uploadRes.ok) {
+                throw new Error(`Upload failed with status: ${uploadRes.status}`);
+            }
+
+            setUploadStatus("Finishing...");
+
+            // 3. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
                 .from('question-images')
                 .getPublicUrl(filePath);
 
             console.log("Image uploaded:", publicUrl);
-            setFormData({ ...formData, media_url: publicUrl });
+
+            // Force browser to reload image by appending timestamp
+            const publicUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
+            setFormData({ ...formData, media_url: publicUrlWithTimestamp });
 
         } catch (err: any) {
             console.error("Upload error:", err);
             setError("Failed to upload image: " + (err.message || JSON.stringify(err)));
         } finally {
-            setUploading(false);
+            setUploadStatus("");
         }
     };
 
@@ -93,24 +116,24 @@ export default function QuestionEditor({ question, onSave, onCancel }: QuestionE
         setError("");
         setSuccess(false);
 
-        console.log("Attempting to save question:", formData);
-
-        // Use fresh client
-        const tempSupabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const startTime = Date.now();
+        console.log(`[${new Date().toISOString()}] Attempting to save question. ID: ${formData.id}`);
+        console.log("Saving payload - is_validated:", formData.is_validated);
 
         try {
-            // Create a timeout promise to detect hangs
+            // Create a timeout promise to detect hangs - INCREASED TO 20s
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Request timed out - check network or RLS policies")), 10000)
+                setTimeout(() => reject(new Error("Request timed out - check network or RLS policies")), 20000)
             );
 
-            // Perform the update
-            const updatePromise = tempSupabase
-                .from('questions')
-                .update({
+            // Perform the update via API Route
+            const updatePromise = fetch('/api/admin/questions/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: formData.id,
                     text: formData.text,
                     options: formData.options,
                     correct_index: formData.correct_index,
@@ -119,26 +142,60 @@ export default function QuestionEditor({ question, onSave, onCancel }: QuestionE
                     chapter: formData.chapter,
                     is_validated: formData.is_validated,
                     media_url: formData.media_url
-                })
-                .eq('id', formData.id);
+                }),
+            }).then(async (res) => {
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `Server returned ${res.status}`);
+                }
+                return res.json();
+            });
 
             // Race them
-            const { error: updateError } = await Promise.race([updatePromise, timeoutPromise]) as any;
+            await Promise.race([updatePromise, timeoutPromise]);
 
-            if (updateError) {
-                console.error("Supabase Update Error:", updateError);
-                throw updateError;
-            }
+            const duration = Date.now() - startTime;
+            console.log(`[${new Date().toISOString()}] Save successful. Duration: ${duration}ms`);
 
-            console.log("Save successful");
             setSuccess(true);
             setTimeout(() => {
                 onSave();
             }, 1000);
         } catch (err: any) {
-            console.error("Save caught error:", err);
+            const duration = Date.now() - startTime;
+            console.error(`[${new Date().toISOString()}] Save FAILED after ${duration}ms. Error:`, err);
             setError(err.message || "Failed to save");
         } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("Are you sure you want to delete this question? This action cannot be undone.")) {
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+            const res = await fetch('/api/admin/questions/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: formData.id }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || `Server returned ${res.status}`);
+            }
+
+            console.log("Delete successful");
+            if (onDelete) onDelete();
+
+        } catch (err: any) {
+            console.error("Delete failed:", err);
+            setError(err.message || "Failed to delete");
             setLoading(false);
         }
     };
@@ -204,14 +261,14 @@ export default function QuestionEditor({ question, onSave, onCancel }: QuestionE
                                 type="file"
                                 accept="image/*"
                                 onChange={handleImageUpload}
-                                disabled={uploading}
+                                disabled={!!uploadStatus}
                                 style={{
                                     fontSize: '0.9rem',
                                     color: 'rgba(255,255,255,0.7)',
                                     cursor: 'pointer'
                                 }}
                             />
-                            {uploading && <span style={{ fontSize: '0.8rem', marginLeft: '0.5rem', color: 'var(--primary)' }}>Uploading...</span>}
+                            {uploadStatus && <span style={{ fontSize: '0.8rem', marginLeft: '0.5rem', color: 'var(--primary)' }}>{uploadStatus}</span>}
                         </div>
                     </div>
                 </div>
@@ -283,12 +340,34 @@ export default function QuestionEditor({ question, onSave, onCancel }: QuestionE
                     <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>(Click to toggle)</span>
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                    <button onClick={onCancel} disabled={loading} className="btn-secondary">Cancel</button>
-                    <button onClick={handleSave} disabled={loading} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {loading ? 'Saving...' : <><Save size={18} /> Save Changes</>}
-                    </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div>
+                        {onDelete && (
+                            <button
+                                onClick={handleDelete}
+                                disabled={loading}
+                                style={{
+                                    background: 'rgba(239, 68, 68, 0.2)',
+                                    color: '#EF4444',
+                                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}
+                            >
+                                <Trash2 size={18} /> Delete
+                            </button>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button onClick={onCancel} disabled={loading} className="btn-secondary">Cancel</button>
+                        <button onClick={handleSave} disabled={loading} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {loading ? 'Saving...' : <><Save size={18} /> Save Changes</>}
+                        </button>
+                    </div>
                 </div>
 
             </div>

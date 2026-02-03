@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { createBrowserClient } from '@supabase/ssr';
+
 import { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -16,7 +16,7 @@ interface AuthContextType {
     isAdmin: boolean;
     practiceCredits: number;
     simulationCredits: number;
-    refreshProfile: () => Promise<void>;
+    refreshProfile: (force?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -26,6 +26,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     const [profile, setProfile] = useState<any>(null);
+    const profileRef = useRef(profile); // Track latest profile for stale closures
+    const fetchingPromiseRef = useRef<Promise<void> | null>(null); // Track in-progress fetch promise
+
+    useEffect(() => {
+        profileRef.current = profile;
+    }, [profile]);
     const [calcPracticeCredits, setCalcPracticeCredits] = useState(5);
     const [calcSimulationCredits, setCalcSimulationCredits] = useState(1);
 
@@ -88,9 +94,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         initAuth();
 
         // 2. Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             const currentUser = session?.user ?? null;
             if (mounted) setUser(currentUser);
+
+            // Optimization: Skip profile reload on token refresh (subscription remains active)
+            if (event === 'TOKEN_REFRESHED') return;
 
             // Cleanup old sub
             if (profileSubscription) {
@@ -116,55 +125,87 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
     }, []);
 
-    const fetchProfile = async (userId: string) => {
+    const fetchProfile = async (userId: string, options?: { force?: boolean }) => {
+        // Check if data is already loaded and fresh enough (simple memory cache)
+        if (!options?.force && profileRef.current && profileRef.current.id === userId) {
+            console.log("Skipping profile fetch - using cached data");
+            return;
+        }
+
+        // If a fetch is already running for this user (or generally), join it.
+        // We could optimize to check userId, but generally only one user is active.
+        if (fetchingPromiseRef.current) {
+            console.log("Joining existing profile fetch for", userId);
+            return fetchingPromiseRef.current;
+        }
+
         console.log("Fetching profile for:", userId);
 
-        // Use fresh client to avoid singleton locks
-        const tempSupabase = createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const fetchTask = async () => {
+            let attempts = 0;
+            const maxAttempts = 2;
 
-        try {
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Profile fetch timed out")), 15000)
-            );
+            while (attempts < maxAttempts) {
+                try {
+                    attempts++;
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("Profile fetch timed out")), 15000)
+                    );
 
-            // Fetch Profile
-            const profilePromise = tempSupabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
+                    // Fetch Profile using singleton client
+                    const profilePromise = supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', userId)
+                        .single();
 
-            const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+                    const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
-            if (error) throw error;
+                    if (error) throw error;
 
-            console.log("Profile loaded:", profileData);
-            setProfile(profileData);
+                    console.log("Profile loaded:", profileData);
+                    setProfile(profileData);
 
-            // Fetch Usage History (Parallelize these)
-            const historyFetchPromise = Promise.all([
-                tempSupabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('test_type', 'Simulation'),
-                tempSupabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('test_type', 'Simulation')
-            ]);
+                    // Fetch Usage History (Parallelize these) using singleton client
+                    const historyFetchPromise = Promise.all([
+                        supabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('test_type', 'Simulation'),
+                        supabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('test_type', 'Simulation')
+                    ]);
 
-            const historyTimeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("History fetch timed out")), 10000)
-            );
+                    const historyTimeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error("History fetch timed out")), 10000)
+                    );
 
-            const [simResult, practiceResult] = await Promise.race([historyFetchPromise, historyTimeoutPromise]) as any;
+                    const [simResult, practiceResult] = await Promise.race([historyFetchPromise, historyTimeoutPromise]) as any;
 
-            setCalcSimulationCredits(Math.max(0, 1 - (simResult.count || 0)));
-            setCalcPracticeCredits(Math.max(0, 5 - (practiceResult.count || 0)));
+                    setCalcSimulationCredits(Math.max(0, 1 - (simResult.count || 0)));
+                    setCalcPracticeCredits(Math.max(0, 5 - (practiceResult.count || 0)));
 
-        } catch (err) {
-            console.error("Error fetching profile:", err);
-            // Don't leave the app broken, just set null profile (non-admin/non-premium)
-            // But if it's a timeout, user might be admin and get blocked.
-            // Better to retry? For now, we proceed so 'loading' stops.
-        }
+                    return; // Success, exit loop
+
+                } catch (err: any) {
+                    console.warn(`Attempt ${attempts} failed:`, err);
+
+                    if (attempts >= maxAttempts) {
+                        // Check REF for latest data, not stale closure variable
+                        if (profileRef.current) {
+                            console.warn("Profile fetch failed but using stale data. Error:", err.message);
+                            return;
+                        }
+                        console.error("Critical: Profile fetch failed and no stale data available.", err);
+                    }
+                    // Wait a bit before retry?
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+        };
+
+        // Store the promise so others can wait for it
+        fetchingPromiseRef.current = fetchTask().finally(() => {
+            fetchingPromiseRef.current = null;
+        });
+
+        return fetchingPromiseRef.current;
     };
 
     const isPremium = profile?.status === "Premium" || profile?.is_premium === true; // Check both for backward compat if schema changed
@@ -172,9 +213,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const practiceCredits = calcPracticeCredits;
     const simulationCredits = calcSimulationCredits;
 
-    const refreshProfile = async () => {
+    const refreshProfile = async (force?: boolean) => {
         if (user) {
-            await fetchProfile(user.id);
+            await fetchProfile(user.id, { force });
         }
     };
 

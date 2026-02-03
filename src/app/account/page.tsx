@@ -65,42 +65,26 @@ function AccountContent() {
         setLoading(true);
         setMsg({ type: "", text: "" });
         try {
-            const updates: any = {
-                data: {
+            // Call server-side API to handle update reliably
+            const response = await fetch('/api/account/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                     first_name: firstName,
-                    last_name: lastName
-                }
-            };
+                    last_name: lastName,
+                    password: newPassword || undefined
+                }),
+            });
 
-            // Only update password if provided
-            if (newPassword) {
-                if (newPassword !== confirmPassword) {
-                    throw new Error("Passwords do not match");
-                }
-                if (newPassword.length < 6) {
-                    throw new Error("Password must be at least 6 characters");
-                }
-                updates.password = newPassword;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to update profile");
             }
 
-            console.log("DEBUG: Calling supabase.auth.updateUser with", updates);
-
-            // Add a timeout to prevent hanging indefinitely
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Request timed out - check network or Supabase config")), 15000)
-            );
-
-            // Race the update against the timeout
-            const result: any = await Promise.race([
-                supabase.auth.updateUser(updates),
-                timeoutPromise
-            ]);
-
-            const { error } = result;
-
-            console.log("DEBUG: supabase.auth.updateUser returned", result);
-
-            if (error) throw error;
+            // Success
+            const result = await response.json();
 
             setMsg({ type: "success", text: "Profile updated successfully!" });
             setNewPassword("");
