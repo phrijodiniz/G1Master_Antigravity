@@ -89,7 +89,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Determine if we should load the profile based on the event type
             const shouldLoad =
                 event === "INITIAL_SESSION" ||
-                event === "SIGNED_IN" ||
                 (event === "TOKEN_REFRESHED" && !profileRef.current);
 
             // Cleanup if no user
