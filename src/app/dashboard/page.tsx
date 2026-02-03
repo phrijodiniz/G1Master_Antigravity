@@ -122,30 +122,15 @@ export default function Dashboard() {
 }
 
 function TestHistoryTable() {
-    const { user } = useAuth();
-    const [history, setHistory] = useState<any[]>([]);
+    const { user, history } = useAuth();
+    // No local state needed for fetching
 
-    useEffect(() => {
-        async function fetchHistory() {
-            if (!user) return;
-            // Fetch last 5 results
-            const { data } = await supabase
-                .from('simulation_results')
-                .select('created_at, passed, score, test_type')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-            if (data) {
-                setHistory(data);
-            }
-        }
-        fetchHistory();
-    }, [user]);
-
-    if (history.length === 0) {
+    if (!history || history.length === 0) {
         return <div style={{ padding: '1rem', textAlign: 'center', opacity: 0.6, fontSize: '0.9rem' }}>No tests taken yet.</div>;
     }
+
+    // Use cached history, take top 5
+    const recentHistory = history.slice(0, 5);
 
     return (
         <div className={styles.historyListContainer}>
@@ -158,7 +143,7 @@ function TestHistoryTable() {
                     </tr>
                 </thead>
                 <tbody>
-                    {history.map((item, idx) => (
+                    {recentHistory.map((item, idx) => (
                         <tr key={idx}>
                             <td>{new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                             <td>{item.test_type || 'Simulation'}</td>
@@ -191,33 +176,22 @@ function TestHistoryTable() {
 }
 
 function ReadinessGauge() {
-    const { user } = useAuth();
+    const { user, history } = useAuth();
     const [score, setScore] = useState(0);
     const [hasData, setHasData] = useState(false);
-    // Imports for supabase are needed if not globally available, but here I can use the imported client
-    // Waiting for 'supabase' to be available in scope or passed. 
-    // Usually standard to import in file. I'll assume 'supabase' is not imported in global scope of this file yet if I didn't verify imports.
-    // Wait, checking imports...
 
     useEffect(() => {
-        async function fetchScore() {
-            if (!user) return;
+        if (!history || history.length === 0) return;
 
-            const { data } = await supabase
-                .from('simulation_results')
-                .select('score')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(10); // Last 10 simulations
+        // Use cached history, take top 10 for score calculation
+        const data = history.slice(0, 10);
 
-            if (data && data.length > 0) {
-                const avg = data.reduce((acc, curr) => acc + Number(curr.score), 0) / data.length;
-                setScore(Math.round(avg)); // Integer
-                setHasData(true);
-            }
+        if (data.length > 0) {
+            const avg = data.reduce((acc: number, curr: any) => acc + Number(curr.score), 0) / data.length;
+            setScore(Math.round(avg)); // Integer
+            setHasData(true);
         }
-        fetchScore();
-    }, [user]);
+    }, [history]);
 
     // Geometry Config - Standard SVG Angles
     // 0 = 3 o'clock. 90 = 6 o'clock. 180 = 9 o'clock. 270 = 12 o'clock.

@@ -16,6 +16,7 @@ interface AuthContextType {
     isAdmin: boolean;
     practiceCredits: number;
     simulationCredits: number;
+    history: any[];
     refreshProfile: (force?: boolean) => Promise<void>;
 }
 
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     const [profile, setProfile] = useState<any>(null);
+    const [history, setHistory] = useState<any[]>([]);
     const profileRef = useRef(profile); // Track latest profile for stale closures
     const fetchingPromiseRef = useRef<Promise<void> | null>(null); // Track in-progress fetch promise
 
@@ -110,7 +112,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (currentUser) {
                 await loadProfileForUser(currentUser.id);
             } else {
-                if (mounted) setProfile(null);
+                if (mounted) {
+                    setProfile(null);
+                    setHistory([]);
+                }
             }
 
             if (mounted) setLoading(false);
@@ -167,19 +172,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     setProfile(profileData);
 
                     // Fetch Usage History (Parallelize these) using singleton client
+                    // Fetch counts for credits AND detailed history for UI
                     const historyFetchPromise = Promise.all([
                         supabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('test_type', 'Simulation'),
-                        supabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('test_type', 'Simulation')
+                        supabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('test_type', 'Simulation'),
+                        supabase.from('simulation_results').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
                     ]);
 
                     const historyTimeoutPromise = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error("History fetch timed out")), 10000)
                     );
 
-                    const [simResult, practiceResult] = await Promise.race([historyFetchPromise, historyTimeoutPromise]) as any;
+                    const [simResult, practiceResult, historyData] = await Promise.race([historyFetchPromise, historyTimeoutPromise]) as any;
 
                     setCalcSimulationCredits(Math.max(0, 1 - (simResult.count || 0)));
                     setCalcPracticeCredits(Math.max(0, 5 - (practiceResult.count || 0)));
+
+                    if (historyData?.data) {
+                        setHistory(historyData.data);
+                    } else if (Array.isArray(historyData)) {
+                        // Sometimes supabase returns data directly depending on client version/mocking, but usually .data
+                        setHistory(historyData);
+                    } else if (historyData && typeof historyData === 'object' && 'data' in historyData) {
+                        // Double check structure
+                        setHistory(historyData.data || []);
+                    }
 
                     return; // Success, exit loop
 
@@ -255,10 +272,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const logout = async () => {
         await supabase.auth.signOut();
+        setHistory([]);
+        setProfile(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, refreshProfile }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

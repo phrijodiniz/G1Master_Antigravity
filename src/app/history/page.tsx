@@ -7,46 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function HistoryPage() {
-    const { user, loading: authLoading } = useAuth();
-    const [history, setHistory] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        let mounted = true;
-
-        async function fetchHistory() {
-            if (authLoading) return;
-
-            if (!user) {
-                if (mounted) setLoading(false);
-                return;
-            }
-
-            try {
-                const { data, error } = await supabase
-                    .from('simulation_results')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-
-                if (error) throw error;
-
-                if (mounted && data) {
-                    setHistory(data);
-                }
-            } catch (error) {
-                console.error("Error fetching history:", error);
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        }
-        fetchHistory();
-
-        return () => {
-            mounted = false;
-        };
-    }, [user, authLoading]);
+    const { user, history, loading: authLoading } = useAuth();
+    // history is already array (cached in AuthContext)
 
     const getTestTypeLabel = (type: string) => {
         if (!type || type === 'Simulation') return <span className={`${styles.typeBadge} ${styles.typeSimulation}`}>G1 Simulation</span>;
@@ -60,9 +22,9 @@ export default function HistoryPage() {
             <h1 className={styles.title}>Test History</h1>
 
             <div className={styles.tableContainer}>
-                {loading ? (
+                {authLoading && (!history || history.length === 0) ? (
                     <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading history...</div>
-                ) : history.length === 0 ? (
+                ) : (!history || history.length === 0) ? (
                     <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
                         You haven't taken any tests yet.
                     </div>
