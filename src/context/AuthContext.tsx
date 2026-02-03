@@ -155,34 +155,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 try {
                     attempts++;
 
-                    // Session Check: Run on EVERY attempt to ensure valid state
-                    // Attempt 1: Fail Fast (1s) to trigger quick retry if stuck
-                    // Attempt 2+: Give it more time (5s) to recover/refresh
-                    const sessionTimeoutDuration = attempts === 1 ? 1000 : 5000;
-                    console.log(`Attempt ${attempts}: Verifying session (${sessionTimeoutDuration}ms timeout)...`);
+                    // OPTIMISTIC FETCH STRATEGY
+                    // Attempt 1: SKIP SESSION CHECK. Assume valid token and fetch immediately.
+                    // Attempt 2+: If Attempt 1 failed (401/Timeout), perform STRICT RECOVERY (check/refresh session).
 
-                    try {
-                        const sessionPromise = supabase.auth.getSession();
-                        const sessionTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Session check timed out")), sessionTimeoutDuration));
-                        const { data: { session }, error } = await Promise.race([sessionPromise, sessionTimeout]) as any;
+                    if (attempts > 1) {
+                        const sessionTimeoutDuration = 10000; // 10s recovery window for subsequent attempts
+                        console.log(`Attempt ${attempts}: Verifying session (Recovery Mode - ${sessionTimeoutDuration}ms)...`);
+                        try {
+                            const sessionPromise = supabase.auth.getSession();
+                            const sessionTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Session check timed out")), sessionTimeoutDuration));
+                            const { data: { session }, error } = await Promise.race([sessionPromise, sessionTimeout]) as any;
 
-                        if (error || !session) {
-                            // If no session, try refresh (but race it too)
-                            console.warn("No active session. Attempting refresh...");
-                            const refreshPromise = supabase.auth.refreshSession();
-                            const { data: { session: refreshedSession }, error: refreshError } = await Promise.race([refreshPromise, sessionTimeout]) as any;
-                            if (refreshError || !refreshedSession) throw new Error("Refresh failed");
-                            console.log("Session refreshed.");
-                        } else {
-                            console.log("Session verified.");
+                            if (error || !session) {
+                                console.warn("No active session in recovery. Attempting refresh...");
+                                const refreshPromise = supabase.auth.refreshSession();
+                                const { data: { session: refreshedSession }, error: refreshError } = await Promise.race([refreshPromise, sessionTimeout]) as any;
+                                if (refreshError || !refreshedSession) throw new Error("Refresh failed");
+                                console.log("Session refreshed.");
+                            } else {
+                                console.log("Session verified.");
+                            }
+                        } catch (e) {
+                            console.warn(`Session recovery failed (Attempt ${attempts}). Retrying loop.`);
+                            throw new Error("Session recovery failed");
                         }
-                    } catch (e) {
-                        console.warn(`Session check failed (Attempt ${attempts}). Triggering retry loop.`);
-                        throw new Error("Session check failed");
+                    } else {
+                        console.log(`Attempt ${attempts}: Optimistic fetch (Skipping session check)...`);
                     }
 
+                    // For Attempt 1, use a shorter "Fail Fast" network timeout (10s)
+                    // For Attempt 2+, use the full generous timeout (45s)
+                    const fetchTimeoutMs = attempts === 1 ? 10000 : 45000;
+
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error("Profile fetch timed out")), 45000)
+                        setTimeout(() => reject(new Error(`Profile fetch timed out (${fetchTimeoutMs}ms)`)), fetchTimeoutMs)
                     );
 
                     // Fetch Profile using singleton client
@@ -219,10 +226,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     if (historyData?.data) {
                         setHistory(historyData.data);
                     } else if (Array.isArray(historyData)) {
-                        // Sometimes supabase returns data directly depending on client version/mocking, but usually .data
                         setHistory(historyData);
                     } else if (historyData && typeof historyData === 'object' && 'data' in historyData) {
-                        // Double check structure
                         setHistory(historyData.data || []);
                     }
 
