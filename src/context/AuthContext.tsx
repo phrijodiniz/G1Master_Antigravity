@@ -151,6 +151,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             let attempts = 0;
             const maxAttempts = 3;
 
+            // Ensure we have a valid session before starting
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError || !session) {
+                console.warn("No active session found during profile fetch start. Attempting refresh...");
+                const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+                if (refreshError || !refreshedSession) {
+                    console.error("Critical: Cannot fetch profile. No valid session.", refreshError);
+                    setProfile(null);
+                    setHistory([]);
+                    return;
+                }
+            }
+
             while (attempts < maxAttempts) {
                 try {
                     attempts++;
