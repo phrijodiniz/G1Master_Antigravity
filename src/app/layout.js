@@ -24,6 +24,22 @@ export default function RootLayout({ children }) {
     return (
         <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning={true}>
             <head>
+                {/* Google Tag (gtag.js) - Added for Ads Verification */}
+                <Script
+                    async
+                    src="https://www.googletagmanager.com/gtag/js?id=AW-17759373897"
+                />
+                <Script
+                    id="google-ads-tag"
+                    dangerouslySetInnerHTML={{
+                        __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'AW-17759373897');
+            `,
+                    }}
+                />
                 <Script
                     id="gtm-script"
                     strategy="afterInteractive"
