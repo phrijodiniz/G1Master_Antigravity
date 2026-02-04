@@ -110,7 +110,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Test History */}
-                    <div className={`${styles.widget} glass-panel`}>
+                    <div className={`${styles.widget} ${styles.testHistoryWidget} glass-panel`}>
                         <h3 className={styles.sectionTitle}>Test History</h3>
                         <TestHistoryTable />
                     </div>

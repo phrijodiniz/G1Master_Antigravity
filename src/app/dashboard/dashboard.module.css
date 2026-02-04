@@ -83,6 +83,11 @@
     /* justify-content: center; Optional: center content if widget is tall */
 }
 
+.testHistoryWidget {
+    /* Base identifier for the Test History specific overrides */
+    position: relative;
+}
+
 /* Make action cards fill available space */
 .actionCardsGrid {
     display: grid;
@@ -134,15 +139,20 @@
         overflow: visible;
     }
 
-    /* Fix Test History collapsing on mobile */
-    .widget:nth-child(2) {
-        flex: none;
-        min-height: 0;
-        height: auto;
+    /* Fix Test History collapsing on mobile - ROBUST VERSION */
+    .testHistoryWidget {
+        flex: none !important;
+        height: auto !important;
+        min-height: 300px !important;
+        display: flex !important;
+        flex-direction: column;
+        opacity: 1 !important;
+        visibility: visible !important;
+        background: #ffffff;
     }
 
     /* Reset the scroll container inside the widget */
-    .widget:nth-child(2)>div {
+    .testHistoryWidget>div {
         flex: none;
         overflow-y: visible;
     }
