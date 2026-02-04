@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { sendGTMEvent } from '@/lib/gtm';
 
 interface LimitModalProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ export default function LimitModal({ isOpen, onClose, message }: LimitModalProps
     if (!isOpen) return null;
 
     const handleUpgrade = async () => {
+        sendGTMEvent('begin_checkout', { source: 'limit_modal' });
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {

@@ -128,6 +128,24 @@
     .actionCardsGrid {
         grid-template-columns: 1fr;
     }
+
+    .widgetsColumn {
+        height: auto;
+        overflow: visible;
+    }
+
+    /* Fix Test History collapsing on mobile */
+    .widget:nth-child(2) {
+        flex: none;
+        min-height: 0;
+        height: auto;
+    }
+
+    /* Reset the scroll container inside the widget */
+    .widget:nth-child(2)>div {
+        flex: none;
+        overflow-y: visible;
+    }
 }
 
 /* Middle Column Sections */

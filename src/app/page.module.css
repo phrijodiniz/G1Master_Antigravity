@@ -530,3 +530,41 @@
     font-size: 4.5rem;
   }
 }
+
+.quizCard {
+  background: #ffffff;
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
+  width: 90%;
+  margin: 0 auto;
+  text-align: center;
+  color: #000000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.quizCardTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: #000000;
+}
+
+.quizCardScore {
+  font-size: 5rem;
+  font-weight: 800;
+  color: #000000;
+  line-height: 1;
+  margin-bottom: 1.5rem;
+}
+
+.quizCardText {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  opacity: 0.8;
+  line-height: 1.6;
+}

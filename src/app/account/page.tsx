@@ -49,6 +49,16 @@ function AccountContent() {
         if (searchParams.get('session_id')) {
             setMsg({ type: "success", text: "Payment successful! Your account is being upgraded..." });
 
+            // Track Purchase
+            import('@/lib/gtm').then(({ sendGTMEvent }) => {
+                sendGTMEvent('purchase', {
+                    method: 'stripe',
+                    session_id: searchParams.get('session_id'),
+                    value: 9.97,
+                    currency: 'CAD'
+                });
+            });
+
             // Force strict refresh of user data to get the new 'Premium' claim
             const refreshUser = async () => {
                 const { error } = await supabase.auth.refreshSession();
@@ -100,6 +110,11 @@ function AccountContent() {
 
     const handleUpgrade = async () => {
         setLoading(true);
+        // Track Checkout Start
+        import('@/lib/gtm').then(({ sendGTMEvent }) => {
+            sendGTMEvent('begin_checkout', { source: 'account_page' });
+        });
+
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {

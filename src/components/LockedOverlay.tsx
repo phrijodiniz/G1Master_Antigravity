@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { loadStripe } from "@stripe/stripe-js";
+import { sendGTMEvent } from "@/lib/gtm";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -25,6 +26,7 @@ export default function LockedOverlay() {
     }, [user, isPremium, practiceCredits, simulationCredits, loading]);
 
     const handleUpgrade = async () => {
+        sendGTMEvent('begin_checkout', { source: 'locked_overlay' });
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
