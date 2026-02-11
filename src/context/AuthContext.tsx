@@ -256,10 +256,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const loginWithGoogle = async () => {
+        const redirectTo = `${window.location.origin}/auth/callback`;
+        console.log("Logging in with Google, redirecting to:", redirectTo);
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`
+                redirectTo
             }
         });
     };

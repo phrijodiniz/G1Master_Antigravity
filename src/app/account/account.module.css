@@ -184,6 +184,80 @@
     border: 1px solid #bae6fd;
 }
 
+
+
+.marketingContainer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.marketingText {
+    font-size: 0.95rem;
+    color: #475569;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    background-color: #f8fafc;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border-left: 4px solid #e1ff21;
+}
+
+.marketingHighlight {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.creditsContainer {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.creditItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    background: #f1f5f9;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+
+.creditsGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-left: 1.5rem;
+}
+
+.creditsLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.creditsInline {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.creditItemInline {
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.creditValueInline {
+    font-weight: 700;
+    color: #0f172a;
+}
+
 @media (max-width: 768px) {
     .card {
         padding: 1.5rem;
@@ -203,5 +277,10 @@
     .title {
         font-size: 1.5rem;
         margin-bottom: 1.5rem;
+    }
+
+    .creditsGroup {
+        margin-left: 0;
+        padding-top: 0.5rem;
     }
 }

@@ -160,7 +160,7 @@ function QuizContent() {
             <div className={styles.contentWrapper}>
                 <div style={{ padding: '2rem', color: '#64748b' }}>Checking eligibility...</div>
             </div>
-            <LimitModal isOpen={true} onClose={() => setShowLimitModal(false)} />
+            <LimitModal isOpen={true} onClose={() => setShowLimitModal(false)} variant='practice_limit' />
         </DashboardLayout>
     );
 
@@ -305,6 +305,7 @@ function QuizContent() {
             <LimitModal
                 isOpen={showLimitModal}
                 onClose={() => setShowLimitModal(false)}
+                variant='practice_limit'
             />
         </DashboardLayout>
     );

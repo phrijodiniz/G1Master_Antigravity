@@ -226,6 +226,7 @@ function SimulationContent() {
                 isOpen={true}
                 onClose={() => setShowLimitModal(false)}
                 message="You have no simulation credits remaining. Please upgrade to Premium."
+                variant='simulation_limit'
             />
         </DashboardLayout>
     );

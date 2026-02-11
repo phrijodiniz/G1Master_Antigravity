@@ -149,18 +149,20 @@ export default function QuizDemo({ onUnlock }) {
     if (finished) {
         return (
             <div className={styles.quizCard}>
-                <h3 className={styles.quizCardTitle}>Quiz Complete!</h3>
+                <h3 className={styles.quizCardTitle}>You’ve just completed your first G1 quiz 🎉</h3>
                 <div className={styles.quizCardScore}>
                     {score}/{DEMO_QUESTIONS.length}
                 </div>
                 <p className={styles.quizCardText}>
-                    {score === DEMO_QUESTIONS.length
-                        ? "Perfect score! You're ready to master the road."
-                        : "Good practice! Keep going to reach perfection."}
+                    {score <= 2
+                        ? "Good try! Want more practice like this?"
+                        : score <= 5
+                            ? "Good start! Want more practice like this?"
+                            : "Well done! Want more practice like this?"}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%' }}>
                     <p style={{ opacity: 0.6, fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto 1rem auto' }}>
-                        Join G1 Master for unlimited practice tests, detailed tracking, and smart study tools.
+                        Create a FREE account to unlock more practice questions, track your progress, and see how close you are to passing.
                     </p>
                     <button
                         onClick={onUnlock}

@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/DashboardLayout";
 
 function AccountContent() {
-    const { user, isPremium } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [firstName, setFirstName] = useState("");
@@ -154,9 +154,9 @@ function AccountContent() {
         <DashboardLayout>
             <h1 className={styles.title}>Account Settings</h1>
 
-            <div className={styles.card}>
+            {/* Personal Information Section */}
+            <div className={styles.card} style={{ marginBottom: '2rem' }}>
                 <h2 className={styles.sectionTitle}>Personal Information</h2>
-
                 <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
                         <label className={styles.label}>First Name</label>
@@ -189,27 +189,56 @@ function AccountContent() {
                             readOnly
                         />
                     </div>
+                </div>
+            </div>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Current Plan</label>
-                        <div className={styles.planContainer}>
-                            <div className={`${styles.planBadge} ${isPremium ? styles.premium : ''}`}>
-                                {isPremium ? "Premium Member" : `${plan} Plan`}
-                            </div>
-                            {!isPremium && (
-                                <button
-                                    className={styles.upgradeBtn}
-                                    onClick={handleUpgrade}
-                                    disabled={loading}
-                                >
-                                    Upgrade to Premium
-                                </button>
-                            )}
+            {/* Current Plan Section */}
+            {/* Current Plan Section */}
+            <div className={styles.card} style={{ marginBottom: '2rem' }}>
+                <h2 className={styles.sectionTitle}>Current Plan</h2>
+                <div className={styles.formGroup}>
+                    <div className={styles.planContainer}>
+                        <div className={`${styles.planBadge} ${isPremium ? styles.premium : ''}`}>
+                            {isPremium ? "Premium Member" : `${plan} Plan`}
                         </div>
+
+                        {!isPremium && (
+                            <div className={styles.creditsGroup}>
+                                <span className={styles.creditsLabel}>Remaining Available Credits:</span>
+                                <div className={styles.creditsInline}>
+                                    <div className={styles.creditItemInline}>
+                                        <span className={styles.creditValueInline}>{practiceCredits}</span> Practice Tests
+                                    </div>
+                                    <div className={styles.creditItemInline}>
+                                        <span className={styles.creditValueInline}>{simulationCredits}</span> Simulations
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <h2 className={styles.sectionTitle} style={{ marginTop: '2rem' }}>Security</h2>
+                {!isPremium && (
+                    <div className={styles.marketingContainer}>
+                        <button
+                            className={styles.upgradeBtn}
+                            onClick={handleUpgrade}
+                            disabled={loading}
+                            style={{ marginBottom: '1rem', width: '100%' }}
+                        >
+                            Click here to unlock your Premium plan for only $9.97 (One-Time Fee)
+                        </button>
+
+                        <div className={styles.marketingText}>
+                            As a <span className={styles.marketingHighlight}>PREMIUM</span> member, you get unlimited practice tests, simulations, and full progress tracking. Pay once. Lifetime access. No subscriptions.
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Security Section */}
+            <div className={styles.card}>
+                <h2 className={styles.sectionTitle}>Security</h2>
 
                 {isGoogleAuth ? (
                     <div className={styles.infoMessage}>

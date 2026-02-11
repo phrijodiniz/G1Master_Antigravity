@@ -81,6 +81,7 @@ function ChapterQuizContent() {
                 isOpen={true}
                 onClose={() => { }}
                 message="Chapter questions are strictly for Premium users. Please upgrade to access this content."
+                variant="chapter_quiz"
             />
         </DashboardLayout>
     );
@@ -177,6 +178,7 @@ function ChapterQuizContent() {
                 isOpen={showPremiumBlocker}
                 onClose={() => { }}
                 message="Chapter questions are strictly for Premium users. Please upgrade to access this content."
+                variant="chapter_quiz"
             />
         </DashboardLayout>
     );

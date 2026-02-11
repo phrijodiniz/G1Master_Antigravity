@@ -172,6 +172,9 @@ export default function Home() {
                 </div>
 
                 <div className={styles.centeredCta}>
+                    <p style={{ opacity: 0.8, fontSize: '1rem', maxWidth: '800px', margin: '0 auto 1.5rem auto', lineHeight: '1.6', textAlign: 'center' }}>
+                        Practice smarter, not harder. G1 Master helps you focus on what actually shows up on the test, with unlimited practice and real exam-style questions.
+                    </p>
                     <button
                         onClick={() => setShowLoginModal(true)}
                         className={styles.ctaBtnLimited}
@@ -249,6 +252,9 @@ export default function Home() {
                 </div>
 
                 <div className={styles.centeredCta}>
+                    <p style={{ opacity: 0.8, fontSize: '1rem', maxWidth: '800px', margin: '2rem auto 1.5rem auto', lineHeight: '1.6', textAlign: 'center', color: '#cccccc' }}>
+                        Thousands of questions. Real exam logic. Clear progress tracking. Everything you need to pass your G1, without overpriced subscriptions.
+                    </p>
                     <button
                         onClick={() => setShowLoginModal(true)}
                         className={styles.ctaBtnLimited}
