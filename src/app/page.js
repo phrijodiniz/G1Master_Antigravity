@@ -9,6 +9,7 @@ import LoginModal from '@/components/LoginModal';
 import { useRouter } from 'next/navigation';
 import QuizDemo from '@/components/QuizDemo';
 import Testimonials from '@/components/Testimonials';
+import ContactSection from '@/components/ContactSection';
 
 export default function Home() {
     const { user } = useAuth();
@@ -271,6 +272,9 @@ export default function Home() {
                     Re-taking the test costs time and money. Prepare with G1 Master and pass on your first try.
                 </p>
             </section>
+
+            {/* Contact Section */}
+            <ContactSection />
 
             {/* Footer */}
             <div className={styles.footer}>
