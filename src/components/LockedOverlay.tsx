@@ -11,7 +11,7 @@ export default function LockedOverlay() {
     useEffect(() => {
         if (!loading && user && !isPremium) {
             // Lock ONLY if ALL credits are 0
-            if (practiceCredits <= 0 && simulationCredits <= 0) {
+            if ((practiceCredits ?? 0) <= 0 && (simulationCredits ?? 0) <= 0) {
                 setIsLocked(true);
             } else {
                 setIsLocked(false);
