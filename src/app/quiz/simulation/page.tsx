@@ -76,7 +76,7 @@ function SimulationContent() {
             if (questions.length === 0 && !completed) {
                 // Check credits
                 // Check credits
-                if (!isPremium && simulationCredits <= 0) {
+                if (!isPremium && (simulationCredits ?? 0) <= 0) {
                     setLoading(false);
                     setShowLimitModal(true);
                     return;

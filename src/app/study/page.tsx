@@ -15,7 +15,7 @@ export default function StudyPage() {
     const [showLimitModal, setShowLimitModal] = useState(false);
 
     const handleStartSimulation = () => {
-        if (isPremium || simulationCredits > 0) {
+        if (isPremium || (simulationCredits ?? 0) > 0) {
             router.push("/quiz/simulation");
         } else {
             setShowLimitModal(true);
