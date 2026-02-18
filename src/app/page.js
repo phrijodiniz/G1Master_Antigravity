@@ -25,17 +25,17 @@ export default function Home() {
     const features = [
         {
             title: "Practice Mode",
-            subtitle: "Target your G1 knowledge. Pick Rules of the Road or Road Signs and practice what you need.",
+            subtitle: "Target your G1 knowledge. Pick a category like Rules of the Road or Road Signs and practice what you need.",
             image: "/practice-mode.png"
         },
         {
             title: "Exam Simulation",
-            subtitle: "Endless G1 test simulations. Full-length, exam-style practice built from official questions",
+            subtitle: "Endless G1 test simulations. Full-length, exam-style practice questions built from official questions",
             image: "/simulation-mode.png"
         },
         {
             title: "Chapter Mode",
-            subtitle: "Learn straight from the handbook. Pick any chapter and practice its questions for focused study.",
+            subtitle: "Learn straight from the official handbook. Pick any chapter and practice its questions for focused study.",
             image: "/chapter-mode.png"
         }
     ];
@@ -155,7 +155,7 @@ export default function Home() {
                 <div className={styles.heroContainer}>
                     <div className={styles.heroContent}>
                         <h1 className={styles.heroTitle}>
-                            Ontario G1 Practice Tests
+                            Free Ontario G1 Practice Tests
                         </h1>
 
                         <ul className={styles.heroList}>
