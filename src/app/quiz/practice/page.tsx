@@ -46,7 +46,7 @@ function QuizContent() {
         setLoading(true);
 
         // Check credits
-        if (!isPremium && practiceCredits <= 0) {
+        if (!isPremium && (practiceCredits ?? 0) <= 0) {
             setLoading(false);
             setShowLimitModal(true);
             return;
