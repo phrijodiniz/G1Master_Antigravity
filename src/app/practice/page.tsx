@@ -14,7 +14,7 @@ export default function PracticePage() {
     const [showLimitModal, setShowLimitModal] = useState(false);
 
     const handleStart = (category: string) => {
-        if (isPremium || practiceCredits > 0) {
+        if (isPremium || (practiceCredits ?? 0) > 0) {
             router.push(`/quiz/practice?category=${category}`);
         } else {
             setShowLimitModal(true);
