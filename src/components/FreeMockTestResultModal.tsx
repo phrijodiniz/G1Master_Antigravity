@@ -2,7 +2,16 @@
 
 import styles from './LoginModal.module.css'; // Reuse glass panel styles
 
-export default function FreeMockTestResultModal({ isOpen, results, onClose }) {
+interface FreeMockTestResultModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    results: {
+        score: number;
+        passed: boolean;
+    } | null;
+}
+
+export default function FreeMockTestResultModal({ isOpen, results, onClose }: FreeMockTestResultModalProps) {
     if (!isOpen || !results) return null;
 
     const { score, passed } = results;
