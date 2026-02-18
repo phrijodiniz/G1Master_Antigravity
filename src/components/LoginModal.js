@@ -26,6 +26,21 @@ export default function LoginModal({ isOpen, onClose }) {
 
         try {
             if (isSignUp) {
+                // Check if email exists first
+                const checkRes = await fetch('/api/auth/check-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const checkData = await checkRes.json();
+
+                if (checkData.exists) {
+                    setError("This email is already registered. Please log in instead.");
+                    setLoading(false);
+                    return;
+                }
+
                 await signupWithEmail(email, password, firstName, lastName);
 
                 // Track Sign Up
@@ -41,7 +56,14 @@ export default function LoginModal({ isOpen, onClose }) {
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            // Only stop loading if we didn't return early (error case handles itself usually, but safe to set false)
+            // If success signup, we might want to keep loading or show message
+            if (!isSignUp || error) {
+                setLoading(false);
+            } else {
+                // For signup success, we show message, maybe stop loading to let them close?
+                setLoading(false);
+            }
         }
     };
 
@@ -61,6 +83,28 @@ export default function LoginModal({ isOpen, onClose }) {
 
                 {error && <div style={{ color: 'var(--error)', marginBottom: '1rem', background: 'rgba(255,0,0,0.1)', padding: '0.5rem', borderRadius: '4px' }}>{error}</div>}
                 {message && <div style={{ color: 'var(--success)', marginBottom: '1rem', background: 'rgba(0,255,0,0.1)', padding: '0.5rem', borderRadius: '4px' }}>{message}</div>}
+
+                <button
+                    className="btn-primary"
+                    onClick={() => {
+                        import('@/lib/gtm').then(({ sendGTMEvent }) => {
+                            sendGTMEvent('auth_google_init');
+                        });
+                        loginWithGoogle();
+                    }}
+                    style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', background: 'white', color: 'black', border: 'none', marginBottom: '1rem' }}
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12.5S6.42 23 12.1 23c5.83 0 8.84-4.15 8.84-11.9z" fill="currentColor" />
+                    </svg>
+                    Continue with Google
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1rem 0', opacity: 0.5 }}>
+                    <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
+                    <span>OR</span>
+                    <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
+                </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
                     {isSignUp && (
@@ -105,36 +149,9 @@ export default function LoginModal({ isOpen, onClose }) {
                         disabled={loading}
                         style={{ width: '100%', justifyContent: 'center' }}
                     >
-                        {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+                        {loading ? 'Processing...' : (isSignUp ? 'Sign Up with Email' : 'Sign In with Email')}
                     </button>
                 </form>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1rem 0', opacity: 0.5 }}>
-                    <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
-                    <span>OR</span>
-                    <div style={{ flex: 1, height: '1px', background: 'white' }}></div>
-                </div>
-
-                <button
-                    className="btn-primary"
-                    onClick={() => {
-                        import('@/lib/gtm').then(({ sendGTMEvent }) => {
-                            // We track 'sign_up' intent here, but we can't guarantee it's a new user vs login.
-                            // Better to track 'login_attempt' or similar? The prompt asked for 'sign_up'.
-                            // Since Google Auth handles both, we'll just track 'auth_google_start' or similar, 
-                            // OR rely on the backend/callback. 
-                            // For simplicity in this "Simple" plan, let's just track it as a conversion intent.
-                            sendGTMEvent('auth_google_init');
-                        });
-                        loginWithGoogle();
-                    }}
-                    style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', background: 'white', color: 'black', border: 'none' }}
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24">
-                        <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12.5S6.42 23 12.1 23c5.83 0 8.84-4.15 8.84-11.9z" fill="currentColor" />
-                    </svg>
-                    Sign in with Google
-                </button>
 
                 <div style={{ marginTop: '1.5rem', fontSize: '0.9rem' }}>
                     {isSignUp ? "Already have an account?" : "Don't have an account?"}

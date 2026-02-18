@@ -19,7 +19,7 @@ const formatTime = (seconds: number) => {
 };
 
 function SimulationContent() {
-    const { user, isPremium, simulationCredits, refreshProfile } = useAuth();
+    const { user, isPremium, simulationCredits, refreshProfile, renewalDate } = useAuth();
     const [questions, setQuestions] = useState<any[]>([]);
     const [currentindex, setCurrentIndex] = useState(0);
 
@@ -227,6 +227,7 @@ function SimulationContent() {
                 onClose={() => setShowLimitModal(false)}
                 message="You have no simulation credits remaining. Please upgrade to Premium."
                 variant='simulation_limit'
+                renewalDate={renewalDate}
             />
         </DashboardLayout>
     );

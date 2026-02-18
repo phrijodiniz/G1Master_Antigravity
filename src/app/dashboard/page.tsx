@@ -2,15 +2,23 @@
 
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./dashboard.module.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Clock, Book, Video, FileText, Car } from "lucide-react";
 import Link from "next/link";
 
 import DashboardLayout from "@/components/DashboardLayout";
+// ... imports
+import { useRouter } from "next/navigation";
+import LimitModal from "@/components/LimitModal";
+import FreeMockTestResultModal from "@/components/FreeMockTestResultModal";
+
+// ... existing imports
 
 export default function Dashboard() {
-    const { user, isPremium, practiceCredits, simulationCredits } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, loading } = useAuth();
+    const router = useRouter();
+
     // Helper to capitalize
     const formatName = (name: string) => {
         if (!name) return "";
@@ -37,6 +45,143 @@ export default function Dashboard() {
         month: 'short',
         day: 'numeric'
     });
+
+    const [showResultModal, setShowResultModal] = useState(false);
+    const [resultData, setResultData] = useState(null);
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [limitVariant, setLimitVariant] = useState<'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_limit' | 'all_limit'>('default');
+
+    const processingRef = useRef(false);
+
+    // Check for pending results from Free Test
+    useEffect(() => {
+        const savePendingResult = async () => {
+            if (processingRef.current) return;
+
+            const pending = localStorage.getItem('pending_freetest_results');
+            if (pending && user) {
+                processingRef.current = true;
+                try {
+                    const result = JSON.parse(pending);
+
+                    // Prevent saving if too old (e.g. > 1 hour)
+                    if (Date.now() - result.timestamp > 3600000) {
+                        localStorage.removeItem('pending_freetest_results');
+                        processingRef.current = false;
+                        return;
+                    }
+
+                    // Double check if we already saved this specific result (idempotency)
+                    const { data: existing } = await supabase
+                        .from('simulation_results')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .eq('created_at', new Date(result.timestamp).toISOString()) // Assuming we can use timestamp as unique ident or close to it
+                        .limit(1)
+                        .single();
+
+                    if (existing) {
+                        console.log("Result already saved, clearing local storage.");
+                        localStorage.removeItem('pending_freetest_results');
+                        return;
+                    }
+
+                    // Insert into DB
+                    const { error } = await supabase.from('simulation_results').insert({
+                        user_id: user.id,
+                        score: result.score,
+                        rules_score: result.rules_score,
+                        signs_score: result.signs_score,
+                        passed: result.passed,
+                        test_type: 'Practice (First Try)',
+                        created_at: new Date().toISOString()
+                    });
+
+                    if (!error) {
+                        // Clear storage
+                        localStorage.removeItem('pending_freetest_results');
+
+                        // Show Modal
+                        setResultData(result);
+                        setShowResultModal(true);
+                    } else {
+                        console.error('Error saving pending result:', error);
+                        processingRef.current = false; // Allow retry if error
+                    }
+                } catch (e) {
+                    console.error(e);
+                    processingRef.current = false;
+                }
+            }
+        };
+
+        savePendingResult();
+    }, [user]);
+
+    const handleStartPractice = () => {
+        if (isPremium || (practiceCredits || 0) > 0) {
+            router.push("/practice");
+        } else {
+            // Check if BOTH are 0 to show "all_limit" or just practice limit?
+            // User requested: "When credits run out... shows the 'You’ve Reached the Free Limit' pop up."
+            // If Sim credits are also 0, show All Limit.
+            if ((simulationCredits || 0) <= 0) {
+                setLimitVariant('all_limit');
+            } else {
+                setLimitVariant('practice_limit');
+            }
+            setShowLimitModal(true);
+        }
+    };
+
+    const handleStartSimulation = () => {
+        if (isPremium || (simulationCredits || 0) > 0) {
+            router.push("/quiz/simulation");
+        } else {
+            if ((practiceCredits || 0) <= 0) {
+                setLimitVariant('all_limit');
+            } else {
+                setLimitVariant('simulation_limit');
+            }
+            setShowLimitModal(true);
+        }
+    };
+
+    // Show loading state while auth is initializing or data is being fetched
+    if (loading || (!isPremium && (practiceCredits === null || simulationCredits === null))) {
+        return (
+            <DashboardLayout>
+                <div className={styles.dashboardGrid}>
+                    <div className={styles.leftColumn}>
+                        {/* Skeleton Banner */}
+                        <div className={`${styles.banner} skeleton-pulse`} style={{ height: '150px', background: 'rgba(255,255,255,0.05)' }}></div>
+
+                        {/* Skeleton Title */}
+                        <h2 className={styles.sectionTitle} style={{ width: '200px', height: '24px', background: 'rgba(255,255,255,0.1)', marginTop: '2rem', borderRadius: '4px' }}></h2>
+
+                        {/* Skeleton Cards */}
+                        <div className={styles.actionCardsGrid}>
+                            <div className={styles.actionCard} style={{ opacity: 0.5 }}>
+                                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }}></div>
+                                    <div style={{ width: '60%', height: '20px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}></div>
+                                    <div style={{ width: '100%', height: '60px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}></div>
+                                </div>
+                            </div>
+                            <div className={styles.actionCard} style={{ opacity: 0.5 }}>
+                                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }}></div>
+                                    <div style={{ width: '60%', height: '20px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}></div>
+                                    <div style={{ width: '100%', height: '60px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
     return (
         <DashboardLayout>
             <div className={styles.dashboardGrid}>
@@ -66,9 +211,9 @@ export default function Dashboard() {
                             <p className={styles.actionDescription}>
                                 Start building your knowledge the smart way. Review Road Signs or Rules of the Road with instant feedback after every question.
                             </p>
-                            <Link href="/practice">
-                                <button className={styles.actionBtn}>Practice Now</button>
-                            </Link>
+
+                            <button className={styles.actionBtn} onClick={handleStartPractice}>Practice Now</button>
+
                             {!isPremium && user && (
                                 <p className={styles.creditText}>
                                     You have {practiceCredits} practice test {practiceCredits === 1 ? 'credit' : 'credits'} left
@@ -88,9 +233,9 @@ export default function Dashboard() {
                             <p className={styles.actionDescription}>
                                 A true G1-style test with timed, mixed questions and no hints. Covers both Road Signs and Rules of the Road. See if you're ready to pass.
                             </p>
-                            <Link href="/quiz/simulation">
-                                <button className={styles.actionBtn}>Take a Full Test</button>
-                            </Link>
+
+                            <button className={styles.actionBtn} onClick={handleStartSimulation}>Take a Full Test</button>
+
                             {!isPremium && user && (
                                 <p className={styles.creditText}>
                                     You have {simulationCredits} simulation {simulationCredits === 1 ? 'credit' : 'credits'} left
@@ -117,6 +262,19 @@ export default function Dashboard() {
                 </div>
 
             </div>
+
+            <FreeMockTestResultModal
+                isOpen={showResultModal}
+                results={resultData}
+                onClose={() => setShowResultModal(false)}
+            />
+
+            <LimitModal
+                isOpen={showLimitModal}
+                variant={limitVariant}
+                renewalDate={renewalDate}
+                onClose={() => setShowLimitModal(false)}
+            />
         </DashboardLayout>
     );
 }

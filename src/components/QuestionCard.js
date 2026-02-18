@@ -28,7 +28,13 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
             onAnswer(correct, index);
         }
 
-        if (mode === 'practice') setIsAnswered(true);
+        if (mode === 'practice') {
+            setIsAnswered(true);
+        } else if (mode === 'freetest') {
+            // In free test, we just select the option. 
+            // We don't show correct/incorrect.
+            // Parent component will handle "Next" button or we render a specific one here.
+        }
     };
 
     const isCorrect = (index) => index === question.correct_index;
@@ -59,6 +65,8 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
                         else if (selectedOption === index) optionClass += ` ${styles.incorrect}`;
                     } else if (selectedOption === index) {
                         optionClass += ` ${styles.selected}`;
+                    } else if (mode === 'freetest' && selectedOption === index) {
+                        optionClass += ` ${styles.selected}`;
                     }
 
                     return (
@@ -76,9 +84,10 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
 
             {mode === 'practice' && isAnswered && (
                 <div className={styles.feedback}>
-                    <p className={styles.explanation}>
+                    {/* Explanation temporarily hidden per request */}
+                    {/* <p className={styles.explanation}>
                         <strong>Explanation: </strong> {question.explanation}
-                    </p>
+                    </p> */}
                     <button className={styles.primaryBtn} onClick={() => {
                         setIsAnswered(false);
                         setSelectedOption(null);
@@ -101,6 +110,22 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
                         }}
                     >
                         {isLast ? 'Finish Simulation' : (selectedOption === null ? 'Skip Question' : 'Next Question')}
+                    </button>
+                </div>
+            )}
+
+            {mode === 'freetest' && (
+                <div style={{ marginTop: '2rem', textAlign: 'right', borderTop: '1px solid var(--glass-border)', paddingTop: '1.5rem' }}>
+                    <button
+                        className={styles.primaryBtn}
+                        disabled={selectedOption === null}
+                        onClick={() => {
+                            const correct = selectedOption === question.correct_index;
+                            onNext(correct, selectedOption);
+                            setSelectedOption(null);
+                        }}
+                    >
+                        {isLast ? 'See My Results' : 'Next Question'}
                     </button>
                 </div>
             )}

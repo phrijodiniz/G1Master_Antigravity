@@ -18,7 +18,6 @@ export const metadata = {
 };
 
 import { AuthProvider } from "@/context/AuthContext";
-import LockedOverlay from "@/components/LockedOverlay";
 
 export default function RootLayout({ children }) {
     return (
@@ -56,7 +55,6 @@ export default function RootLayout({ children }) {
             </head>
             <body suppressHydrationWarning={true}>
                 <AuthProvider>
-                    <LockedOverlay />
                     {children}
                 </AuthProvider>
                 <noscript>

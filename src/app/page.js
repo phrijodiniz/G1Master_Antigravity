@@ -2,19 +2,79 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from "./page.module.css";
 import { useAuth } from '@/context/AuthContext';
 import LoginModal from '@/components/LoginModal';
 import { useRouter } from 'next/navigation';
-import QuizDemo from '@/components/QuizDemo';
+
 import Testimonials from '@/components/Testimonials';
 import ContactSection from '@/components/ContactSection';
+
+import { sendGTMEvent } from '@/lib/gtm';
 
 export default function Home() {
     const { user } = useAuth();
     const [showLoginModal, setShowLoginModal] = useState(false);
     const router = useRouter();
+    const scrollRef = useRef(null);
+    const [activeSlide, setActiveSlide] = useState(0);
+    const whyWorksScrollRef = useRef(null);
+    const [whyWorksActiveSlide, setWhyWorksActiveSlide] = useState(0);
+
+    const features = [
+        {
+            title: "Practice Mode",
+            subtitle: "Target your G1 knowledge. Pick Rules of the Road or Road Signs and practice what you need.",
+            image: "/practice-mode.png"
+        },
+        {
+            title: "Exam Simulation",
+            subtitle: "Endless G1 test simulations. Full-length, exam-style practice built from official questions",
+            image: "/simulation-mode.png"
+        },
+        {
+            title: "Chapter Mode",
+            subtitle: "Learn straight from the handbook. Pick any chapter and practice its questions for focused study.",
+            image: "/chapter-mode.png"
+        }
+    ];
+
+    const whyWorksFeatures = [
+        {
+            icon: "🛡️",
+            title: "Pass Your G1 With Confidence",
+            text: "Practice with real G1-style questions and walk into your test knowing exactly what to expect. 95% of our users pass on their first attempt."
+        },
+        {
+            icon: "🚗",
+            title: "Never Run Out of Practice",
+            text: "Access 700+ questions based on the official MTO Driver’s Handbook. Every test is unique, so you’re always challenged."
+        },
+        {
+            icon: "📈",
+            title: "Know When You’re Ready",
+            text: "Our smart dashboard shows what you’ve mastered and what needs more practice — so there are no surprises on test day."
+        }
+    ];
+
+    const handleScroll = () => {
+        if (scrollRef.current) {
+            const scrollLeft = scrollRef.current.scrollLeft;
+            const width = scrollRef.current.offsetWidth;
+            const index = Math.round(scrollLeft / width);
+            setActiveSlide(index);
+        }
+    };
+
+    const handleWhyWorksScroll = () => {
+        if (whyWorksScrollRef.current) {
+            const scrollLeft = whyWorksScrollRef.current.scrollLeft;
+            const width = whyWorksScrollRef.current.offsetWidth;
+            const index = Math.round(scrollLeft / width);
+            setWhyWorksActiveSlide(index);
+        }
+    };
 
     // Auto-redirect to Dashboard if logged in
     useEffect(() => {
@@ -22,6 +82,29 @@ export default function Home() {
             router.push('/dashboard');
         }
     }, [user, router]);
+
+    // Scroll Tracking
+    useEffect(() => {
+        let trackedPercentages = [];
+
+        const handleScrollTracking = () => {
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollTop = window.scrollY;
+            const scrollPercentage = Math.round((scrollTop / scrollHeight) * 100);
+
+            const milestones = [25, 50, 75, 90];
+
+            milestones.forEach((milestone) => {
+                if (scrollPercentage >= milestone && !trackedPercentages.includes(milestone)) {
+                    trackedPercentages.push(milestone);
+                    sendGTMEvent('scroll_depth', { percentage: milestone });
+                }
+            });
+        };
+
+        window.addEventListener('scroll', handleScrollTracking);
+        return () => window.removeEventListener('scroll', handleScrollTracking);
+    }, []);
 
     // If user is logged in, show nothing (or a spinner) while redirecting to avoid flash
     if (user) {
@@ -54,7 +137,10 @@ export default function Home() {
                         Log In
                     </button>
                     <button
-                        onClick={() => setShowLoginModal(true)}
+                        onClick={() => {
+                            setShowLoginModal(true);
+                            sendGTMEvent('cta_click', { location: 'nav', label: 'start_free' });
+                        }}
                         className={styles.navCtaBtn}
                     >
                         Start FREE
@@ -69,25 +155,28 @@ export default function Home() {
                 <div className={styles.heroContainer}>
                     <div className={styles.heroContent}>
                         <h1 className={styles.heroTitle}>
-                            The Smartest Way to Pass Your G1 Test.<br />
+                            Ontario G1 Practice Tests
                         </h1>
 
-                        <p className={styles.heroSubtitle}>
-                            Join thousands of Ontario drivers who prepared for their G1 Knowledge Test with endless exam-style practice tests created from the Official MTO Handbook.
-                        </p>
+                        <ul className={styles.heroList}>
+                            <li>👉 Practice like the real Ontario G1 test</li>
+                            <li>👉 Know instantly if you would pass</li>
+                            <li>👉 Track your progress and readiness</li>
+                        </ul>
 
                         <div className={styles.heroButtons}>
                             <button
                                 onClick={() => {
-                                    const quizSection = document.getElementById('quiz-section');
-                                    if (quizSection) quizSection.scrollIntoView({ behavior: 'smooth' });
+                                    sendGTMEvent('cta_click', { location: 'hero', label: 'start_practice' });
+                                    router.push('/practice/free-test');
                                 }}
                                 className={styles.ctaBtn}
                             >
-                                Start Practicing Now
+                                Start Free Practice Now
                             </button>
                             <button
                                 onClick={() => {
+                                    sendGTMEvent('cta_click', { location: 'hero', label: 'how_it_works' });
                                     const featuresSection = document.getElementById('simple-ways');
                                     if (featuresSection) featuresSection.scrollIntoView({ behavior: 'smooth' });
                                 }}
@@ -97,90 +186,106 @@ export default function Home() {
                             </button>
                         </div>
                         <p className={styles.heroTrustText}>
-                            Real Exam-Style Questions · Pass Guaranteed · Free Sign-Up
+                            100% FREE • Ontario Specific • Pass Guaranteed
                         </p>
                     </div>
 
                     <div className={styles.heroImageWrapper}>
-                        <Image
-                            src="/hero-product-shot-v4.png"
-                            alt="G1 Master App Interface"
-                            width={1024}
-                            height={1024}
-                            style={{ width: '100%', height: 'auto' }}
-                            priority
-                        />
+                        {/* Mobile Image */}
+                        <div className={styles.mobileOnly}>
+                            <Image
+                                src="/hero-mobile-v2.png"
+                                alt="G1 Master App Mobile Interface"
+                                width={600}
+                                height={600}
+                                style={{ width: '100%', height: 'auto' }}
+                                priority
+                            />
+                        </div>
+
+                        {/* Desktop Image */}
+                        <div className={styles.desktopOnly}>
+                            <Image
+                                src="/hero-product-shot-v4.png"
+                                alt="G1 Master App Interface"
+                                width={1024}
+                                height={1024}
+                                style={{ width: '100%', height: 'auto' }}
+                                priority
+                            />
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Quiz Section */}
-            <section id="quiz-section" className={styles.quizSection}>
-                <div className={styles.sectionHeader}>
-                    <h2 className={styles.sectionTitle}>
-                        Start Your FREE 2026 Ontario G1 Practice Test Now
-                    </h2>
-                    <p className={styles.sectionSubtitle}>
-                        Take a quick 10-question quiz based on the official MTO handbook and check your readiness in minutes.
-                    </p>
-                </div>
-                <QuizDemo onUnlock={() => setShowLoginModal(true)} />
-            </section>
 
-            {/* Three Simple Ways Section */}
+
+            <div className={styles.separatorLine}></div>
+
             {/* Three Simple Ways Section */}
             <section id="simple-ways" className={`${styles.section} ${styles.lightSection}`}>
                 <div className={styles.sectionHeader}>
-                    <h2 className={styles.sectionTitleLight}>3 Simple Ways to Master Your G1</h2>
+                    <h2 className={styles.sectionTitleLight}>3 Smart Ways to Master Your G1</h2>
                     <p className={styles.sectionSubtitleLight}>
                         Take full tests, practice specific topics, or study by handbook chapter—all in one app.
                     </p>
                 </div>
 
-                <div className={styles.featuresGrid}>
-                    {/* Card 1 */}
-                    <div className={styles.featureCard}>
-                        <h3>Take a Full G1 Simulation</h3>
-                        <p>
-                            Endless G1 test simulations. Full-length, exam-style practice built from official questions
-                        </p>
-                    </div>
+                <div
+                    className={styles.featuresGrid}
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                >
+                    {features.map((feature, index) => (
+                        <div key={index} className={styles.featureCard}>
+                            <h3 className={styles.featureCardTitle}>{feature.title}</h3>
+                            <p className={styles.featureCardSubtitle}>{feature.subtitle}</p>
 
-                    {/* Card 2 */}
-                    <div className={styles.featureCard}>
-                        <h3>Choose a Practice Mode</h3>
-                        <p>
-                            Target your G1 knowledge. Pick Rules of the Road or Road Signs and practice exactly what you need.
-                        </p>
-                    </div>
-
-                    {/* Card 3 */}
-                    <div className={styles.featureCard}>
-                        <h3>Study by Chapter</h3>
-                        <p>
-                            Learn straight from the handbook. Pick any chapter and practice its questions for focused, step-by-step study.
-                        </p>
-                    </div>
+                            <div className={styles.featureImageContainer}>
+                                <Image
+                                    src={feature.image}
+                                    alt={feature.title}
+                                    width={300}
+                                    height={500}
+                                    className={styles.featureCardImage}
+                                    unoptimized
+                                />
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
-                <div className={styles.imageWrapperFull}>
-                    <Image
-                        src="/three-ways-mockup.png"
-                        alt="G1 Master App Simulation Interface"
-                        width={1200}
-                        height={800}
-                    />
+                {/* Mobile Pagination Dots */}
+                <div className={styles.carouselDots}>
+                    {features.map((_, index) => (
+                        <span
+                            key={index}
+                            className={`${styles.dot} ${activeSlide === index ? styles.activeDot : ''}`}
+                            onClick={() => {
+                                if (scrollRef.current) {
+                                    const width = scrollRef.current.offsetWidth;
+                                    scrollRef.current.scrollTo({
+                                        left: width * index,
+                                        behavior: 'smooth'
+                                    });
+                                }
+                            }}
+                        />
+                    ))}
                 </div>
 
                 <div className={styles.centeredCta}>
-                    <p style={{ opacity: 0.8, fontSize: '1rem', maxWidth: '800px', margin: '0 auto 1.5rem auto', lineHeight: '1.6', textAlign: 'center' }}>
-                        Practice smarter, not harder. G1 Master helps you focus on what actually shows up on the test, with unlimited practice and real exam-style questions.
+                    <p style={{ opacity: 0.8, fontSize: '1rem', maxWidth: '800px', margin: '2rem auto 1.5rem auto', lineHeight: '1.6', textAlign: 'center' }}>
+                        Think you're ready for the Ontario G1? Take a quick 10-question test and find out.
                     </p>
                     <button
-                        onClick={() => setShowLoginModal(true)}
+                        onClick={() => {
+                            sendGTMEvent('cta_click', { location: 'middle_section', label: 'try_practice' });
+                            router.push('/practice/free-test');
+                        }}
                         className={styles.ctaBtnLimited}
                     >
-                        Start Practicing for FREE
+                        Try a Free Practice Test
                     </button>
                 </div>
             </section>
@@ -202,10 +307,13 @@ export default function Home() {
                             Stay on top of your learning with your <strong>history page</strong> and <strong>readiness meter</strong>. Review every test you’ve taken, track which topics you’ve <strong>mastered</strong>, and see your overall readiness at a glance. Know exactly where you stand and what to <strong>focus</strong> on next.
                         </p>
                         <button
-                            onClick={() => setShowLoginModal(true)}
+                            onClick={() => {
+                                sendGTMEvent('cta_click', { location: 'progress_section', label: 'take_test' });
+                                router.push('/practice/free-test');
+                            }}
                             className={styles.ctaBtnLimited}
                         >
-                            Start Practicing for FREE
+                            Take a Free G1 Test Now!
                         </button>
                     </div>
                     <div className={styles.splitImage}>
@@ -228,28 +336,37 @@ export default function Home() {
                     </p>
                 </div>
 
-                <div className={styles.featuresGrid}>
-                    <div className={styles.featureCard}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🛡️</div>
-                        <h3>Pass Your G1 With Confidence</h3>
-                        <p>
-                            Practice with real G1-style questions and walk into your test knowing exactly what to expect. 95% of our users pass on their first attempt.
-                        </p>
-                    </div>
-                    <div className={styles.featureCard}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🚗</div>
-                        <h3>Never Run Out of Practice</h3>
-                        <p>
-                            Access 700+ questions based on the official MTO Driver’s Handbook. Every test is unique, so you’re always challenged.
-                        </p>
-                    </div>
-                    <div className={styles.featureCard}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📈</div>
-                        <h3>Know When You’re Ready</h3>
-                        <p>
-                            Our smart dashboard shows what you’ve mastered and what needs more practice — so there are no surprises on test day.
-                        </p>
-                    </div>
+                <div
+                    className={styles.featuresGrid}
+                    ref={whyWorksScrollRef}
+                    onScroll={handleWhyWorksScroll}
+                >
+                    {whyWorksFeatures.map((feature, index) => (
+                        <div key={index} className={`${styles.featureCard} ${styles.featureCardWithPadding}`}>
+                            <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>{feature.icon}</div>
+                            <h3>{feature.title}</h3>
+                            <p>{feature.text}</p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Mobile Pagination Dots for Why Works */}
+                <div className={styles.carouselDots}>
+                    {whyWorksFeatures.map((_, index) => (
+                        <span
+                            key={index}
+                            className={`${styles.dot} ${whyWorksActiveSlide === index ? styles.activeDot : ''}`}
+                            onClick={() => {
+                                if (whyWorksScrollRef.current) {
+                                    const width = whyWorksScrollRef.current.offsetWidth;
+                                    whyWorksScrollRef.current.scrollTo({
+                                        left: width * index,
+                                        behavior: 'smooth'
+                                    });
+                                }
+                            }}
+                        />
+                    ))}
                 </div>
 
                 <div className={styles.centeredCta}>
@@ -257,7 +374,10 @@ export default function Home() {
                         Thousands of questions. Real exam logic. Clear progress tracking. Everything you need to pass your G1, without overpriced subscriptions.
                     </p>
                     <button
-                        onClick={() => setShowLoginModal(true)}
+                        onClick={() => {
+                            setShowLoginModal(true);
+                            sendGTMEvent('cta_click', { location: 'features_section', label: 'create_account' });
+                        }}
                         className={styles.ctaBtnLimited}
                     >
                         Create a FREE Account

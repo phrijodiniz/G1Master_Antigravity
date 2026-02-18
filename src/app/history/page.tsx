@@ -54,8 +54,8 @@ export default function HistoryPage() {
                                     </td>
                                     <td>{getTestTypeLabel(item.test_type)}</td>
                                     <td style={{ fontWeight: 'bold' }}>{item.score}%</td>
-                                    <td>{item.rules_score || 0} / 20</td>
-                                    <td>{item.signs_score || 0} / 20</td>
+                                    <td>{item.test_type === 'Simulation' || item.test_type === 'Rules of the Road' ? `${item.rules_score || 0} / ${item.test_type === 'Simulation' ? 20 : 10}` : '-'}</td>
+                                    <td>{item.test_type === 'Simulation' || item.test_type === 'Road Signs' ? `${item.signs_score || 0} / ${item.test_type === 'Simulation' ? 20 : 10}` : '-'}</td>
                                     <td>
                                         <span className={`${styles.statusBadge} ${item.passed ? styles.passBadge : styles.failBadge}`}>
                                             {item.passed ? 'Passed' : 'Failed'}

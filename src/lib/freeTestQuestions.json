@@ -1,0 +1,172 @@
+[
+  {
+    "id": "ddd47f02-6b23-4c20-9c1c-b91d77b3574f",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "What does this sign warn you is ahead?",
+    "media_url": "https://udoqomcvtxtxajzpfjty.supabase.co/storage/v1/object/public/question-images/ddkyu6qmzi_1769612815734.jpg",
+    "options": [
+      "Pedestrians are not allowed in this area",
+      "Playground area only",
+      "School zone or school crossing ahead",
+      "Children must stay on the sidewalk"
+    ],
+    "correct_index": 2,
+    "category": "Road Signs",
+    "chapter": "Traffic Signs",
+    "explanation": "This sign warns drivers that children may be crossing the road. You should slow down, watch carefully for children, and be prepared to stop.",
+    "is_validated": true
+  },
+  {
+    "id": "7f6dfd34-fdbb-43a7-92a9-ef85d857c7f2",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "What does this sign indicate about the road ahead?",
+    "media_url": "https://udoqomcvtxtxajzpfjty.supabase.co/storage/v1/object/public/question-images/04vp7znol0b5_1769612515995.jpg",
+    "options": [
+      "Road forks to the left",
+      "Road forks to the right",
+      "Keep left",
+      "Merge"
+    ],
+    "correct_index": 1,
+    "category": "Road Signs",
+    "chapter": "Traffic Signs",
+    "explanation": "Road forks to the right.",
+    "is_validated": true
+  },
+  {
+    "id": "22255dc0-55ce-4f86-9c1f-24a2586ff149",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "What does this sign require you to do?",
+    "media_url": "https://udoqomcvtxtxajzpfjty.supabase.co/storage/v1/object/public/question-images/ziqc9012skk_1769612726517.jpg",
+    "options": [
+      "Yield",
+      "Stop completely",
+      "Slow down for school zone",
+      "No Parking"
+    ],
+    "correct_index": 1,
+    "category": "Road Signs",
+    "chapter": "Traffic Signs",
+    "explanation": "A stop sign is eight-sided and has a red background with white letters. It means you must come to a complete stop. Stop at the stop line if it is marked on the pavement. If there is no stop line, stop at the crosswalk. If there is no crosswalk, stop at the edge of the sidewalk. If there is no sidewalk, stop at the edge of the intersection. Wait until the way is clear before entering the intersection.",
+    "is_validated": true
+  },
+  {
+    "id": "9ef94abd-73b2-46b3-8d52-8ae486748f90",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "Unless otherwise posted, what is the maximum speed limit in cities, towns, and villages?",
+    "media_url": null,
+    "options": [
+      "40 km/h",
+      "50 km/h",
+      "60 km/h",
+      "80 km/h"
+    ],
+    "correct_index": 1,
+    "category": "Rules of the Road",
+    "chapter": "Driving Along",
+    "explanation": "Where there are no posted speed limits, the maximum speed is 50 km/h in cities, towns and villages.",
+    "is_validated": true
+  },
+  {
+    "id": "75c872af-4fc7-4b40-9242-eb349a153522",
+    "created_at": "2026-01-28T20:15:42+00:00",
+    "text": "When approaching this sign, how should drivers respond?",
+    "media_url": "https://udoqomcvtxtxajzpfjty.supabase.co/storage/v1/object/public/question-images/e7zwlum41c_1769631374467.jpg?t=1769631375111",
+    "options": [
+      "Maintain speed unless traffic stops",
+      "Reduce speed and be prepared to stop",
+      "Stop immediately at the sign",
+      "Change lanes quickly"
+    ],
+    "correct_index": 1,
+    "category": "Road Signs",
+    "chapter": "Traffic Signs",
+    "explanation": "This sign warns drivers to slow down and be ready to stop due to changing traffic conditions ahead.",
+    "is_validated": true
+  },
+  {
+    "id": "9e063909-0408-4364-bfcc-2dc5b5a6bd3d",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "If your turn signals are not working, what should you do?",
+    "media_url": null,
+    "options": [
+      "Drive with your hazards on",
+      "Do not turn",
+      "Use hand and arm signals",
+      "Honk before turning"
+    ],
+    "correct_index": 2,
+    "category": "Rules of the Road",
+    "chapter": "Driving Along",
+    "explanation": "If your turn signals and brake lights are not working, use hand and arm signals.",
+    "is_validated": true
+  },
+  {
+    "id": "e3e63bd6-ad04-49bb-bd8c-b97b7a421c44",
+    "created_at": "2026-01-28T20:15:42+00:00",
+    "text": "What should drivers do when they see this detour sign?",
+    "media_url": "https://udoqomcvtxtxajzpfjty.supabase.co/storage/v1/object/public/question-images/vzxikvi7hzc_1769631396155.jpg?t=1769631397420",
+    "options": [
+      "Ignore the detour if familiar with the area",
+      "Follow the detour marker until returning to the regular route",
+      "Stop and wait for instructions",
+      "Turn around immediately"
+    ],
+    "correct_index": 1,
+    "category": "Road Signs",
+    "chapter": "Traffic Signs",
+    "explanation": "Detour signs guide drivers along a temporary route until normal traffic flow resumes.",
+    "is_validated": true
+  },
+  {
+    "id": "382b25ca-069e-41c3-ad4d-efe644cf4df8",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "When should you use your turn signals?",
+    "media_url": null,
+    "options": [
+      "Only when turning right",
+      "Only when turning at intersections.",
+      "Before stopping, turning, changing lanes, or leaving the road",
+      "Only when other vehicles are close by."
+    ],
+    "correct_index": 2,
+    "category": "Rules of the Road",
+    "chapter": "Driving Along",
+    "explanation": "Use your turn signals and brake lights to signal before stopping, slowing down, turning, changing lanes, leaving the road or moving out from a parked position.",
+    "is_validated": true
+  },
+  {
+    "id": "8a5647d4-a72c-4699-bb27-7414829c2c08",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "What is the minimum distance required when passing a cyclist?",
+    "media_url": null,
+    "options": [
+      "0.5 metres",
+      "1 metre",
+      "1.5 metres",
+      "2 metres"
+    ],
+    "correct_index": 1,
+    "category": "Rules of the Road",
+    "chapter": "Sharing the Road with Others",
+    "explanation": "Drivers of motor vehicles must maintain a minimum distance of one metre, where practical. [cite: 722]",
+    "is_validated": false
+  },
+  {
+    "id": "76af86c6-6fde-4ba3-b2fa-2645073561d2",
+    "created_at": "2026-01-22T20:25:57+00:00",
+    "text": "What does a cyclist extending their right arm straight out indicate?",
+    "media_url": null,
+    "options": [
+      "They are stopping",
+      "They are turning left",
+      "They are turning right",
+      "They are waving"
+    ],
+    "correct_index": 2,
+    "category": "Rules of the Road",
+    "chapter": "Driving Along",
+    "explanation": "Cyclists may signal right turns by holding their right arms straight out.",
+    "is_validated": true
+  }
+]

@@ -1,11 +1,27 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./study.module.css";
 import DashboardLayout from "@/components/DashboardLayout";
 import Link from "next/link";
 import { FileText, Car, BookOpen } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import LimitModal from "@/components/LimitModal";
 
 export default function StudyPage() {
+    const { isPremium, simulationCredits, renewalDate } = useAuth();
+    const router = useRouter();
+    const [showLimitModal, setShowLimitModal] = useState(false);
+
+    const handleStartSimulation = () => {
+        if (isPremium || simulationCredits > 0) {
+            router.push("/quiz/simulation");
+        } else {
+            setShowLimitModal(true);
+        }
+    };
+
     return (
         <DashboardLayout>
             <h1 className={styles.title}>Study Now</h1>
@@ -34,9 +50,12 @@ export default function StudyPage() {
                     <p className={styles.cardDescription}>
                         Take a realistic G1 mock exam. Timed, mixed questions with no hints allowed.
                     </p>
-                    <Link href="/quiz/simulation" className={styles.cardBtn}>
+                    <button
+                        onClick={handleStartSimulation}
+                        className={styles.cardBtn}
+                    >
                         Start Simulation
-                    </Link>
+                    </button>
                 </div>
 
                 {/* Chapters */}
@@ -53,6 +72,13 @@ export default function StudyPage() {
                     </Link>
                 </div>
             </div>
+
+            <LimitModal
+                isOpen={showLimitModal}
+                onClose={() => setShowLimitModal(false)}
+                variant="simulation_limit"
+                renewalDate={renewalDate}
+            />
         </DashboardLayout>
     );
 }

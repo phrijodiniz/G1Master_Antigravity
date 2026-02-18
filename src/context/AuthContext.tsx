@@ -14,10 +14,11 @@ interface AuthContextType {
     logout: () => Promise<void>;
     isPremium: boolean;
     isAdmin: boolean;
-    practiceCredits: number;
-    simulationCredits: number;
+    practiceCredits: number | null;
+    simulationCredits: number | null;
     history: any[];
     refreshProfile: (force?: boolean) => Promise<void>;
+    renewalDate: Date | null;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -34,8 +35,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         profileRef.current = profile;
     }, [profile]);
-    const [calcPracticeCredits, setCalcPracticeCredits] = useState(5);
-    const [calcSimulationCredits, setCalcSimulationCredits] = useState(1);
+    const [calcPracticeCredits, setCalcPracticeCredits] = useState<number | null>(null);
+    const [calcSimulationCredits, setCalcSimulationCredits] = useState<number | null>(null);
+    const [renewalDate, setRenewalDate] = useState<Date | null>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -89,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Determine if we should load the profile based on the event type
             const shouldLoad =
                 event === "INITIAL_SESSION" ||
+                event === "SIGNED_IN" ||
                 (event === "TOKEN_REFRESHED" && !profileRef.current);
 
             // Cleanup if no user
@@ -101,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
             if (shouldLoad) {
+                // Wait for profile load to finish before setting loading=false
                 await loadProfileForUser(currentUser.id);
             }
 
@@ -155,9 +159,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     console.log(`Attempt ${attempts}: Fetching profile...`);
 
                     // VALIDATION CHECK
-                    // Ensure we have a valid user session on the server before querying data.
-                    // This prevents sending requests with stale tokens that result in 401s.
-                    // We wrap this in a timeout because the client itself can sometimes hang on this call.
                     const getUserPromise = supabase.auth.getUser();
                     const getUserTimeout = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error("getUser check timed out")), 5000)
@@ -170,15 +171,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         throw new Error("No valid user session");
                     }
 
-                    // For Attempt 1, use a shorter "Fail Fast" network timeout (10s)
-                    // For Attempt 2+, use the full generous timeout (45s)
                     const fetchTimeoutMs = attempts === 1 ? 10000 : 45000;
-
                     const timeoutPromise = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error(`Profile fetch timed out (${fetchTimeoutMs}ms)`)), fetchTimeoutMs)
                     );
 
-                    // Fetch Profile using singleton client
+                    // Fetch Profile
                     const profilePromise = supabase
                         .from('profiles')
                         .select('*')
@@ -192,12 +190,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     console.log("Profile loaded:", profileData);
                     setProfile(profileData);
 
-                    // Fetch Usage History (Parallelize these) using singleton client
-                    // Fetch counts for credits AND detailed history for UI
+                    // 7-Day Rolling Window Logic
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    const isoSevenDaysAgo = sevenDaysAgo.toISOString();
+
+                    // Fetch Usage History (Last 7 Days Only for Counts)
+                    // We need actual rows to find the "oldest" test in the window for renewal date
                     const historyFetchPromise = Promise.all([
-                        supabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('test_type', 'Simulation'),
-                        supabase.from('simulation_results').select('*', { count: 'exact', head: true }).eq('user_id', userId).neq('test_type', 'Simulation'),
-                        supabase.from('simulation_results').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
+                        // Simulations in last 7 days
+                        supabase
+                            .from('simulation_results')
+                            .select('created_at')
+                            .eq('user_id', userId)
+                            .eq('test_type', 'Simulation')
+                            .gte('created_at', isoSevenDaysAgo)
+                            .order('created_at', { ascending: true }), // Oldest first
+
+                        // Practice Tests in last 7 days
+                        supabase
+                            .from('simulation_results')
+                            .select('created_at')
+                            .eq('user_id', userId)
+                            .neq('test_type', 'Simulation')
+                            .gte('created_at', isoSevenDaysAgo)
+                            .order('created_at', { ascending: true }), // Oldest first
+
+                        // Full History for Display (Top 50, regardless of date)
+                        supabase
+                            .from('simulation_results')
+                            .select('*')
+                            .eq('user_id', userId)
+                            .order('created_at', { ascending: false })
+                            .limit(50)
                     ]);
 
                     const historyTimeoutPromise = new Promise((_, reject) =>
@@ -206,8 +231,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                     const [simResult, practiceResult, historyData] = await Promise.race([historyFetchPromise, historyTimeoutPromise]) as any;
 
-                    setCalcSimulationCredits(Math.max(0, 1 - (simResult.count || 0)));
-                    setCalcPracticeCredits(Math.max(0, 5 - (practiceResult.count || 0)));
+                    // Calculate Credits
+                    const usedSimulations = simResult.data?.length || 0;
+                    const usedPractice = practiceResult.data?.length || 0;
+
+                    setCalcSimulationCredits(Math.max(0, 1 - usedSimulations));
+                    setCalcPracticeCredits(Math.max(0, 5 - usedPractice));
+
+                    // Calculate Renewal Date (Oldest test + 7 days)
+                    let nextRenewal = null;
+
+                    // If NO credits left, find when the next one frees up
+                    // logic: The NEXT credit becomes available 7 days after the OLDEST test in the current window drops out.
+                    if (usedPractice >= 5 || usedSimulations >= 1) {
+                        const oldestPractice = practiceResult.data?.[0]?.created_at;
+                        const oldestSim = simResult.data?.[0]?.created_at;
+
+                        // We strictly care about the renewal of the specific type that is blocked?
+                        // Or just the earliest overall? 
+                        // Requirement: "indicate the date their new credits are going to be renewed."
+                        // Usually implies the earliest time ANY credit returns.
+
+                        const dates = [];
+                        if (usedPractice >= 5 && oldestPractice) dates.push(new Date(oldestPractice).getTime());
+                        if (usedSimulations >= 1 && oldestSim) dates.push(new Date(oldestSim).getTime());
+
+                        if (dates.length > 0) {
+                            const oldestTimestamp = Math.min(...dates);
+                            const renewalDate = new Date(oldestTimestamp);
+                            renewalDate.setDate(renewalDate.getDate() + 7);
+                            nextRenewal = renewalDate;
+                        }
+                    }
+
+                    setRenewalDate(nextRenewal); // Add this state
 
                     if (historyData?.data) {
                         setHistory(historyData.data);
@@ -217,20 +274,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         setHistory(historyData.data || []);
                     }
 
-                    return; // Success, exit loop
+                    return; // Success
 
                 } catch (err: any) {
                     console.warn(`Attempt ${attempts} failed:`, err);
-
                     if (attempts >= maxAttempts) {
-                        // Check REF for latest data, not stale closure variable
-                        if (profileRef.current) {
-                            console.warn("Profile fetch failed but using stale data. Error:", err.message);
-                            return;
-                        }
-                        console.error("Critical: Profile fetch failed and no stale data available.", err);
+                        if (profileRef.current) return;
+                        console.error("Critical: Profile fetch failed.", err);
                     }
-                    // Wait a bit before retry?
                     await new Promise(r => setTimeout(r, 2000));
                 }
             }
@@ -256,14 +307,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const loginWithGoogle = async () => {
-        const redirectTo = `${window.location.origin}/auth/callback`;
-        console.log("Logging in with Google, redirecting to:", redirectTo);
-        await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo
+        // Explicitly check for localhost to override any default Supabase site URL settings
+        const origin = window.location.origin;
+        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+
+        let redirectTo = `${origin}/auth/callback`;
+
+        console.log("Logging in with Google, origin:", origin);
+        console.log("Calculated redirectTo:", redirectTo);
+
+        try {
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo,
+                    skipBrowserRedirect: true
+                }
+            });
+
+            if (error) throw error;
+
+            if (data?.url) {
+                console.log("Google Auth URL received:", data.url);
+                window.location.href = data.url;
+            } else {
+                console.error("No auth URL returned:", data);
             }
-        });
+        } catch (err) {
+            console.error("Google Login Error:", err);
+        }
     };
 
     const loginWithEmail = async (email: string, password: string) => {
@@ -280,7 +352,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email,
             password,
             options: {
-                emailRedirectTo: window.location.href,
+                emailRedirectTo: window.location.origin,
                 data: {
                     first_name: firstName,
                     last_name: lastName
@@ -298,7 +370,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile, renewalDate }}>
             {children}
         </AuthContext.Provider>
     );

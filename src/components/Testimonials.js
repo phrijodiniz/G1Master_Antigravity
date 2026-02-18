@@ -45,7 +45,7 @@ const TESTIMONIALS = [
         id: 7,
         text: "Quick quizzes fit perfectly into my schedule. I practiced on the bus to work every day.",
         name: "Jessica M.",
-        location: "Markham"
+        location: "Ottawa"
     },
     {
         id: 8,

@@ -12,7 +12,7 @@ import ExitModal from '@/components/ExitModal';
 import LimitModal from '@/components/LimitModal';
 
 function QuizContent() {
-    const { user, isPremium, practiceCredits, refreshProfile } = useAuth();
+    const { user, isPremium, practiceCredits, refreshProfile, renewalDate } = useAuth();
     const searchParams = useSearchParams();
     const category = searchParams.get('category'); // e.g., "Rules of the Road"
 
@@ -70,11 +70,11 @@ function QuizContent() {
         }
 
         const { data, error } = await supabase.rpc('get_random_questions', {
-            limit_count: 20,
+            limit_count: 10,
             category_filter: category
         });
         if (error || !data) {
-            const { data: fallback } = await supabase.from('questions').select('*').eq('category', category).limit(20);
+            const { data: fallback } = await supabase.from('questions').select('*').eq('category', category).limit(10);
             setQuestions(fallback || []);
         } else {
             setQuestions(data);
@@ -160,7 +160,12 @@ function QuizContent() {
             <div className={styles.contentWrapper}>
                 <div style={{ padding: '2rem', color: '#64748b' }}>Checking eligibility...</div>
             </div>
-            <LimitModal isOpen={true} onClose={() => setShowLimitModal(false)} variant='practice_limit' />
+            <LimitModal
+                isOpen={true}
+                onClose={() => setShowLimitModal(false)}
+                variant='practice_limit'
+                renewalDate={renewalDate}
+            />
         </DashboardLayout>
     );
 
@@ -306,6 +311,7 @@ function QuizContent() {
                 isOpen={showLimitModal}
                 onClose={() => setShowLimitModal(false)}
                 variant='practice_limit'
+                renewalDate={renewalDate}
             />
         </DashboardLayout>
     );

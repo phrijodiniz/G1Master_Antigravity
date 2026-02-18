@@ -56,7 +56,11 @@ export async function GET(request: Request) {
         // The standard createServerClient in the docs for route handlers creates a response first?
         // Actually, let's follow the standard Next.js Server Actions / Route Handler pattern for @supabase/ssr
 
-        const response = NextResponse.redirect(`${origin}${next}`)
+        const redirectUrl = `${origin}${next}`
+        console.log(`Auth Callback: Code present. Origin: ${origin}, Next: ${next}`)
+        console.log(`Auth Callback: Redirecting to ${redirectUrl}`)
+
+        const response = NextResponse.redirect(redirectUrl)
 
         const supabaseWithResponse = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,

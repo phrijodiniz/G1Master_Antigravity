@@ -1,13 +1,27 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./practice.module.css";
 import DashboardLayout from "@/components/DashboardLayout";
-import Link from "next/link";
 import { BookOpen, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import LimitModal from "@/components/LimitModal";
 
 export default function PracticePage() {
-    return (
+    const { isPremium, practiceCredits, renewalDate } = useAuth();
+    const router = useRouter();
+    const [showLimitModal, setShowLimitModal] = useState(false);
 
+    const handleStart = (category: string) => {
+        if (isPremium || practiceCredits > 0) {
+            router.push(`/quiz/practice?category=${category}`);
+        } else {
+            setShowLimitModal(true);
+        }
+    };
+
+    return (
         <DashboardLayout>
             <h1 className={styles.title}>Practice Tests</h1>
 
@@ -21,9 +35,12 @@ export default function PracticePage() {
                     <p className={styles.cardDescription}>
                         Practice questions about driving laws, demerit points, and regulations.
                     </p>
-                    <Link href="/quiz/practice?category=Rules of the Road" className={styles.cardBtn}>
+                    <button
+                        onClick={() => handleStart("Rules of the Road")}
+                        className={styles.cardBtn}
+                    >
                         Start Practice
-                    </Link>
+                    </button>
                 </div>
 
                 {/* Road Signs */}
@@ -35,11 +52,21 @@ export default function PracticePage() {
                     <p className={styles.cardDescription}>
                         Practice identifying traffic signs, lights, and pavement markings.
                     </p>
-                    <Link href="/quiz/practice?category=Road Signs" className={styles.cardBtn}>
+                    <button
+                        onClick={() => handleStart("Road Signs")}
+                        className={styles.cardBtn}
+                    >
                         Start Practice
-                    </Link>
+                    </button>
                 </div>
             </div>
+
+            <LimitModal
+                isOpen={showLimitModal}
+                onClose={() => setShowLimitModal(false)}
+                variant="practice_limit"
+                renewalDate={renewalDate}
+            />
         </DashboardLayout>
     );
 }

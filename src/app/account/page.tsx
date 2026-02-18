@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/DashboardLayout";
 
 function AccountContent() {
-    const { user, isPremium, practiceCredits, simulationCredits } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits, renewalDate } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [firstName, setFirstName] = useState("");
@@ -213,6 +213,11 @@ function AccountContent() {
                                         <span className={styles.creditValueInline}>{simulationCredits}</span> Simulations
                                     </div>
                                 </div>
+                                {renewalDate && ((practiceCredits || 0) <= 0 || (simulationCredits || 0) <= 0) && (
+                                    <div style={{ marginTop: '1rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+                                        Credits will renew automatically on {renewalDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
