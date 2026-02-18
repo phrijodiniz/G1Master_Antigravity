@@ -139,6 +139,17 @@
         overflow: visible;
     }
 
+    .leftColumn {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .actionCard {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+    }
+
     /* Fix Test History collapsing on mobile - ROBUST VERSION */
     .testHistoryWidget {
         flex: none !important;

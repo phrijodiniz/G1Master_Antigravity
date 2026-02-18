@@ -159,7 +159,7 @@ export default function Home() {
                         </h1>
 
                         <ul className={styles.heroList}>
-                            <li>👉 Practice like the real Ontario G1 test</li>
+                            <li>👉 Real exam‑style questions</li>
                             <li>👉 Know instantly if you would pass</li>
                             <li>👉 Track your progress and readiness</li>
                         </ul>
