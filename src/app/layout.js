@@ -1,5 +1,7 @@
 import { Poppins } from "next/font/google";
 import Script from "next/script";
+
+export const dynamic = 'force-dynamic';
 import "./globals.css";
 
 const poppins = Poppins({
