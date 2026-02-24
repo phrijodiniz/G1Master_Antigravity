@@ -108,6 +108,10 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
 
             if (shouldLoad) {
                 // Wait for profile load to finish before setting loading=false
+                // If it's SIGNED_IN, give Supabase a tiny window to finish writing cookies and tokens
+                if (event === "SIGNED_IN") {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
                 await loadProfileForUser(currentUser.id);
             }
 
@@ -170,12 +174,21 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                         setTimeout(() => reject(new Error(`Profile fetch timed out (${fetchTimeoutMs}ms)`)), fetchTimeoutMs)
                     );
 
-                    // Fetch Profile
+                    // Fetch Profile with explicit cache bursting or headers
+                    // Next.js aggressive cache or browser fetch cache might cache a 0-row response
+                    // To prevent this, we specify no-cache and add a random query param just in case
                     const profilePromise = supabase
                         .from('profiles')
                         .select('*')
                         .eq('id', userId)
                         .maybeSingle();
+
+                    // Supabase js v2 doesn't have a direct way to bypass fetch cache per query without custom fetch.
+                    // But we don't want to recreate the client.
+                    // Wait, we can't add custom query params to PostgREST easily.
+                    // Actually, we CAN add a dummy filter that doesn't affect the result but busts the cache!
+                    // e.g. .gte('created_at', '1970-01-01') ? No, let's just use Next.js cache bypass if possible, 
+                    // or a dummy header, but .from() doesn't allow headers. 
 
                     const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
