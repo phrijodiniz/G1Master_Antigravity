@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import QuestionEditor from "@/components/admin/QuestionEditor";
-import { Search, Filter, CheckCircle, Clock } from "lucide-react";
+import { Search, Filter, CheckCircle, Clock, ArrowLeft } from "lucide-react";
 
 export default function QuestionsReviewPage() {
     const [questions, setQuestions] = useState<any[]>([]);
@@ -125,7 +125,26 @@ export default function QuestionsReviewPage() {
     };
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+        <div style={{ padding: '2rem' }}>
+            <button
+                onClick={() => window.location.href = '/admin'}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.6)',
+                    cursor: 'pointer',
+                    marginBottom: '1rem',
+                    fontSize: '0.9rem',
+                    padding: 0
+                }}
+            >
+                <ArrowLeft size={16} />
+                Back to Dashboard
+            </button>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '2rem' }}>Questions Review <span style={{ fontSize: '1rem', opacity: 0.5, marginLeft: '1rem' }}>{totalCount} total</span></h1>
             </div>

@@ -23,14 +23,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
+// Add initialSession to the props
+export const AuthProvider = ({ children, initialSession = null }: { children: ReactNode, initialSession?: Session | null }) => {
+    // Initialize user state with the server session immediately
+    const [user, setUser] = useState<User | null>(initialSession?.user || null);
     const [loading, setLoading] = useState(true);
 
     const [profile, setProfile] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
     const profileRef = useRef(profile); // Track latest profile for stale closures
     const fetchingPromiseRef = useRef<Promise<void> | null>(null); // Track in-progress fetch promise
+    const isInitialMount = useRef(true); // Track initial mount for SSR profile fetching
 
     useEffect(() => {
         profileRef.current = profile;
@@ -112,19 +115,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         // 2. Trigger initial session check (hydrate calls)
-        const initAuth = async () => {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) console.error("Error getting session:", error);
+        // Removed manual initAuth() as onAuthStateChange automatically fires INITIAL_SESSION
 
-                const currentUser = session?.user ?? null;
-                if (mounted) setUser(currentUser);
-            } catch (err) {
-                console.error("Auth init error:", err);
-            }
-        };
-
-        initAuth();
+        // 3. SSR Hydration Profile Load
+        // If we have an initial session from the server (SSR), fetch the profile immediately
+        // instead of waiting for onAuthStateChange to possibly fire INITIAL_SESSION.
+        if (isInitialMount.current && initialSession?.user) {
+            console.log("Hydrating profile from SSR session...");
+            loadProfileForUser(initialSession.user.id).finally(() => {
+                if (mounted) setLoading(false);
+            });
+            isInitialMount.current = false;
+        } else if (isInitialMount.current && !initialSession) {
+            setLoading(false);
+            isInitialMount.current = false;
+        }
 
         return () => {
             mounted = false;
@@ -158,18 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     attempts++;
                     console.log(`Attempt ${attempts}: Fetching profile...`);
 
-                    // VALIDATION CHECK
-                    const getUserPromise = supabase.auth.getUser();
-                    const getUserTimeout = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error("getUser check timed out")), 5000)
-                    );
 
-                    const { data: userData, error: userErr } = await Promise.race([getUserPromise, getUserTimeout]) as any;
-
-                    if (userErr || !userData.user) {
-                        console.warn(`Attempt ${attempts}: getUser failed (invalid session).`, userErr);
-                        throw new Error("No valid user session");
-                    }
 
                     const fetchTimeoutMs = attempts === 1 ? 10000 : 45000;
                     const timeoutPromise = new Promise((_, reject) =>
@@ -181,11 +175,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         .from('profiles')
                         .select('*')
                         .eq('id', userId)
-                        .single();
+                        .maybeSingle();
 
                     const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
-                    if (error) throw error;
+                    if (error) {
+                        // Check for JWT expired error
+                        if (error.code === 'PGRST303' || error.message?.includes('JWT expired')) {
+                            console.warn(`Attempt ${attempts}: JWT expired. Refreshing session...`);
+                            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+                            if (refreshError) {
+                                console.error("Session refresh failed:", refreshError);
+                                throw refreshError;
+                            }
+
+                            if (refreshData.session) {
+                                console.log("Session refreshed successfully. Retrying fetch...");
+                                continue; // Retry the loop with the new session
+                            }
+                        }
+
+                        console.error("Supabase Error Details:", JSON.stringify(error, null, 2));
+                        throw error;
+                    }
+
+                    if (!profileData) {
+                        console.warn(`Profile for user ${userId} not found (yet). Retrying...`);
+                        throw new Error(`Profile not found for user ${userId}`);
+                    }
 
                     console.log("Profile loaded:", profileData);
                     setProfile(profileData);

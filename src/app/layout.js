@@ -18,8 +18,12 @@ export const metadata = {
 };
 
 import { AuthProvider } from "@/context/AuthContext";
+import { createClient } from "@/lib/supabaseServer";
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
     return (
         <html lang="en" className={`${poppins.variable}`} suppressHydrationWarning={true}>
             <head>
@@ -54,7 +58,7 @@ export default function RootLayout({ children }) {
                 />
             </head>
             <body suppressHydrationWarning={true}>
-                <AuthProvider>
+                <AuthProvider initialSession={session}>
                     {children}
                 </AuthProvider>
                 <noscript>

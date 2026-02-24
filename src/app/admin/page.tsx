@@ -34,7 +34,7 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+        <div style={{ padding: '2rem' }}>
             <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Admin Dashboard</h1>
             <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '2rem' }}>Welcome to the G1 Master internal tooling.</p>
 
