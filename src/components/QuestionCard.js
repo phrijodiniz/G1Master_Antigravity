@@ -6,6 +6,7 @@ import styles from './QuestionCard.module.css';
 export default function QuestionCard({ question, onNext, isLast, mode = 'practice', selected, onAnswer, progressLabel }) {
     const [selectedOption, setSelectedOption] = useState(selected ?? null);
     const [isAnswered, setIsAnswered] = useState(selected !== undefined && selected !== null);
+    const [shuffledOptions, setShuffledOptions] = useState([]);
 
     // Sync state when question or selected prop changes (e.g. navigation)
     useEffect(() => {
@@ -16,16 +17,27 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
             setSelectedOption(null);
             setIsAnswered(false);
         }
+
+        // Shuffle options and retain their original index for correctness checking
+        if (question && question.options) {
+            const optionsWithOriginalIndex = question.options.map((opt, index) => ({ text: opt, originalIndex: index }));
+            // Fisher-Yates shuffle
+            for (let i = optionsWithOriginalIndex.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [optionsWithOriginalIndex[i], optionsWithOriginalIndex[j]] = [optionsWithOriginalIndex[j], optionsWithOriginalIndex[i]];
+            }
+            setShuffledOptions(optionsWithOriginalIndex);
+        }
     }, [question, selected]);
 
-    const handleOptionClick = (index) => {
+    const handleOptionClick = (originalIndex) => {
         if (mode === 'practice' && isAnswered) return;
 
-        setSelectedOption(index);
+        setSelectedOption(originalIndex);
 
         if (mode === 'simulation' && onAnswer) {
-            const correct = index === question.correct_index;
-            onAnswer(correct, index);
+            const correct = originalIndex === question.correct_index;
+            onAnswer(correct, originalIndex);
         }
 
         if (mode === 'practice') {
@@ -57,26 +69,27 @@ export default function QuestionCard({ question, onNext, isLast, mode = 'practic
             )}
 
             <div className={styles.optionsGrid}>
-                {question.options.map((opt, index) => {
+                {shuffledOptions.map((optObj, shuffledIndex) => {
+                    const originalIndex = optObj.originalIndex;
                     let optionClass = styles.option;
 
                     if (mode === 'practice' && isAnswered) {
-                        if (isCorrect(index)) optionClass += ` ${styles.correct}`;
-                        else if (selectedOption === index) optionClass += ` ${styles.incorrect}`;
-                    } else if (selectedOption === index) {
+                        if (isCorrect(originalIndex)) optionClass += ` ${styles.correct}`;
+                        else if (selectedOption === originalIndex) optionClass += ` ${styles.incorrect}`;
+                    } else if (selectedOption === originalIndex) {
                         optionClass += ` ${styles.selected}`;
-                    } else if (mode === 'freetest' && selectedOption === index) {
+                    } else if (mode === 'freetest' && selectedOption === originalIndex) {
                         optionClass += ` ${styles.selected}`;
                     }
 
                     return (
                         <button
-                            key={index}
+                            key={shuffledIndex}
                             className={optionClass}
-                            onClick={() => handleOptionClick(index)}
+                            onClick={() => handleOptionClick(originalIndex)}
                             disabled={mode === 'practice' && isAnswered}
                         >
-                            {opt}
+                            {optObj.text}
                         </button>
                     );
                 })}
