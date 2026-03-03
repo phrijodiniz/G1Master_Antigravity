@@ -92,9 +92,10 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
             setUser(currentUser);
 
             // Determine if we should load the profile based on the event type
+            // SIGNED_IN is removed because it fires before cookies are fully written in production,
+            // leading to 401 Unauthorized errors. INITIAL_SESSION reliably follows and has the cookies.
             const shouldLoad =
                 event === "INITIAL_SESSION" ||
-                event === "SIGNED_IN" ||
                 (event === "TOKEN_REFRESHED" && !profileRef.current);
 
             // Cleanup if no user
@@ -107,11 +108,6 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
             }
 
             if (shouldLoad) {
-                // Wait for profile load to finish before setting loading=false
-                // If it's SIGNED_IN, give Supabase a tiny window to finish writing cookies and tokens
-                if (event === "SIGNED_IN") {
-                    await new Promise(r => setTimeout(r, 1000));
-                }
                 await loadProfileForUser(currentUser.id);
 
                 // --- NEW: SESSION LOGGING LOGIC ---
