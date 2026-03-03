@@ -1,0 +1,88 @@
+.barContainer {
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    width: 100%;
+}
+
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .content {
+        padding: 1rem;
+    }
+}
+
+.textRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.message {
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.upgradeText {
+    color: #e1ff21;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.upgradeText:hover {
+    text-decoration: underline;
+}
+
+.upgradeBtn {
+    background-color: #e1ff21;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.upgradeBtn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.fill {
+    height: 100%;
+    background: #e1ff21;
+    border-radius: 4px;
+    transition: width 0.3s ease-out;
+}
+
+.fillExhausted {
+    background: #ef4444;
+    /* red to indicate empty */
+}

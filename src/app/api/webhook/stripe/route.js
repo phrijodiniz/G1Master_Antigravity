@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { appendActivityToSheet } from '@/services/sheets';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase Admin Client (Service Role)
@@ -48,6 +49,25 @@ export async function POST(req) {
         }
 
         console.log(`Successfully upgraded user ${userId} to Premium in profiles table.`);
+
+        // Fetch user email context from DB to include in tracker
+        const { data: userProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('email, first_name')
+            .eq('id', userId)
+            .single();
+
+        try {
+            await appendActivityToSheet([
+                new Date().toISOString(),
+                userProfile?.email || session.customer_email || 'unknown_email',
+                userProfile?.first_name || 'unknown_name',
+                `Upgraded to Premium`
+            ]);
+            console.log('Appended upgrade event to Sheet');
+        } catch (sheetError) {
+            console.error("Failed to append upgrade to sheet", sheetError);
+        }
 
         console.log(`Supabase User Updated Successfully`);
     }

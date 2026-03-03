@@ -15,7 +15,7 @@ export default function StudyPage() {
     const [showLimitModal, setShowLimitModal] = useState(false);
 
     const handleStartSimulation = () => {
-        if (isPremium || (simulationCredits ?? 0) > 0) {
+        if (isPremium) {
             router.push("/quiz/simulation");
         } else {
             setShowLimitModal(true);
@@ -76,7 +76,7 @@ export default function StudyPage() {
             <LimitModal
                 isOpen={showLimitModal}
                 onClose={() => setShowLimitModal(false)}
-                variant="simulation_limit"
+                variant="simulation_quiz"
                 renewalDate={renewalDate}
             />
         </DashboardLayout>

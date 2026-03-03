@@ -3,11 +3,10 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem;
-    margin-bottom: 2rem;
-    background: #0f172a;
+    margin-bottom: 0px;
+    background: #000000;
     /* Black background for contrast */
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .hamburger {
@@ -26,10 +25,7 @@
     }
 
     .topbar {
-        background: transparent;
-        box-shadow: none;
-        color: inherit;
-        padding: 1.5rem 0;
+        display: none;
     }
 }
 

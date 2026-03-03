@@ -43,7 +43,7 @@ export default function LoginModal({ isOpen, onClose }) {
 
                 await signupWithEmail(email, password, firstName, lastName);
 
-                // Track Sign Up
+                // Track Sign Up in GTM
                 import('@/lib/gtm').then(({ sendGTMEvent }) => {
                     sendGTMEvent('sign_up', { method: 'email' });
                 });

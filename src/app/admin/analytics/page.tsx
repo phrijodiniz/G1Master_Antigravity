@@ -20,6 +20,12 @@ export default function AdminAnalyticsPage() {
             color: "#10B981" // Green
         },
         {
+            title: "🎯 Score Performance",
+            description: "Understand user average scores by test type and performance buckets.",
+            href: "/admin/analytics/score-performance",
+            color: "#8B5CF6" // Purple
+        },
+        {
             title: "💰 Revenue",
             description: "Monitor premium sales, revenue growth, and customer acquisition cost.",
             href: "#", // Placeholder

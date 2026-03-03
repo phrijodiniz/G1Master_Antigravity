@@ -49,7 +49,7 @@ export default function Dashboard() {
     const [showResultModal, setShowResultModal] = useState(false);
     const [resultData, setResultData] = useState(null);
     const [showLimitModal, setShowLimitModal] = useState(false);
-    const [limitVariant, setLimitVariant] = useState<'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_limit' | 'all_limit'>('default');
+    const [limitVariant, setLimitVariant] = useState<'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_quiz' | 'all_limit' | 'progressbar_upgrade'>('default');
 
     const processingRef = useRef(false);
 
@@ -141,7 +141,7 @@ export default function Dashboard() {
             if ((practiceCredits || 0) <= 0) {
                 setLimitVariant('all_limit');
             } else {
-                setLimitVariant('simulation_limit');
+                setLimitVariant('simulation_quiz');
             }
             setShowLimitModal(true);
         }
@@ -235,12 +235,6 @@ export default function Dashboard() {
                             </p>
 
                             <button className={styles.actionBtn} onClick={handleStartSimulation}>Take a Full Test</button>
-
-                            {!isPremium && user && (
-                                <p className={styles.creditText}>
-                                    You have {simulationCredits} simulation {simulationCredits === 1 ? 'credit' : 'credits'} left
-                                </p>
-                            )}
                         </div>
                     </div>
 
@@ -336,18 +330,23 @@ function TestHistoryTable() {
 function ReadinessGauge() {
     const { user, history } = useAuth();
     const [score, setScore] = useState(0);
-    const [hasData, setHasData] = useState(false);
+    const [isBlurred, setIsBlurred] = useState(true);
 
     useEffect(() => {
-        if (!history || history.length === 0) return;
+        if (!history) return;
 
-        // Use cached history, take top 10 for score calculation
-        const data = history.slice(0, 10);
+        const practiceTests = history.filter((h: any) => h.test_type !== 'Simulation');
 
-        if (data.length > 0) {
-            const avg = data.reduce((acc: number, curr: any) => acc + Number(curr.score), 0) / data.length;
-            setScore(Math.round(avg)); // Integer
-            setHasData(true);
+        if (practiceTests.length >= 5) {
+            const last5 = practiceTests.slice(0, 5);
+            const sum = last5.reduce((acc: number, curr: any) => acc + Number(curr.score), 0);
+            const avg = sum / 5;
+            const probability = 40 + (avg * 0.5);
+            setScore(Math.round(probability));
+            setIsBlurred(false);
+        } else {
+            setScore(0);
+            setIsBlurred(true);
         }
     }, [history]);
 
@@ -390,7 +389,7 @@ function ReadinessGauge() {
     };
 
     // Needle
-    const currentAngle = valueToAngle(score);
+    const currentAngle = valueToAngle(isBlurred ? 0 : score);
     const needleTip = polarToCartesian(cx, cy, r - 15, currentAngle);
 
     // Ticks
@@ -442,18 +441,20 @@ function ReadinessGauge() {
 
                     {/* Score Text - Spaced out from arc, smaller size */}
                     {/* Placed below center to balance */}
-                    <text x="100" y="125" textAnchor="middle" fontSize="18" fontWeight="700" fill="#0f172a">
-                        {hasData ? `${score}%` : "--"}
+                    <text x="100" y="125" textAnchor="middle" fontSize="18" fontWeight="700" fill="#0f172a" style={isBlurred ? { filter: 'blur(5px)', opacity: 0.5 } : {}}>
+                        {isBlurred ? "82%" : `${score}%`}
                     </text>
 
                     {/* Needle - On Top */}
-                    <line x1={cx} y1={cy} x2={needleTip.x} y2={needleTip.y} stroke="#0f172a" strokeWidth="4" strokeLinecap="round" />
-                    <circle cx={cx} cy={cy} r="6" fill="#0f172a" />
+                    <line x1={cx} y1={cy} x2={needleTip.x} y2={needleTip.y} stroke="#0f172a" strokeWidth="4" strokeLinecap="round" opacity={isBlurred ? 0.3 : 1} />
+                    <circle cx={cx} cy={cy} r="6" fill="#0f172a" opacity={isBlurred ? 0.3 : 1} />
                 </svg>
             </div>
-            <p className={styles.readinessText}>
-                Your Readiness Meter reflects your latest G1 Test Simulations. Your score appears after your first simulation, but completing 10 simulations gives a more accurate view of your exam readiness.
-            </p>
+            {isBlurred && (
+                <p className={styles.readinessText}>
+                    The readiness meter is only available after 5 completed practice tests.
+                </p>
+            )}
         </div>
     );
 }

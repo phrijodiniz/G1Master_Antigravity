@@ -206,6 +206,56 @@ export default function AcquisitionPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Sign Up Breakdown Card */}
+                    <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <h3 style={{ fontSize: '1.25rem' }}>Sign Up Breakdown</h3>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                            <KpiCard
+                                title="Google Sign In"
+                                value={(summary.totalGoogleSignups || 0).toString()}
+                                icon={Users}
+                                color="#4285F4"
+                            />
+                            <KpiCard
+                                title="Email Sign Up"
+                                value={(summary.totalEmailSignups || 0).toString()}
+                                icon={Users}
+                                color="#10B981"
+                            />
+                        </div>
+
+                        {/* Progress Bar Visual */}
+                        {summary.totalSignups > 0 && (
+                            <div style={{ width: '100%' }}>
+                                <div style={{
+                                    width: '100%',
+                                    height: '12px',
+                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    overflow: 'hidden',
+                                    marginBottom: '0.75rem'
+                                }}>
+                                    <div style={{ width: `${(summary.totalGoogleSignups / summary.totalSignups) * 100}%`, backgroundColor: '#4285F4' }}></div>
+                                    <div style={{ width: `${(summary.totalEmailSignups / summary.totalSignups) * 100}%`, backgroundColor: '#10B981' }}></div>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#4285F4' }}></div>
+                                        {Math.round((summary.totalGoogleSignups / summary.totalSignups) * 100)}% Google
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {Math.round((summary.totalEmailSignups / summary.totalSignups) * 100)}% Email
+                                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10B981' }}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </>
             )}
         </div>

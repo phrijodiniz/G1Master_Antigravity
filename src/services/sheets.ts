@@ -51,30 +51,50 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
             }
         });
 
-        console.log('Fetching profiles from Supabase...');
-        const { data: profiles, error: supabaseError } = await supabase
-            .from('profiles')
-            .select('created_at');
+        console.log('Fetching users from Supabase auth...');
+        let allUsers: any[] = [];
+        let page = 1;
+        let hasMore = true;
 
-        if (supabaseError) {
-            console.error('CRITICAL: Error fetching profiles from Supabase:', supabaseError);
-        } else {
-            console.log('Successfully fetched profiles. Count:', profiles?.length || 0);
-            if (profiles && profiles.length > 0) {
-                console.log('Sample profile created_at:', profiles[0].created_at);
+        while (hasMore) {
+            const { data: usersData, error: supabaseError } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+            if (supabaseError) {
+                console.error('CRITICAL: Error fetching users from Supabase:', supabaseError);
+                break;
+            }
+            if (usersData && usersData.users) {
+                allUsers = allUsers.concat(usersData.users);
+                if (usersData.users.length < 1000) {
+                    hasMore = false;
+                } else {
+                    page++;
+                }
+            } else {
+                hasMore = false;
             }
         }
 
+        console.log('Successfully fetched users. Count:', allUsers.length);
+
         const signupsMap = new Map();
-        if (profiles) {
-            profiles.forEach((profile: any) => {
-                if (profile.created_at) {
+        if (allUsers.length > 0) {
+            allUsers.forEach((user: any) => {
+                if (user.created_at) {
                     // Extract YYYY-MM-DD from timestamp using America/New_York timezone
                     // 'en-CA' locale formats as YYYY-MM-DD
-                    const dateStr = new Date(profile.created_at).toLocaleDateString('en-CA', {
+                    const dateStr = new Date(user.created_at).toLocaleDateString('en-CA', {
                         timeZone: 'America/New_York'
                     });
-                    signupsMap.set(dateStr, (signupsMap.get(dateStr) || 0) + 1);
+
+                    const provider = user.app_metadata?.provider || (user.identities && user.identities.length > 0 ? user.identities[0].provider : 'email');
+                    const isGoogle = provider === 'google';
+
+                    const current = signupsMap.get(dateStr) || { total: 0, google: 0, email: 0 };
+                    current.total += 1;
+                    if (isGoogle) current.google += 1;
+                    else current.email += 1;
+
+                    signupsMap.set(dateStr, current);
                 }
             });
         }
@@ -145,6 +165,8 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
 
         let totalSpend = 0;
         let totalSignups = 0;
+        let totalGoogleSignups = 0;
+        let totalEmailSignups = 0;
         let totalImpressions = 0;
         let totalClicks = 0;
         let totalVisits = 0;
@@ -154,7 +176,10 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
         filteredDates.forEach((date: any) => {
             const adsRow = adsMap.get(date);
             const acqRow = acquisitionMap.get(date);
-            const dailySignups = signupsMap.get(date) || 0;
+            const dailySignupsObj = signupsMap.get(date) || { total: 0, google: 0, email: 0 };
+            const dailySignups = dailySignupsObj.total;
+            const dailyGoogleSignups = dailySignupsObj.google;
+            const dailyEmailSignups = dailySignupsObj.email;
 
             // Google Ads Columns
             const impressions = adsRow ? parseInt(adsRow[1]?.replace(/,/g, '') || '0') : 0;
@@ -166,6 +191,8 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
 
             totalSpend += spend;
             totalSignups += dailySignups;
+            totalGoogleSignups += dailyGoogleSignups;
+            totalEmailSignups += dailyEmailSignups;
             totalImpressions += impressions;
             totalClicks += clicks;
             totalVisits += visits;
@@ -177,7 +204,9 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
                 impressions,
                 clicks,
                 visits,
-                signups: dailySignups
+                signups: dailySignups,
+                googleSignups: dailyGoogleSignups,
+                emailSignups: dailyEmailSignups
             });
         });
 
@@ -190,6 +219,8 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
             summary: {
                 totalSpend,
                 totalSignups,
+                totalGoogleSignups,
+                totalEmailSignups,
                 blendedCac,
                 marketingSpend: totalSpend,
                 organicSignups: 0,
@@ -336,5 +367,36 @@ export async function getActivationDataFromSheet(startDate?: string, endDate?: s
     } catch (error) {
         console.error('Error fetching Activation data from Google Sheet:', error);
         return null;
+    }
+}
+
+export async function appendActivityToSheet(eventData: (string | number)[]) {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'], // Must be full access
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+        const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+        await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: 'App Activity!A:D', // Name of your destination tab
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                // eventData is an array of column values for a single row
+                // Example: [new Date().toISOString(), 'user_123', 'profile_created', 'Source: Google']
+                values: [eventData]
+            }
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Error appending to sheet:', error);
+        return false;
     }
 }

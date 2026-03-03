@@ -1,84 +1,116 @@
 "use client";
 
 import styles from './LoginModal.module.css'; // Reuse glass panel styles
+import { useRouter } from 'next/navigation';
+import { SHOW_VALUE_REVEAL } from './UnlockModal';
 
 interface FreeMockTestResultModalProps {
     isOpen: boolean;
     onClose: () => void;
     results: {
         score: number;
+        total_questions?: number;
         passed: boolean;
     } | null;
 }
 
 export default function FreeMockTestResultModal({ isOpen, results, onClose }: FreeMockTestResultModalProps) {
+    const router = useRouter();
+
     if (!isOpen || !results) return null;
 
     const { score, passed } = results;
-    // Assuming 10 questions total (5 rules, 5 signs) or similar small number for free test
-    // Adjust logic if free test size varies. The prompt implies "Question 1 of 10", so 10 total.
+    // The results object might only have `score` (e.g. 80) in some cases. 
+    // We assume 20 questions total for the display format based on the prompt "16/20".
+    const correctAnswers = Math.round((score / 100) * 20);
+
+    const handlePracticeClick = (category: string) => {
+        onClose();
+        router.push(`/quiz/practice?category=${encodeURIComponent(category)}`);
+    };
 
     return (
         <div className={styles.overlay}>
-            <div className={`glass-panel ${styles.modal}`} style={{
-                maxWidth: '500px',
-                width: '90%',
-                textAlign: 'center',
-                padding: '2rem',
-                borderRadius: '16px',
-                background: '#0f172a', // Darker background (slate-900)
-                color: '#f8fafc', // Light text (slate-50)
-                border: '1px solid #334155'
-            }}>
-                <h2 style={{ fontSize: '1.8rem', marginBottom: '1rem', fontWeight: 800 }}>
-                    Practice Test Results
-                </h2>
+            <div className={`glass-panel ${styles.modal}`} style={{ maxWidth: '400px', textAlign: 'center', padding: '2.5rem 1.5rem', borderRadius: '16px' }}>
+                {!SHOW_VALUE_REVEAL ? (
+                    <>
+                        <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem', lineHeight: '1.2', fontWeight: 800, color: '#e1ff21' }}>
+                            You scored {correctAnswers}/20 on your first practice test.
+                        </h2>
+                    </>
+                ) : (
+                    <>
+                        <h2 style={{ fontSize: '1.8rem', marginBottom: '1rem', lineHeight: '1.2', fontWeight: 800, color: '#e1ff21' }}>
+                            Welcome to the G1 Master App!
+                        </h2>
+                    </>
+                )}
 
-                <div style={{ marginBottom: '2rem' }}>
-                    <div style={{
-                        fontSize: '4rem',
-                        fontWeight: 900,
-                        color: passed ? '#4ade80' : '#f87171', // Brighter green/red
-                        lineHeight: 1
-                    }}>
-                        {score}%
-                    </div>
-                    <div style={{
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                        color: passed ? '#4ade80' : '#f87171',
-                        textTransform: 'uppercase',
-                        marginTop: '0.5rem'
-                    }}>
-                        {passed ? 'Passed' : 'Failed'}
-                    </div>
-                </div>
-
-
-
-                <p style={{ marginBottom: '2rem', opacity: 0.9, lineHeight: '1.6', color: '#e2e8f0' }}>
-                    {passed
-                        ? "Great job! You're on the right track. Keep practicing to maintain your streak."
-                        : "Don't worry, that's why we practice!"}
+                <p style={{ marginBottom: '1.5rem', opacity: 0.9, fontSize: '1rem', color: 'white' }}>
+                    With a little more practice, you can walk into the real G1 fully confident.
                 </p>
 
-                <button
-                    onClick={onClose}
-                    className="btn-primary"
-                    style={{
-                        width: '100%',
-                        padding: '1rem',
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: 'white',
-                        color: 'black',
-                        border: 'none',
-                        borderRadius: '8px'
-                    }}
-                >
-                    Continue to Dashboard
-                </button>
+                <p style={{ marginBottom: '1rem', fontWeight: 600, color: 'white' }}>
+                    Choose what you want to practice next:
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1rem' }}>
+                    <button
+                        onClick={() => handlePracticeClick('Rules of the Road')}
+                        className="btn-primary"
+                        style={{
+                            flex: 1,
+                            padding: '0.8rem',
+                            fontSize: '0.95rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            background: '#D4FF00',
+                            color: 'black',
+                            border: 'none',
+                            borderRadius: '8px'
+                        }}
+                    >
+                        Rules of the Road
+                    </button>
+                    <button
+                        onClick={() => handlePracticeClick('Road Signs')}
+                        className="btn-primary"
+                        style={{
+                            flex: 1,
+                            padding: '0.8rem',
+                            fontSize: '0.95rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            background: '#D4FF00',
+                            color: 'black',
+                            border: 'none',
+                            borderRadius: '8px'
+                        }}
+                    >
+                        Road Signs
+                    </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            width: '100%',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            padding: '0.8rem',
+                            background: 'transparent',
+                            color: 'white',
+                            border: 'none',
+                            fontWeight: 600,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            opacity: 0.8
+                        }}
+                    >
+                        Go to Dashboard
+                    </button>
+                </div>
             </div>
         </div>
     );

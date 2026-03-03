@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import QuestionCard from '@/components/QuestionCard';
 import styles from '../shared_quiz_layout.module.css';
@@ -19,7 +19,7 @@ const formatTime = (seconds: number) => {
 };
 
 function SimulationContent() {
-    const { user, isPremium, simulationCredits, refreshProfile, renewalDate } = useAuth();
+    const { user, isPremium, simulationCredits, refreshProfile, renewalDate, loading: authLoading, history } = useAuth();
     const [questions, setQuestions] = useState<any[]>([]);
     const [currentindex, setCurrentIndex] = useState(0);
 
@@ -33,8 +33,94 @@ function SimulationContent() {
     const [showExitModal, setShowExitModal] = useState(false); // Added state
     const [showLimitModal, setShowLimitModal] = useState(false); // Added state
     const [resultSaved, setResultSaved] = useState(false);
+    const [showReview, setShowReview] = useState(false);
+    const [limitVariant, setLimitVariant] = useState<'simulation_quiz' | 'all_limit'>('simulation_quiz');
 
     const STORAGE_KEY = 'simulation_session';
+
+    const totalScore = useMemo(() => {
+        let score = 0;
+        questions.forEach((q, idx) => {
+            if (answers[idx]?.correct) score++;
+        });
+        return score;
+    }, [questions, answers]);
+
+    const motivationQuote = useMemo(() => {
+        if (!completed || questions.length === 0) return "";
+        const percentage = (totalScore / questions.length) * 100;
+
+        let texts = [];
+        if (percentage <= 40) {
+            texts = [
+                "This is your starting point — now let’s build from here.",
+                "Good news: improvement happens fast with practice.",
+                "Let’s run it again and raise that score."
+            ];
+        } else if (percentage <= 60) {
+            texts = [
+                "You’re halfway there — keep the momentum going.",
+                "A few small improvements can make a big difference.",
+                "Try again now and push it higher."
+            ];
+        } else if (percentage <= 80) {
+            texts = [
+                "You’re just a couple of questions away from passing.",
+                "Close, but close doesn’t pass the real G1.",
+                "A few more attempts could push you over the line."
+            ];
+        } else if (percentage < 100) {
+            texts = [
+                "Strong score. Can you make it consistent?",
+                "That’s impressive. Can you do it again?",
+                "That’s what almost test-ready looks like. Think you can repeat it?"
+            ];
+        } else {
+            texts = [
+                "Perfect score. Can you do it again?",
+                "That’s what test-ready looks like. Think you can repeat it?",
+                "Prove it wasn’t luck and take another one."
+            ];
+        }
+
+        return texts[Math.floor(Math.random() * texts.length)];
+    }, [completed, totalScore, questions.length]);
+
+    const passProbability = useMemo(() => {
+        if (!completed || questions.length === 0) return 0;
+
+        // Find prior simulation tests in history
+        const priorSimTests = (history || []).filter((h: any) => h.test_type === 'Simulation');
+
+        // Compute current score percent
+        const currentScorePercent = (totalScore / 40) * 100;
+
+        // Compile the recent scores (up to 5)
+        const recentScores = [currentScorePercent];
+        for (const test of priorSimTests) {
+            if (recentScores.length >= 5) break;
+            if (recentScores.length < 5) {
+                recentScores.push(test.score);
+            }
+        }
+
+        let passProb = 0;
+
+        if (priorSimTests.length < 5) {
+            // Less than 5 simulations in history
+            passProb = 40 + (currentScorePercent * 0.5);
+        } else {
+            // 5 or more tests
+            const last4 = priorSimTests.slice(0, 4);
+            let sumPercentages = currentScorePercent;
+            last4.forEach((test: any) => sumPercentages += test.score);
+
+            const avgPercentage = sumPercentages / 5;
+            passProb = 40 + (avgPercentage * 0.5);
+        }
+
+        return Math.round(passProb);
+    }, [completed, totalScore, questions.length, history]);
 
     async function fetchExamQuestions() {
         setLoading(true);
@@ -68,23 +154,25 @@ function SimulationContent() {
 
     // Auth & Init
     useEffect(() => {
+        if (authLoading) return; // Wait for profile array
+
         if (!user) {
             setShowLoginModal(true);
             setLoading(false);
         } else {
             setShowLoginModal(false);
             if (questions.length === 0 && !completed) {
-                // Check credits
-                // Check credits
-                if (!isPremium && (simulationCredits ?? 0) <= 0) {
+                // Check permissions
+                if (!isPremium) {
                     setLoading(false);
+                    setLimitVariant('simulation_quiz');
                     setShowLimitModal(true);
                     return;
                 }
                 fetchExamQuestions();
             }
         }
-    }, [user, isPremium, simulationCredits]);
+    }, [user, isPremium, authLoading, questions.length, completed]);
 
     // Prevent save on exit
     const isExiting = useRef(false);
@@ -112,9 +200,12 @@ function SimulationContent() {
     }, [loading, completed, showLoginModal, user]);
 
     // Save Result Logic (Top-level Hook)
+    const [isSaving, setIsSaving] = useState(false);
+
     useEffect(() => {
         if (completed && user && !resultSaved && questions.length > 0) {
             setResultSaved(true);
+            setIsSaving(true);
 
             // Calculate Score
             let rulesScore = 0, signsScore = 0, rulesTotal = 0, signsTotal = 0;
@@ -145,14 +236,32 @@ function SimulationContent() {
                     test_type: 'Simulation'
                 });
 
+                try {
+                    fetch('/api/activity', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            eventData: [
+                                new Date().toISOString(),
+                                user.email || 'unknown_email',
+                                user.user_metadata?.first_name || 'unknown_name',
+                                `Simulation Completed - Score: ${totalScore}%`
+                            ]
+                        })
+                    });
+                } catch (sheetError) {
+                    console.error("Failed to append activity to sheet", sheetError);
+                }
+
                 // Consume credit (Implicit via insert)
                 if (!isPremium) {
-                    refreshProfile();
+                    await refreshProfile(true);
                 }
+                setIsSaving(false);
             };
             save();
         }
-    }, [completed, user, resultSaved, questions, answers, isPremium, simulationCredits, refreshProfile]);
+    }, [completed, user, resultSaved, questions, answers, isPremium, refreshProfile]);
 
 
     const handleAnswer = (isCorrect: boolean, selectedIndex: number) => {
@@ -215,9 +324,25 @@ function SimulationContent() {
         window.location.href = '/study';
     };
 
+    const handleRetake = () => {
+        if (isPremium) {
+            localStorage.removeItem(STORAGE_KEY);
+            setQuestions([]);
+            setCurrentIndex(0);
+            setAnswers({});
+            setElapsedTime(0);
+            setCompleted(false);
+            setShowReview(false);
+            setResultSaved(false);
+        } else {
+            setLimitVariant('all_limit');
+            setShowLimitModal(true);
+        }
+    };
+
     // --- Renders ---
 
-    if (showLimitModal) return (
+    if (showLimitModal && !completed) return (
         <DashboardLayout>
             <div className={styles.contentWrapper}>
                 <div style={{ padding: '2rem', color: '#64748b' }}>Checking eligibility...</div>
@@ -226,7 +351,7 @@ function SimulationContent() {
                 isOpen={true}
                 onClose={() => setShowLimitModal(false)}
                 message="You have no simulation credits remaining. Please upgrade to Premium."
-                variant='simulation_limit'
+                variant={limitVariant}
                 renewalDate={renewalDate}
             />
         </DashboardLayout>
@@ -273,47 +398,94 @@ function SimulationContent() {
         const passedRules = rulesScore >= 16;
         const passedSigns = signsScore >= 16;
         const passedOverall = passedRules && passedSigns;
+        const combinedScore = rulesScore + signsScore;
+        const combinedTotal = rulesTotal + signsTotal;
 
         return (
             <DashboardLayout>
                 <div className={styles.mainWrapper}>
                     <div className={styles.resultsContainer}>
-                        <h1>Simulation Results</h1>
-                        <p style={{ marginTop: '1rem', color: '#64748b' }}>Finished in {formatTime(elapsedTime)}</p>
-
-                        <div style={{ margin: '2rem 0', display: 'flex', gap: '3rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem', color: '#475569' }}>Rules of the Road</h3>
-                                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: passedRules ? '#16a34a' : '#dc2626' }}>
-                                    {rulesScore} / {rulesTotal}
-                                </div>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem', color: '#475569' }}>Road Signs</h3>
-                                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: passedSigns ? '#16a34a' : '#dc2626' }}>
-                                    {signsScore} / {signsTotal}
-                                </div>
-                            </div>
+                        <div style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 500, marginBottom: '1.5rem' }}>
+                            Score
+                        </div>
+                        <div style={{ fontSize: '5rem', fontWeight: 800, color: '#e1ff21', WebkitTextStroke: '2.5px black', lineHeight: 1 }}>
+                            {combinedScore}/{combinedTotal}
+                        </div>
+                        <div style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 500, marginTop: '1.5rem' }}>
+                            Pass Probability: <span style={{ color: '#0f172a', fontWeight: 700 }}>{passProbability}%</span>
                         </div>
 
-                        <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: passedOverall ? '#16a34a' : '#dc2626', marginBottom: '1rem' }}>
-                            {passedOverall ? 'PASSED' : 'FAILED'}
-                        </h2>
-                        <p style={{ color: '#64748b', marginBottom: '2rem' }}>Minimum 16/20 required in EACH section.</p>
+                        <p style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a', margin: '2.5rem 0' }}>
+                            {motivationQuote}
+                        </p>
 
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button onClick={() => window.location.reload()} className={styles.resultPrimaryBtn}>
-                                Try Again
-                            </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '480px', margin: '0 auto' }}>
                             <button
-                                onClick={() => window.location.href = '/study'}
-                                className={styles.secondaryBtn}
+                                onClick={handleRetake}
+                                disabled={isSaving}
+                                style={{
+                                    width: '100%',
+                                    background: isSaving ? '#94a3b8' : '#0f172a', color: 'white', padding: '1rem',
+                                    borderRadius: '8px', border: 'none', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '1rem'
+                                }}
                             >
-                                Back to Menu
+                                {isSaving ? 'Processing...' : 'Take Another Simulation'}
                             </button>
+                            <div
+                                onClick={() => setShowReview(!showReview)}
+                                style={{
+                                    marginTop: '0.5rem',
+                                    color: '#64748b',
+                                    textDecoration: 'underline',
+                                    cursor: 'pointer',
+                                    fontWeight: 500,
+                                    fontSize: '1rem',
+                                    userSelect: 'none'
+                                }}
+                            >
+                                {showReview ? 'Hide My Answers' : 'Review My Answers'}
+                            </div>
                         </div>
                     </div>
+
+                    {showReview && (
+                        <div className={styles.reviewSection}>
+                            <h2 style={{ paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>Review Answers</h2>
+                            {questions.map((q, idx) => {
+                                const ans = answers[idx] || { correct: false, selected: -1 };
+                                return (
+                                    <div key={idx} className={styles.reviewCard} style={{ borderLeft: `4px solid ${ans.correct ? '#22c55e' : '#ef4444'}`, marginBottom: '1rem', padding: '1rem', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                        <h3 style={{ marginBottom: '1rem' }}>{idx + 1}. {q.text}</h3>
+                                        {q.media_url && <img src={q.media_url} style={{ maxWidth: '100%', borderRadius: '8px', marginBottom: '1rem' }} />}
+
+                                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                            {q.options.map((opt: string, optIdx: number) => {
+                                                let color = 'inherit';
+                                                let weight = 'normal';
+                                                if (optIdx === q.correct_index) { color = '#15803d'; weight = '700'; }
+                                                else if (optIdx === ans.selected && !ans.correct) { color = '#b91c1c'; }
+
+                                                return (
+                                                    <div key={optIdx} style={{ color, fontWeight: weight }}>
+                                                        {optIdx === ans.selected && (ans.correct ? '✅ ' : '❌ ')}
+                                                        {opt} {optIdx === q.correct_index && optIdx !== ans.selected && '(Correct Answer)'}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
                 </div>
+                <LimitModal
+                    isOpen={showLimitModal}
+                    onClose={() => setShowLimitModal(false)}
+                    message="You have no simulation credits remaining. Please upgrade to Premium."
+                    variant={limitVariant}
+                    renewalDate={renewalDate}
+                />
             </DashboardLayout>
         );
     }

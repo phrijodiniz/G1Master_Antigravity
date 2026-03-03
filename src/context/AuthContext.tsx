@@ -115,6 +115,44 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                 await loadProfileForUser(currentUser.id);
             }
 
+            // --- Tracking Google Signups Centrally ---
+            if (event === "SIGNED_IN" && currentUser) {
+                // Check if this is a newly created user (within the last 30 seconds)
+                // AND ensure they signed up with Google (to prevent double-logging Email users)
+                const createdAt = new Date(currentUser.created_at).getTime();
+                const now = Date.now();
+                const isNewUser = (now - createdAt) < 30000;
+
+                // Identify if the user signed up via OAuth (Google)
+                const isGoogleUser = currentUser.app_metadata?.provider === 'google';
+
+                if (isNewUser && isGoogleUser) {
+                    try {
+                        let firstName = currentUser.user_metadata?.first_name || '';
+                        let lastName = currentUser.user_metadata?.last_name || '';
+                        if (!firstName && currentUser.user_metadata?.full_name) {
+                            firstName = currentUser.user_metadata.full_name;
+                        }
+
+                        fetch('/api/activity', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                eventData: [
+                                    new Date().toISOString(),
+                                    currentUser.email || 'unknown_email',
+                                    firstName,
+                                    "User Signed Up"
+                                ]
+                            })
+                        });
+                        console.log('Appended Google signup to App Activity sheet centrally.');
+                    } catch (sheetError) {
+                        console.error("Failed to append Google signup to sheet centrally", sheetError);
+                    }
+                }
+            }
+
             setLoading(false);
         });
 
@@ -266,7 +304,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     const usedSimulations = simResult.data?.length || 0;
                     const usedPractice = practiceResult.data?.length || 0;
 
-                    setCalcSimulationCredits(Math.max(0, 1 - usedSimulations));
+                    setCalcSimulationCredits(0);
                     setCalcPracticeCredits(Math.max(0, 5 - usedPractice));
 
                     // Calculate Renewal Date (Oldest test + 7 days)
@@ -274,9 +312,8 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
 
                     // If NO credits left, find when the next one frees up
                     // logic: The NEXT credit becomes available 7 days after the OLDEST test in the current window drops out.
-                    if (usedPractice >= 5 || usedSimulations >= 1) {
+                    if (usedPractice >= 5) {
                         const oldestPractice = practiceResult.data?.[0]?.created_at;
-                        const oldestSim = simResult.data?.[0]?.created_at;
 
                         // We strictly care about the renewal of the specific type that is blocked?
                         // Or just the earliest overall? 
@@ -285,7 +322,6 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
 
                         const dates = [];
                         if (usedPractice >= 5 && oldestPractice) dates.push(new Date(oldestPractice).getTime());
-                        if (usedSimulations >= 1 && oldestSim) dates.push(new Date(oldestSim).getTime());
 
                         if (dates.length > 0) {
                             const oldestTimestamp = Math.min(...dates);
@@ -391,6 +427,28 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
             }
         });
         if (error) throw error;
+        if (error) throw error;
+
+        // Track Email Signups Immediately 
+        // (because email verification might take longer than 30 seconds, bypassing the central listener)
+        try {
+            await fetch('/api/activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eventData: [
+                        new Date().toISOString(),
+                        email,
+                        firstName,
+                        "User Signed Up"
+                    ]
+                })
+            });
+            console.log('Appended Email signup to App Activity sheet locally.');
+        } catch (sheetError) {
+            console.error("Failed to append email signup to sheet locally", sheetError);
+        }
+
         return data;
     };
 

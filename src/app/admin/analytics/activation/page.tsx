@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MousePointerClick, PlayCircle, XCircle, CheckCircle, TrendingUp, ArrowRight } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import AnalyticsDatePicker from '@/components/admin/AnalyticsDatePicker';
 
 export default function ActivationPage() {
@@ -53,13 +53,6 @@ export default function ActivationPage() {
     const dailyTrends = data?.dailyTrends || [];
     const creditFunnel = data?.creditFunnel || {};
 
-    // Format scroll depth for BarChart
-    const scrollDepthData = landingPage.scrollDepth ? [
-        { name: '25%', value: landingPage.scrollDepth['25%'] },
-        { name: '50%', value: landingPage.scrollDepth['50%'] },
-        { name: '75%', value: landingPage.scrollDepth['75%'] },
-        { name: '100%', value: landingPage.scrollDepth['100%'] },
-    ] : [];
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -265,28 +258,7 @@ export default function ActivationPage() {
                         </div>
                     </div>
 
-                    {/* Scroll Depth Section */}
-                    <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Scroll Depth (To Be Developed)</h2>
-                        <div style={{ height: '250px', width: '100%' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart
-                                    data={scrollDepthData}
-                                    layout="vertical"
-                                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" horizontal={true} vertical={false} />
-                                    <XAxis type="number" stroke="rgba(255,255,255,0.5)" tick={{ fill: 'rgba(255,255,255,0.5)' }} />
-                                    <YAxis dataKey="name" type="category" stroke="rgba(255,255,255,0.5)" tick={{ fill: 'rgba(255,255,255,0.5)' }} width={50} />
-                                    <Tooltip
-                                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                                        contentStyle={{ backgroundColor: '#1f2937', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
-                                    />
-                                    <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} name="Visitors" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
+
                 </>
             )}
 

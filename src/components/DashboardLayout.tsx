@@ -3,6 +3,7 @@
 import { useState, createContext, useContext } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
+import CreditProgressBar from "./CreditProgressBar";
 import styles from "./DashboardLayout.module.css";
 
 // Context to manage sidebar state
@@ -29,6 +30,7 @@ export default function DashboardLayout({ children, fullWidth = false, hideTopBa
                 {/* Main Content Area */}
                 <div className={styles.mainContent}>
                     {!hideTopBar && <TopBar />}
+                    <CreditProgressBar />
                     <main className={fullWidth ? styles.contentInnerFull : styles.contentInner}>
                         {children}
                     </main>

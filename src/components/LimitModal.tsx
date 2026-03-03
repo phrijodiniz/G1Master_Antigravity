@@ -9,7 +9,7 @@ interface LimitModalProps {
     isOpen: boolean;
     onClose: () => void;
     message?: string;
-    variant?: 'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_limit' | 'all_limit';
+    variant?: 'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_quiz' | 'all_limit' | 'progressbar_upgrade';
 }
 
 // ... imports
@@ -19,7 +19,7 @@ interface LimitModalProps {
     isOpen: boolean;
     onClose: () => void;
     message?: string;
-    variant?: 'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_limit' | 'all_limit';
+    variant?: 'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_quiz' | 'all_limit' | 'progressbar_upgrade';
     renewalDate?: Date | null;
 }
 
@@ -63,15 +63,17 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
 
     const isChapterQuiz = variant === 'chapter_quiz';
     const isPracticeLimit = variant === 'practice_limit';
-    const isSimulationLimit = variant === 'simulation_limit';
+    const isSimulationLimit = variant === 'simulation_quiz';
     const isAllLimit = variant === 'all_limit';
-    const isSpecialVariant = isChapterQuiz || isPracticeLimit || isSimulationLimit || isAllLimit;
+    const isProgressBarUpgrade = variant === 'progressbar_upgrade';
+    const isSpecialVariant = isChapterQuiz || isPracticeLimit || isSimulationLimit || isAllLimit || isProgressBarUpgrade;
 
     const getHeadline = () => {
         if (isChapterQuiz) return "Unlock All Chapter Tests";
         if (isPracticeLimit) return "Unlock Unlimited Practice";
         if (isSimulationLimit) return "Unlock Unlimited Simulations";
         if (isAllLimit) return "You’ve Reached the Free Limit";
+        if (isProgressBarUpgrade) return "Upgrade to G1 Master Premium to unlock:";
         return "Limit Reached";
     };
 
@@ -145,8 +147,8 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                 {isSimulationLimit && (
                     <>
                         <p className={styles.description}>
-                            You’ve used all free simulation credits. <br />
-                            <strong>Upgrade to:</strong>
+                            G1 Test Simulations are part of G1 Master Premium Plan. <br />
+                            <strong>Upgrade to get:</strong>
                         </p>
 
                         <div className={styles.featureList}>
@@ -162,8 +164,8 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         </div>
 
                         <div className={styles.priceBox}>
-                            <div className={styles.priceMain}>$9.97 <span className={styles.priceSub}>— one-time payment</span></div>
-                            <div className={styles.priceDesc}>No subscriptions. No renewals.</div>
+                            <div className={styles.priceMain}>$9.97 <span className={styles.priceSub}>one-time payment</span></div>
+                            <div className={styles.priceDesc}>No weekly fees • Lifetime access</div>
                         </div>
                     </>
                 )}
@@ -205,6 +207,30 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                     </>
                 )}
 
+                {isProgressBarUpgrade && (
+                    <>
+                        <div className={styles.featureList}>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> Unlimited practice tests
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> Unlimited simulations
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> All chapter quizzes
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> Progress tracking & readiness meter
+                            </div>
+                        </div>
+
+                        <div className={styles.priceBox}>
+                            <div className={styles.priceMain}>💰 Only $9.97 <span className={styles.priceSub}>(one-time fee)</span></div>
+                            <div className={styles.priceDesc}>No subscriptions • Lifetime access</div>
+                        </div>
+                    </>
+                )}
+
                 {!isSpecialVariant && (
                     <p className={styles.description} style={{ lineHeight: '1.5', margin: '0 0 2rem 0' }}>
                         {message || "You have used all your free practice credits. Upgrade to Premium for unlimited access."}
@@ -217,7 +243,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         className={styles.upgradeBtn}
                     >
                         {isSpecialVariant ? (
-                            isAllLimit ? "Unlock Full Access" :
+                            (isAllLimit || isProgressBarUpgrade) ? "Unlock Full Access" :
                                 (isPracticeLimit || isSimulationLimit ?
                                     (isSimulationLimit ? "Get Premium Access" : "Upgrade Now") : "Unlock Premium Access Now")
                         ) : (
@@ -238,7 +264,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                             {isSimulationLimit ? "Other apps charge $49/week or $159 lifetime" : "One single payment. No renewals or hidden fees."}
                         </p>
                     )}
-                    {isAllLimit && (
+                    {(isAllLimit || isProgressBarUpgrade) && (
                         <p className={styles.secondaryText}>
                             Some G1 apps charge $49/week or $159 lifetime.
                         </p>
@@ -253,7 +279,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         }}
                         className={`${styles.backBtn} ${isSpecialVariant ? styles.backBtnSpecial : ''}`}
                     >
-                        {isAllLimit ? "Back to Dashboard" : (isSpecialVariant ? "Not now, take me back" : "Back to Dashboard")}
+                        {isProgressBarUpgrade ? "Not Now" : (isAllLimit ? "Back to Dashboard" : (isSpecialVariant ? "Not now, take me back" : "Back to Dashboard"))}
                     </button>
                 </div>
             </div>
