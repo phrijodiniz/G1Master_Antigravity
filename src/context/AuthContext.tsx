@@ -113,6 +113,54 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     await new Promise(r => setTimeout(r, 1000));
                 }
                 await loadProfileForUser(currentUser.id);
+
+                // --- NEW: SESSION LOGGING LOGIC ---
+                try {
+                    const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+                    const lastSessionTimeStr = localStorage.getItem('last_session_log');
+                    const now = Date.now();
+
+                    let shouldLogSession = false;
+
+                    if (!lastSessionTimeStr) {
+                        // First time ever (or since localStorage was cleared)
+                        shouldLogSession = true;
+                    } else {
+                        const lastSessionTime = parseInt(lastSessionTimeStr, 10);
+                        if (now - lastSessionTime > SESSION_TIMEOUT_MS) {
+                            // It's been more than 4 hours since the last session log!
+                            shouldLogSession = true;
+                        }
+                    }
+
+                    if (shouldLogSession) {
+                        let firstName = currentUser.user_metadata?.first_name || '';
+                        if (!firstName && currentUser.user_metadata?.full_name) {
+                            firstName = currentUser.user_metadata.full_name;
+                        }
+
+                        fetch('/api/activity', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                eventData: [
+                                    new Date().toISOString(), // Local time is handled in your API route!
+                                    currentUser.email || 'unknown_email',
+                                    firstName || 'User',
+                                    "Session Started" // The specific event you can TRACK in your spreadsheet
+                                ]
+                            })
+                        });
+
+                        // Update the localStorage so we don't spam the spreadsheet on the next refresh
+                        localStorage.setItem('last_session_log', now.toString());
+                        console.log('Appended Session Started to App Activity sheet.');
+                    }
+
+                } catch (err) {
+                    console.error("Failed to log session:", err);
+                }
+                // --- END NEW LOGIC ---
             }
 
             // --- Tracking Google Signups Centrally ---
@@ -281,7 +329,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                             .from('simulation_results')
                             .select('created_at')
                             .eq('user_id', userId)
-                            .neq('test_type', 'Simulation')
+                            .in('test_type', ['Rules of the Road', 'Road Signs'])
                             .gte('created_at', isoSevenDaysAgo)
                             .order('created_at', { ascending: true }), // Oldest first
 
