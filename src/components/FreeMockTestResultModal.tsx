@@ -11,6 +11,7 @@ interface FreeMockTestResultModalProps {
         score: number;
         total_questions?: number;
         passed: boolean;
+        answers?: any;
     } | null;
 }
 
@@ -20,9 +21,9 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
     if (!isOpen || !results) return null;
 
     const { score, passed } = results;
-    // The results object might only have `score` (e.g. 80) in some cases. 
-    // We assume 20 questions total for the display format based on the prompt "16/20".
-    const correctAnswers = Math.round((score / 100) * 20);
+    // Interpret out of whatever total_questions is provided, default to 10 if not present.
+    const tq = results.total_questions || 10;
+    const correctAnswers = Math.round((score / 100) * tq);
 
     const handlePracticeClick = (category: string) => {
         onClose();
@@ -35,7 +36,7 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                 {!SHOW_VALUE_REVEAL ? (
                     <>
                         <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem', lineHeight: '1.2', fontWeight: 800, color: '#e1ff21' }}>
-                            You scored {correctAnswers}/20 on your first practice test.
+                            You scored {correctAnswers}/{tq} on your first practice test.
                         </h2>
                     </>
                 ) : (
