@@ -43,7 +43,6 @@ export default function UnlockModal({ isOpen, results }) {
 
             // If we have a session immediately (email confirm off), redirect
             if (data?.session) {
-                sendGTMEvent('free_test_conversion', { method: isSignUp ? 'email' : 'google' }); // Note: Google might not hit this if redirect
                 router.push('/dashboard');
                 return;
             }
@@ -76,6 +75,7 @@ export default function UnlockModal({ isOpen, results }) {
         // For simplicity reusing signup logic or add login toggle if needed
         // Requirement says: "Allow Google sign-in + Email signup."
         if (isSignUp) {
+            sendGTMEvent('free_test_conversion', { method: 'email' }); // Fire before action like Google
             handleAction(async () => {
                 // Check if email exists first
                 const checkRes = await fetch('/api/auth/check-email', {

@@ -14,6 +14,7 @@ interface FreeMockTestResultModalProps {
         score: number;
         total_questions?: number;
         passed: boolean;
+        answers?: any;
     } | null;
 }
 
@@ -44,8 +45,10 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
 
     if (!isOpen || !results) return null;
 
-    const { score } = results;
-    const correctAnswers = Math.round((score / 100) * 10);
+    const { score, passed } = results;
+    // Interpret out of whatever total_questions is provided, default to 10 if not present.
+    const tq = results.total_questions || 10;
+    const correctAnswers = Math.round((score / 100) * tq);
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -98,9 +101,8 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
             
             <div className={styles.content} style={{ margin: '2rem auto' }}>
                 <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem', lineHeight: '1.2', fontWeight: 800, color: '#e1ff21' }}>
-                    You scored {correctAnswers}/10 on your first practice test.
+                    You scored {correctAnswers}/{tq} on your first practice test.
                 </h2>
-                
                 <p style={{ marginBottom: '1.5rem', opacity: 0.9, fontSize: '1rem', color: 'white' }}>
                     With a little more practice, you can walk into the real G1 fully confident.
                 </p>
