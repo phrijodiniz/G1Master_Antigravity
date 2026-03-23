@@ -25,6 +25,13 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Unauthorized user' }, { status: 401 });
         }
 
+        const body = await req.json().catch(() => ({}));
+        const isPromo = body.isPromo === true;
+        const source = body.source || 'unknown';
+
+        const unitAmount = isPromo ? 997 : 2997;
+        const productName = isPromo ? 'Premium Upgrade (New User Offer)' : 'Premium Upgrade';
+
         // 2. Create Checkout Session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -33,10 +40,10 @@ export async function POST(req) {
                     price_data: {
                         currency: 'cad', // Updated to CAD
                         product_data: {
-                            name: 'Premium Upgrade',
+                            name: productName,
                             description: 'Unlock all features and unlimited practice tests.',
                         },
-                        unit_amount: 997, // $9.97 CAD
+                        unit_amount: unitAmount, // $9.97 or $29.97 CAD
                     },
                     quantity: 1,
                 },
@@ -48,6 +55,7 @@ export async function POST(req) {
             customer_email: user.email, // Pre-fill and lock the email field
             metadata: {
                 userId: user.id,
+                source: source
             },
         });
 

@@ -6,7 +6,7 @@ import styles from './LoginModal.module.css'; // Reuse login styles
 import { useRouter } from 'next/navigation';
 import { sendGTMEvent } from '@/lib/gtm';
 
-export const SHOW_VALUE_REVEAL = true;
+export const SHOW_VALUE_REVEAL = false;
 
 export default function UnlockModal({ isOpen, results }) {
     const { loginWithGoogle, signupWithEmail, loginWithEmail } = useAuth();
@@ -193,7 +193,7 @@ export default function UnlockModal({ isOpen, results }) {
                                 className="btn-primary"
                                 onClick={() => {
                                     sendGTMEvent('free_test_conversion', { method: 'google' }); // Fire before redirect
-                                    handleAction(loginWithGoogle);
+                                    handleAction(() => loginWithGoogle('/dashboard'));
                                 }}
                                 style={{
                                     display: 'flex',

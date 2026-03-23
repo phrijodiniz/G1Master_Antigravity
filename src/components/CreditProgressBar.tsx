@@ -18,8 +18,8 @@ export default function CreditProgressBar() {
         return null;
     }
 
-    // Calculations based on 5 practice credits total
-    const totalCredits = 5;
+    // Calculations based on 2 practice credits total
+    const totalCredits = 2;
     const remaining = practiceCredits ?? 0;
     const used = totalCredits - remaining;
     const percentage = Math.min((used / totalCredits) * 100, 100);
@@ -45,6 +45,7 @@ export default function CreditProgressBar() {
             <div className={styles.content}>
                 <div className={styles.textRow}>
                     <p className={styles.message}>{message}</p>
+                    {/* 
                     {isExhausted ? (
                         <button onClick={() => setShowLimitModal(true)} className={styles.upgradeBtn}>
                             Upgrade Now
@@ -53,7 +54,8 @@ export default function CreditProgressBar() {
                         <p className={styles.upgradeText} onClick={() => setShowLimitModal(true)}>
                             Upgrade to Premium
                         </p>
-                    )}
+                    )} 
+                    */}
                 </div>
 
                 <div className={styles.track}>

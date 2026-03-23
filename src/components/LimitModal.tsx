@@ -47,6 +47,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
+                body: JSON.stringify({ isPromo: false, source: `limit_modal_${variant}` })
             });
 
             const data = await res.json();
@@ -112,7 +113,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         </div>
 
                         <div className={styles.priceBox}>
-                            <div className={styles.priceMain}>$9.97 <span className={styles.priceSub}>one-time payment</span></div>
+                            <div className={styles.priceMain}>$29.97 <span className={styles.priceSub}>one-time payment</span></div>
                             <div className={styles.priceDesc}>No weekly fees • Lifetime access</div>
                         </div>
                     </>
@@ -121,7 +122,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                 {isPracticeLimit && (
                     <>
                         <p className={styles.description}>
-                            You’ve completed all 5 free practice tests <br />
+                            You’ve completed all 2 free practice tests <br />
                             <strong>Upgrade to Premium now and unlock:</strong>
                         </p>
 
@@ -138,7 +139,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         </div>
 
                         <div className={styles.priceBox}>
-                            <div className={styles.priceMain}>One-time fee: $9.97</div>
+                            <div className={styles.priceMain}>One-time fee: $29.97</div>
                             <div className={styles.priceDesc}>Practice as much as you want — forever.</div>
                         </div>
                     </>
@@ -164,7 +165,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         </div>
 
                         <div className={styles.priceBox}>
-                            <div className={styles.priceMain}>$9.97 <span className={styles.priceSub}>one-time payment</span></div>
+                            <div className={styles.priceMain}>$29.97 <span className={styles.priceSub}>one-time payment</span></div>
                             <div className={styles.priceDesc}>No weekly fees • Lifetime access</div>
                         </div>
                     </>
@@ -201,7 +202,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         </div>
 
                         <div className={styles.priceBox}>
-                            <div className={styles.priceMain}>💰 Only $9.97 <span className={styles.priceSub}>(one-time fee)</span></div>
+                            <div className={styles.priceMain}>💰 Only $29.97 <span className={styles.priceSub}>(one-time fee)</span></div>
                             <div className={styles.priceDesc}>No subscriptions • Lifetime access</div>
                         </div>
                     </>
@@ -225,7 +226,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         </div>
 
                         <div className={styles.priceBox}>
-                            <div className={styles.priceMain}>💰 Only $9.97 <span className={styles.priceSub}>(one-time fee)</span></div>
+                            <div className={styles.priceMain}>💰 Only $29.97 <span className={styles.priceSub}>(one-time fee)</span></div>
                             <div className={styles.priceDesc}>No subscriptions • Lifetime access</div>
                         </div>
                     </>

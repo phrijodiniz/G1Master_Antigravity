@@ -54,7 +54,7 @@ function AccountContent() {
                 sendGTMEvent('purchase', {
                     method: 'stripe',
                     session_id: searchParams.get('session_id'),
-                    value: 9.97,
+                    value: 29.97,
                     currency: 'CAD'
                 });
             });
@@ -127,6 +127,7 @@ function AccountContent() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
+                body: JSON.stringify({ isPromo: false, source: 'account_page' })
             });
 
             const { url, error } = await response.json();
@@ -231,7 +232,7 @@ function AccountContent() {
                             disabled={loading}
                             style={{ marginBottom: '1rem', width: '100%' }}
                         >
-                            Click here to unlock your Premium plan for only $9.97 (One-Time Fee)
+                            Click here to unlock your Premium plan for only $29.97 (One-Time Fee)
                         </button>
 
                         <div className={styles.marketingText}>

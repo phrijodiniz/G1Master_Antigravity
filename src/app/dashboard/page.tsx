@@ -222,11 +222,10 @@ export default function Dashboard() {
                         </div>
 
                         <div className={styles.actionCard}>
-                            <div className={styles.cardHeader}>
+                            <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div className={styles.cardIcon}>
                                     <Car size={48} strokeWidth={1.5} />
                                 </div>
-
                             </div>
                             <h3 className={styles.actionTitle}>G1 Test Simulation</h3>
                             <p className={styles.actionSubtitle}>Test yourself just like the real exam.</p>
@@ -234,7 +233,13 @@ export default function Dashboard() {
                                 A true G1-style test with timed, mixed questions and no hints. Covers both Road Signs and Rules of the Road. See if you're ready to pass.
                             </p>
 
-                            <button className={styles.actionBtn} onClick={handleStartSimulation}>Take a Full Test</button>
+                            <button 
+                                className={styles.actionBtn} 
+                                onClick={handleStartSimulation}
+                                style={!isPremium ? { background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1' } : {}}
+                            >
+                                {!isPremium ? '👑 Unlock Simulation' : 'Take a Full Test'}
+                            </button>
                         </div>
                     </div>
 
@@ -244,7 +249,9 @@ export default function Dashboard() {
                 <div className={styles.widgetsColumn}>
                     {/* Exam Readiness Meter */}
                     <div className={`${styles.widget} glass-panel`}>
-                        <h3 className={styles.sectionTitle}>Exam Readiness Meter</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Exam Readiness</h3>
+                        </div>
                         <ReadinessGauge />
                     </div>
 

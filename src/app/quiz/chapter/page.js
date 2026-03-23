@@ -79,7 +79,7 @@ function ChapterQuizContent() {
             </div>
             <LimitModal
                 isOpen={true}
-                onClose={() => { }}
+                onClose={() => window.location.href = '/dashboard'}
                 message="Chapter questions are strictly for Premium users. Please upgrade to access this content."
                 variant="chapter_quiz"
             />
@@ -176,7 +176,7 @@ function ChapterQuizContent() {
             />
             <LimitModal
                 isOpen={showPremiumBlocker}
-                onClose={() => { }}
+                onClose={() => window.location.href = '/dashboard'}
                 message="Chapter questions are strictly for Premium users. Please upgrade to access this content."
                 variant="chapter_quiz"
             />

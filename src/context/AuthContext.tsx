@@ -8,7 +8,7 @@ import { User, Session } from "@supabase/supabase-js";
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    loginWithGoogle: () => Promise<void>;
+    loginWithGoogle: (nextUrl?: string) => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<any>;
     signupWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<any>;
     logout: () => Promise<void>;
@@ -88,6 +88,12 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
             console.log(`Auth event: ${event}`);
             const currentUser = session?.user ?? null;
             if (!mounted) return;
+
+            // Prevent race condition where hydration set loading to false,
+            // but the client session just loaded and profile is not yet fetched.
+            if (currentUser && !profileRef.current) {
+                setLoading(true);
+            }
 
             setUser(currentUser);
 
@@ -349,14 +355,14 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     const usedPractice = practiceResult.data?.length || 0;
 
                     setCalcSimulationCredits(0);
-                    setCalcPracticeCredits(Math.max(0, 5 - usedPractice));
+                    setCalcPracticeCredits(Math.max(0, 2 - usedPractice));
 
                     // Calculate Renewal Date (Oldest test + 7 days)
                     let nextRenewal = null;
 
                     // If NO credits left, find when the next one frees up
                     // logic: The NEXT credit becomes available 7 days after the OLDEST test in the current window drops out.
-                    if (usedPractice >= 5) {
+                    if (usedPractice >= 2) {
                         const oldestPractice = practiceResult.data?.[0]?.created_at;
 
                         // We strictly care about the renewal of the specific type that is blocked?
@@ -365,7 +371,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                         // Usually implies the earliest time ANY credit returns.
 
                         const dates = [];
-                        if (usedPractice >= 5 && oldestPractice) dates.push(new Date(oldestPractice).getTime());
+                        if (usedPractice >= 2 && oldestPractice) dates.push(new Date(oldestPractice).getTime());
 
                         if (dates.length > 0) {
                             const oldestTimestamp = Math.min(...dates);
@@ -407,7 +413,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
     };
 
     const isPremium = profile?.status === "Premium" || profile?.is_premium === true; // Check both for backward compat if schema changed
-    const isAdmin = profile?.admin === "YES";
+    const isAdmin = profile?.admin === "YES" || profile?.admin === "yes" || profile?.admin === true || profile?.is_admin === true || profile?.role === "admin";
     const practiceCredits = calcPracticeCredits;
     const simulationCredits = calcSimulationCredits;
 
@@ -417,12 +423,15 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
         }
     };
 
-    const loginWithGoogle = async () => {
+    const loginWithGoogle = async (nextUrl?: string) => {
         // Explicitly check for localhost to override any default Supabase site URL settings
         const origin = window.location.origin;
         const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
 
         let redirectTo = `${origin}/auth/callback`;
+        if (nextUrl) {
+            redirectTo += `?next=${nextUrl}`;
+        }
 
         console.log("Logging in with Google, origin:", origin);
         console.log("Calculated redirectTo:", redirectTo);
