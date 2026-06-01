@@ -159,7 +159,7 @@ export default function Sidebar() {
                                         textAlign: 'center'
                                     }}
                                 >
-                                <span>{isCheckingOut ? 'Loading...' : `👉 Click to Get PREMIUM - 66% OFF | $9.97 (was $29.97) | Ends in ${formatTime(timeLeft)}`}</span>
+                                <span>{isCheckingOut ? 'Loading...' : `👉 Click to Get PREMIUM - 83% OFF | $4.97 (was $29.97) | Ends in ${formatTime(timeLeft)}`}</span>
                                 </button>
                             ) : (
                                 <button 

@@ -137,7 +137,7 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                         </p>
 
                         <div className={styles.offerPrice}>
-                            <span>$29.97</span> $9.97
+                            <span>$29.97</span> $4.97
                         </div>
                         <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '2rem' }}>
                             One-time payment • Lifetime access • No subscriptions

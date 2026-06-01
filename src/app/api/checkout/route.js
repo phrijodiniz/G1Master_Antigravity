@@ -29,7 +29,7 @@ export async function POST(req) {
         const isPromo = body.isPromo === true;
         const source = body.source || 'unknown';
 
-        const unitAmount = isPromo ? 997 : 2997;
+        const unitAmount = isPromo ? 497 : 2997;
         const productName = isPromo ? 'Premium Upgrade (New User Offer)' : 'Premium Upgrade';
 
         // 2. Create Checkout Session
@@ -43,7 +43,7 @@ export async function POST(req) {
                             name: productName,
                             description: 'Unlock all features and unlimited practice tests.',
                         },
-                        unit_amount: unitAmount, // $9.97 or $29.97 CAD
+                        unit_amount: unitAmount, // $4.97 or $29.97 CAD
                     },
                     quantity: 1,
                 },

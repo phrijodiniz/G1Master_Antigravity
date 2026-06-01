@@ -250,7 +250,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         ) : (
                             <>
                                 <span>Upgrade Now</span>
-                                <span className={styles.priceTag}>$9.97</span>
+                                <span className={styles.priceTag}>$4.97</span>
                             </>
                         )}
                     </button>
