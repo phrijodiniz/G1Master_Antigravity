@@ -45,14 +45,11 @@ export async function GET(request: Request) {
             }
         };
 
-        // --- Supabase Integration for Credit Usage Funnel ---
-        let creditFunnel = {
+        let activationFunnel = {
             signUp: [] as string[],
-            plusOne: [] as string[],
-            plusTwo: [] as string[],
-            plusThree: [] as string[],
-            plusFour: [] as string[],
-            limitReached: [] as string[]
+            tookFreeTest: [] as string[],
+            tookAtLeastOnePractice: [] as string[],
+            tookTwoOrMorePractice: [] as string[]
         };
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -62,7 +59,7 @@ export async function GET(request: Request) {
         });
 
         // Query profiles created within the date range
-        let query = supabase.from('profiles').select('id, created_at');
+        let query = supabase.from('profiles').select('id, email, created_at');
         if (startStr) query = query.gte('created_at', `${startStr}T00:00:00Z`);
         if (endStr) query = query.lte('created_at', `${endStr}T23:59:59Z`);
 
@@ -70,33 +67,48 @@ export async function GET(request: Request) {
 
         if (!profileError && profiles && profiles.length > 0) {
             const userIds = profiles.map(p => p.id);
-            creditFunnel.signUp = userIds;
+            activationFunnel.signUp = profiles.map(p => p.email || p.id);
 
             const userCounts: Record<string, number> = {};
+            const userTestTypes: Record<string, string[]> = {};
             const chunkSize = 200;
 
             for (let i = 0; i < userIds.length; i += chunkSize) {
                 const chunk = userIds.slice(i, i + chunkSize);
                 const { data: simResults } = await supabase
                     .from('simulation_results')
-                    .select('user_id')
+                    .select('user_id, test_type')
                     .in('user_id', chunk);
 
                 if (simResults) {
                     simResults.forEach(res => {
                         userCounts[res.user_id] = (userCounts[res.user_id] || 0) + 1;
+                        if (!userTestTypes[res.user_id]) {
+                            userTestTypes[res.user_id] = [];
+                        }
+                        userTestTypes[res.user_id].push(res.test_type);
                     });
                 }
             }
 
-            // Tally the users into the funnel steps based on their test counts
-            Object.keys(userCounts).forEach(userId => {
-                const count = userCounts[userId];
-                if (count >= 1) creditFunnel.plusOne.push(userId);
-                if (count >= 2) creditFunnel.plusTwo.push(userId);
-                if (count >= 3) creditFunnel.plusThree.push(userId);
-                if (count >= 4) creditFunnel.plusFour.push(userId);
-                if (count >= 5) creditFunnel.limitReached.push(userId);
+            // Tally the users into the activation funnel using their email addresses
+            profiles.forEach(p => {
+                const userEmail = p.email || p.id;
+                const tests = userTestTypes[p.id] || [];
+
+                const hasFreeTest = tests.some(t => t === 'Practice (First Try)' || t === 'Free Test');
+                const practiceTests = tests.filter(t => t === 'Rules of the Road' || t === 'Road Signs');
+
+                if (hasFreeTest) {
+                    activationFunnel.tookFreeTest.push(userEmail);
+
+                    if (practiceTests.length >= 1) {
+                        activationFunnel.tookAtLeastOnePractice.push(userEmail);
+                    }
+                    if (practiceTests.length >= 2) {
+                        activationFunnel.tookTwoOrMorePractice.push(userEmail);
+                    }
+                }
             });
         }
 
@@ -104,7 +116,7 @@ export async function GET(request: Request) {
             landingPage,
             freeTest,
             dailyTrends,
-            creditFunnel
+            activationFunnel
         });
 
     } catch (error) {
@@ -112,3 +124,4 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
+

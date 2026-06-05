@@ -102,6 +102,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
             // leading to 401 Unauthorized errors. INITIAL_SESSION reliably follows and has the cookies.
             const shouldLoad =
                 event === "INITIAL_SESSION" ||
+                event === "SIGNED_IN" ||
                 (event === "TOKEN_REFRESHED" && !profileRef.current);
 
             // Cleanup if no user

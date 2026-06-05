@@ -161,7 +161,7 @@ export default function UnlockModal({ isOpen, results }) {
                                 cursor: 'pointer'
                             }}
                         >
-                            Create FREE Account
+                            Reveal my score - see if you'd pass today!
                         </button>
                     </>
                 ) : (

@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './LoginModal.module.css';
+import { useRouter } from 'next/navigation';
 
 export default function LoginModal({ isOpen, onClose }) {
     const { loginWithGoogle, loginWithEmail, signupWithEmail } = useAuth();
+    const router = useRouter();
 
     const [isSignUp, setIsSignUp] = useState(false);
     const [firstName, setFirstName] = useState('');
@@ -41,17 +43,23 @@ export default function LoginModal({ isOpen, onClose }) {
                     return;
                 }
 
-                await signupWithEmail(email, password, firstName, lastName);
+                const data = await signupWithEmail(email, password, firstName, lastName);
 
                 // Track Sign Up in GTM
                 import('@/lib/gtm').then(({ sendGTMEvent }) => {
                     sendGTMEvent('sign_up', { method: 'email' });
                 });
 
-                setMessage('Check your email for the confirmation link!');
+                if (data?.session) {
+                    router.push('/dashboard');
+                    if (onClose) onClose();
+                } else {
+                    setMessage('Check your email for the confirmation link!');
+                }
             } else {
                 await loginWithEmail(email, password);
-                // Login successful - modal will close via parent effect
+                router.push('/dashboard');
+                if (onClose) onClose();
             }
         } catch (err) {
             setError(err.message);

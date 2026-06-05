@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { sendGTMEvent } from '@/lib/gtm';
 import { useAuth } from '@/context/AuthContext';
 import styles from './FreeMockTestResultModal.module.css';
 
@@ -15,150 +12,144 @@ interface FreeMockTestResultModalProps {
         total_questions?: number;
         passed: boolean;
         answers?: any;
+        rules_score?: number;
+        signs_score?: number;
     } | null;
 }
 
 export default function FreeMockTestResultModal({ isOpen, results, onClose }: FreeMockTestResultModalProps) {
     const router = useRouter();
-    const { isPremium, user } = useAuth();
-    
-    // OTO Timer state
-    const [timeLeft, setTimeLeft] = useState(0);
-    const [isCheckingOut, setIsCheckingOut] = useState(false);
-
-    useEffect(() => {
-        if (!isOpen || !user) return;
-        
-        const updateTimer = () => {
-            if (!user.created_at) return;
-            const createdTime = new Date(user.created_at).getTime();
-            const expiryTime = createdTime + 15 * 60 * 1000;
-            const now = Date.now();
-            const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
-            setTimeLeft(remaining);
-        };
-
-        updateTimer();
-        const interval = setInterval(updateTimer, 1000);
-        return () => clearInterval(interval);
-    }, [isOpen, user]);
+    const { isPremium } = useAuth();
 
     if (!isOpen || !results) return null;
 
     const { score, passed } = results;
-    // Interpret out of whatever total_questions is provided, default to 10 if not present.
     const tq = results.total_questions || 10;
     const correctAnswers = Math.round((score / 100) * tq);
 
-    const formatTime = (seconds: number) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m}:${s < 10 ? '0' : ''}${s}`;
-    };
+    const rulesScore = results.rules_score ?? 0;
+    const signsScore = results.signs_score ?? 0;
 
-    const handleUpgrade = async () => {
-        sendGTMEvent('begin_checkout', { source: 'result_modal_oto' });
-        setIsCheckingOut(true);
-        
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                alert("Session expired. Please log in again.");
-                setIsCheckingOut(false);
-                return;
-            }
+    let totalRules = 5;
+    let totalSigns = 5;
 
-            const res = await fetch('/api/checkout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({ isPromo: true, source: 'result_modal_oto' })
-            });
+    if (results.answers) {
+        const answersList = Object.values(results.answers);
+        const rulesQuestions = answersList.filter((a: any) => a.category === 'Rules of the Road').length;
+        const signsQuestions = answersList.filter((a: any) => a.category === 'Road Signs').length;
+        if (rulesQuestions > 0) totalRules = rulesQuestions;
+        if (signsQuestions > 0) totalSigns = signsQuestions;
+    }
 
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
-
-            if (data.url) {
-                window.location.href = data.url;
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error initiating checkout. Please try again.");
-            setIsCheckingOut(false);
-        }
-    };
+    const rulesPercentage = Math.round((rulesScore / totalRules) * 100);
+    const signsPercentage = Math.round((signsScore / totalSigns) * 100);
 
     const handlePracticeClick = (category: string) => {
         onClose();
         router.push(`/quiz/practice?category=${encodeURIComponent(category)}`);
     };
 
+    // Smart Suggestion Logic
+    let suggestionText = "";
+    if (rulesScore < totalRules && rulesScore < signsScore) {
+        suggestionText = "You should focus on Rules of the Road next. Try a targeted practice test to improve your score.";
+    } else if (signsScore < totalSigns && signsScore < rulesScore) {
+        suggestionText = "You should focus on Road Signs next. Try a targeted practice test to improve your score.";
+    } else {
+        suggestionText = "Both sections need steady practice. Keep taking tests to build confidence and reach a 100% pass guarantee.";
+    }
+
     return (
-        <div className={styles.container} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: 'rgba(0,0,0,0.85)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', display: 'block' }}>
+        <div className={styles.container} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: 'rgba(15,23,42,0.95)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div className={styles.gradientBg} style={{ position: 'fixed' }}></div>
             
             <div className={styles.content} style={{ margin: '2rem auto' }}>
-                <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem', lineHeight: '1.2', fontWeight: 800, color: '#e1ff21' }}>
-                    You scored {correctAnswers}/{tq} on your first practice test.
+                {/* Result Title */}
+                <h2 className={styles.title} style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: 800 }}>
+                    G1 Test Diagnostic
                 </h2>
-                <p style={{ marginBottom: '1.5rem', opacity: 0.9, fontSize: '1rem', color: 'white' }}>
-                    With a little more practice, you can walk into the real G1 fully confident.
+                
+                <p className={styles.subtitle} style={{ marginBottom: '1.5rem', fontSize: '1.05rem' }}>
+                    Here is the breakdown of your first practice test.
                 </p>
 
-                {/* If already premium, just show the standard options */}
-                {isPremium ? (
-                    <>
-                        <p style={{ marginBottom: '1rem', fontWeight: 600, color: 'white' }}>Choose what to practice next:</p>
-                        <div style={{ display: 'flex', gap: '0.8rem', marginBottom: '1rem' }}>
-                            <button onClick={() => handlePracticeClick('Rules of the Road')} className="btn-primary" style={{ flex: 1, padding: '0.8rem', fontSize: '0.95rem', fontWeight: 700, background: '#D4FF00', color: 'black', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Rules of the Road</button>
-                            <button onClick={() => handlePracticeClick('Road Signs')} className="btn-primary" style={{ flex: 1, padding: '0.8rem', fontSize: '0.95rem', fontWeight: 700, background: '#D4FF00', color: 'black', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Road Signs</button>
+                {/* Status Indicator */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', padding: '0.6rem 1.2rem', borderRadius: '30px', background: passed ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: passed ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)', marginBottom: '2rem' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: passed ? '#22c55e' : '#ef4444' }}></span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: passed ? '#22c55e' : '#ef4444' }}>
+                        {passed ? 'Passed Standard' : 'Failed Standard'}
+                    </span>
+                </div>
+
+                <div className={styles.diagnosticBox}>
+                    <p style={{ color: '#e2e8f0', fontSize: '1rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+                        {passed ? (
+                            <><strong>Great job!</strong> You passed this practice test. However, the official Ontario G1 exam requires scoring at least 80% on both sections separately to pass. Keep practicing to make sure you pass on your first try!</>
+                        ) : (
+                            <><strong>Test Result: Fail.</strong> You did not reach the passing standard today. The official G1 test requires scoring at least 80% in both Rules of the Road and Road Signs separately.</>
+                        )}
+                    </p>
+
+                    {/* Section Cards */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', textAlign: 'left' }}>
+                        {/* Rules card */}
+                        <div className={styles.scoreCard}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <span style={{ fontWeight: 600, color: 'white' }}>Rules of the Road</span>
+                                <span style={{ fontWeight: 700, color: '#e1ff21' }}>{rulesScore}/{totalRules} correct</span>
+                            </div>
+                            <div className={styles.progressTrack}>
+                                <div className={styles.progressBar} style={{ width: `${rulesPercentage}%` }} />
+                            </div>
                         </div>
-                        <button onClick={onClose} style={{ width: '100%', padding: '0.8rem', background: 'transparent', color: 'white', border: 'none', fontWeight: 600, fontSize: '1rem', cursor: 'pointer', opacity: 0.8 }}>Go to Dashboard</button>
-                    </>
-                ) : (
-                    /* The Premium OTO Offer for Free Users */
-                    <div className={styles.offerBox}>
-                        <div className={styles.offerBadge}>Exclusive New User Offer</div>
-                        
-                        <div className={styles.timer} style={{ marginTop: '1.5rem' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            Offer expires in {formatTime(timeLeft)}
+
+                        {/* Signs card */}
+                        <div className={styles.scoreCard}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <span style={{ fontWeight: 600, color: 'white' }}>Road Signs</span>
+                                <span style={{ fontWeight: 700, color: '#e1ff21' }}>{signsScore}/{totalSigns} correct</span>
+                            </div>
+                            <div className={styles.progressTrack}>
+                                <div className={styles.progressBar} style={{ width: `${signsPercentage}%` }} />
+                            </div>
                         </div>
-                        
-                        <h2 className={styles.offerTitle}>Pass Your G1 on the First Try</h2>
-                        <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-                            Over 95% of our Premium users pass their G1 test on their first attempt. 
-                            Don't risk failing and paying the $106 re-test fee.
+                    </div>
+
+                    {/* Smart suggestion bubble */}
+                    <div style={{ display: 'flex', gap: '0.8rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem', textAlign: 'left', alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>💡</span>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                            <strong>Recommendation:</strong> {suggestionText}
                         </p>
+                    </div>
 
-                        <div className={styles.offerPrice}>
-                            <span>$29.97</span> $4.97
-                        </div>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '2rem' }}>
-                            One-time payment • Lifetime access • No subscriptions
-                        </p>
-
-                        <div className={styles.featureList}>
-                            <div className={styles.featureItem}><div className={styles.checkIcon}>✓</div><span><strong>Unlimited G1 Test Simulations</strong></span></div>
-                            <div className={styles.featureItem}><div className={styles.checkIcon}>✓</div><span><strong>Unlimited Practice Tests</strong></span></div>
-                            <div className={styles.featureItem}><div className={styles.checkIcon}>✓</div><span><strong>Smart Readiness Meter</strong></span></div>
-                        </div>
-
-                        <button onClick={handleUpgrade} disabled={isCheckingOut} className={styles.upgradeBtn}>
-                            {isCheckingOut ? 'Loading Secure Checkout...' : 'Unlock Lifetime Premium Now'}
+                    {/* CTAs */}
+                    <p style={{ marginBottom: '1rem', fontWeight: 600, color: 'white', fontSize: '0.95rem' }}>Select a category to practice next:</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '1rem' }}>
+                        <button 
+                            onClick={() => handlePracticeClick('Rules of the Road')} 
+                            className={styles.upgradeBtn} 
+                            style={{ flex: 1, minWidth: '200px', margin: 0, padding: '0.9rem', fontSize: '0.95rem', borderRadius: '8px', boxShadow: 'none' }}
+                        >
+                            Practice Rules of the Road {!isPremium ? '(Free)' : ''}
                         </button>
-                        
-                        <button onClick={onClose} className={styles.skipLink}>
-                            No thanks, continue to my free dashboard →
+                        <button 
+                            onClick={() => handlePracticeClick('Road Signs')} 
+                            className={styles.upgradeBtn} 
+                            style={{ flex: 1, minWidth: '200px', margin: 0, padding: '0.9rem', fontSize: '0.95rem', borderRadius: '8px', boxShadow: 'none' }}
+                        >
+                            Practice Road Signs {!isPremium ? '(Free)' : ''}
                         </button>
                     </div>
-                )}
-                
+
+                    <button 
+                        onClick={onClose} 
+                        className={styles.skipLink}
+                        style={{ marginTop: '0.5rem', width: '100%', justifyContent: 'center' }}
+                    >
+                        Go to Dashboard →
+                    </button>
+                </div>
             </div>
         </div>
     );

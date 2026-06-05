@@ -51,7 +51,7 @@ export default function ActivationPage() {
     const landingPage = data?.landingPage || {};
     const freeTest = data?.freeTest || {};
     const dailyTrends = data?.dailyTrends || [];
-    const creditFunnel = data?.creditFunnel || {};
+    const activationFunnel = data?.activationFunnel || {};
 
 
     return (
@@ -194,65 +194,45 @@ export default function ActivationPage() {
                         </div>
                     </div> {/* End Free Test Engagement */}
 
-                    {/* Credit Usage Funnel Card */}
+                    {/* Signup Activation & Behavior Funnel Card */}
                     <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Credit Usage Journey (Free Limit = 6)</h2>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Signup Activation & Behavior Funnel</h2>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem 1rem' }}>
                             <FunnelStep
-                                label="Sign Up"
-                                value={(creditFunnel.signUp?.length || 0).toLocaleString()}
+                                label="1. Signed Up"
+                                value={(activationFunnel.signUp?.length || 0).toLocaleString()}
                                 color="#6366f1"
-                                onClick={() => setSelectedUsers({ label: 'Sign Up Users', ids: creditFunnel.signUp })}
+                                onClick={() => setSelectedUsers({ label: 'Signed Up Users', ids: activationFunnel.signUp })}
                             />
                             <FunnelConnector
-                                percentage={((creditFunnel.plusOne?.length && creditFunnel.signUp?.length) ? ((creditFunnel.plusOne.length / creditFunnel.signUp.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="1 More Credit"
+                                percentage={((activationFunnel.tookFreeTest?.length && activationFunnel.signUp?.length) ? ((activationFunnel.tookFreeTest.length / activationFunnel.signUp.length) * 100).toFixed(1) + '%' : '0%')}
+                                label="Took Free Test"
                             />
                             <FunnelStep
-                                label="1 More Credit"
-                                value={(creditFunnel.plusOne?.length || 0).toLocaleString()}
+                                label="2. Saved Free Test"
+                                value={(activationFunnel.tookFreeTest?.length || 0).toLocaleString()}
                                 color="#8b5cf6"
-                                onClick={() => setSelectedUsers({ label: 'Users using 1 More Credit', ids: creditFunnel.plusOne })}
+                                onClick={() => setSelectedUsers({ label: 'Users who saved homepage Free Test', ids: activationFunnel.tookFreeTest })}
                             />
                             <FunnelConnector
-                                percentage={((creditFunnel.plusTwo?.length && creditFunnel.signUp?.length) ? ((creditFunnel.plusTwo.length / creditFunnel.signUp.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="2 Credits"
+                                percentage={((activationFunnel.tookAtLeastOnePractice?.length && activationFunnel.tookFreeTest?.length) ? ((activationFunnel.tookAtLeastOnePractice.length / activationFunnel.tookFreeTest.length) * 100).toFixed(1) + '%' : '0%')}
+                                label="Took Practice Test"
                             />
                             <FunnelStep
-                                label="2 Credits"
-                                value={(creditFunnel.plusTwo?.length || 0).toLocaleString()}
+                                label="3. Took >= 1 Practice"
+                                value={(activationFunnel.tookAtLeastOnePractice?.length || 0).toLocaleString()}
                                 color="#d946ef"
-                                onClick={() => setSelectedUsers({ label: 'Users using 2 Credits', ids: creditFunnel.plusTwo })}
+                                onClick={() => setSelectedUsers({ label: 'Users who took at least 1 practice test', ids: activationFunnel.tookAtLeastOnePractice })}
                             />
                             <FunnelConnector
-                                percentage={((creditFunnel.plusThree?.length && creditFunnel.signUp?.length) ? ((creditFunnel.plusThree.length / creditFunnel.signUp.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="3 Credits"
+                                percentage={((activationFunnel.tookTwoOrMorePractice?.length && activationFunnel.tookAtLeastOnePractice?.length) ? ((activationFunnel.tookTwoOrMorePractice.length / activationFunnel.tookAtLeastOnePractice.length) * 100).toFixed(1) + '%' : '0%')}
+                                label="Both Credits"
                             />
                             <FunnelStep
-                                label="3 Credits"
-                                value={(creditFunnel.plusThree?.length || 0).toLocaleString()}
-                                color="#ec4899"
-                                onClick={() => setSelectedUsers({ label: 'Users using 3 Credits', ids: creditFunnel.plusThree })}
-                            />
-                            <FunnelConnector
-                                percentage={((creditFunnel.plusFour?.length && creditFunnel.signUp?.length) ? ((creditFunnel.plusFour.length / creditFunnel.signUp.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="4 Credits"
-                            />
-                            <FunnelStep
-                                label="4 Credits"
-                                value={(creditFunnel.plusFour?.length || 0).toLocaleString()}
-                                color="#f43f5e"
-                                onClick={() => setSelectedUsers({ label: 'Users using 4 Credits', ids: creditFunnel.plusFour })}
-                            />
-                            <FunnelConnector
-                                percentage={((creditFunnel.limitReached?.length && creditFunnel.signUp?.length) ? ((creditFunnel.limitReached.length / creditFunnel.signUp.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="Limit"
-                            />
-                            <FunnelStep
-                                label="Reached Limit"
-                                value={(creditFunnel.limitReached?.length || 0).toLocaleString()}
+                                label="4. Took Both Free Tests"
+                                value={(activationFunnel.tookTwoOrMorePractice?.length || 0).toLocaleString()}
                                 color="#10b981"
-                                onClick={() => setSelectedUsers({ label: 'Users hitting Limit', ids: creditFunnel.limitReached })}
+                                onClick={() => setSelectedUsers({ label: 'Users who took both free practice tests', ids: activationFunnel.tookTwoOrMorePractice })}
                                 isLast
                             />
                         </div>
