@@ -11,13 +11,20 @@ export const pageview = (url: string) => {
 };
 
 export const sendGTMEvent = (eventName: string, eventDetails: object = {}) => {
-    if (typeof window !== 'undefined' && window.dataLayer) {
-        window.dataLayer.push({
-            event: eventName,
-            ...eventDetails,
-        });
+    if (typeof window !== 'undefined') {
+        if (window.dataLayer) {
+            window.dataLayer.push({
+                event: eventName,
+                ...eventDetails,
+            });
+        }
+        // Forward to gtag directly if available (useful for direct Google Ads tracking)
+        const gtag = (window as any).gtag;
+        if (typeof gtag === 'function') {
+            gtag('event', eventName, eventDetails);
+        }
     } else {
-        console.warn("GTM: dataLayer not defined");
+        console.warn("GTM: window not defined");
     }
 };
 

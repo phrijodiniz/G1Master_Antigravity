@@ -53,6 +53,21 @@ export default function ActivationPage() {
     const dailyTrends = data?.dailyTrends || [];
     const activationFunnel = data?.activationFunnel || {};
 
+    const signUpCount = activationFunnel.signUp?.length || 0;
+    const tookFreeTestCount = activationFunnel.tookFreeTest?.length || 0;
+    const tookAtLeastOnePracticeCount = activationFunnel.tookAtLeastOnePractice?.length || 0;
+    const tookTwoOrMorePracticeCount = activationFunnel.tookTwoOrMorePractice?.length || 0;
+    const tookThreeOrMorePracticeCount = activationFunnel.tookThreeOrMorePractice?.length || 0;
+
+    const getStepPercentage = (current: number, previous: number) => {
+        if (!previous) return '0.0%';
+        return `${((current / previous) * 100).toFixed(1)}%`;
+    };
+
+    const getTotalPercentage = (current: number) => {
+        if (!signUpCount) return '0.0%';
+        return `${((current / signUpCount) * 100).toFixed(1)}%`;
+    };
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -196,45 +211,107 @@ export default function ActivationPage() {
 
                     {/* Signup Activation & Behavior Funnel Card */}
                     <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Signup Activation & Behavior Funnel</h2>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem 1rem' }}>
-                            <FunnelStep
-                                label="1. Signed Up"
-                                value={(activationFunnel.signUp?.length || 0).toLocaleString()}
-                                color="#6366f1"
-                                onClick={() => setSelectedUsers({ label: 'Signed Up Users', ids: activationFunnel.signUp })}
-                            />
-                            <FunnelConnector
-                                percentage={((activationFunnel.tookFreeTest?.length && activationFunnel.signUp?.length) ? ((activationFunnel.tookFreeTest.length / activationFunnel.signUp.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="Took Free Test"
-                            />
-                            <FunnelStep
-                                label="2. Saved Free Test"
-                                value={(activationFunnel.tookFreeTest?.length || 0).toLocaleString()}
-                                color="#8b5cf6"
-                                onClick={() => setSelectedUsers({ label: 'Users who saved homepage Free Test', ids: activationFunnel.tookFreeTest })}
-                            />
-                            <FunnelConnector
-                                percentage={((activationFunnel.tookAtLeastOnePractice?.length && activationFunnel.tookFreeTest?.length) ? ((activationFunnel.tookAtLeastOnePractice.length / activationFunnel.tookFreeTest.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="Took Practice Test"
-                            />
-                            <FunnelStep
-                                label="3. Took >= 1 Practice"
-                                value={(activationFunnel.tookAtLeastOnePractice?.length || 0).toLocaleString()}
-                                color="#d946ef"
-                                onClick={() => setSelectedUsers({ label: 'Users who took at least 1 practice test', ids: activationFunnel.tookAtLeastOnePractice })}
-                            />
-                            <FunnelConnector
-                                percentage={((activationFunnel.tookTwoOrMorePractice?.length && activationFunnel.tookAtLeastOnePractice?.length) ? ((activationFunnel.tookTwoOrMorePractice.length / activationFunnel.tookAtLeastOnePractice.length) * 100).toFixed(1) + '%' : '0%')}
-                                label="Both Credits"
-                            />
-                            <FunnelStep
-                                label="4. Took Both Free Tests"
-                                value={(activationFunnel.tookTwoOrMorePractice?.length || 0).toLocaleString()}
-                                color="#10b981"
-                                onClick={() => setSelectedUsers({ label: 'Users who took both free practice tests', ids: activationFunnel.tookTwoOrMorePractice })}
-                                isLast
-                            />
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Signup Activation & Behavior Funnel</h2>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '2rem' }}>
+                            Click on any funnel stage label or user count to view the list of users at that stage.
+                        </p>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#fff', fontSize: '0.95rem' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+                                        <th style={{ textAlign: 'left', padding: '1rem 1.5rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Funnel Stage</th>
+                                        <th style={{ textAlign: 'right', padding: '1rem 1.5rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Users</th>
+                                        <th style={{ textAlign: 'right', padding: '1rem 1.5rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Step-to-Step Conversion</th>
+                                        <th style={{ textAlign: 'right', padding: '1rem 1.5rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>% of Total Signups</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[
+                                        {
+                                            label: "1. Signed Up",
+                                            value: signUpCount,
+                                            stepConv: "100.0%",
+                                            totalConv: "100.0%",
+                                            color: "#6366f1",
+                                            onClick: () => setSelectedUsers({ label: 'Signed Up Users', ids: activationFunnel.signUp || [] })
+                                        },
+                                        {
+                                            label: "2. Saved Free Test",
+                                            value: tookFreeTestCount,
+                                            stepConv: getStepPercentage(tookFreeTestCount, signUpCount),
+                                            totalConv: getTotalPercentage(tookFreeTestCount),
+                                            color: "#8b5cf6",
+                                            onClick: () => setSelectedUsers({ label: 'Users who saved homepage Free Test', ids: activationFunnel.tookFreeTest || [] })
+                                        },
+                                        {
+                                            label: "3. Took >= 1 Practice",
+                                            value: tookAtLeastOnePracticeCount,
+                                            stepConv: getStepPercentage(tookAtLeastOnePracticeCount, tookFreeTestCount),
+                                            totalConv: getTotalPercentage(tookAtLeastOnePracticeCount),
+                                            color: "#d946ef",
+                                            onClick: () => setSelectedUsers({ label: 'Users who took at least 1 practice test', ids: activationFunnel.tookAtLeastOnePractice || [] })
+                                        },
+                                        {
+                                            label: "4. Took >= 2 Practice",
+                                            value: tookTwoOrMorePracticeCount,
+                                            stepConv: getStepPercentage(tookTwoOrMorePracticeCount, tookAtLeastOnePracticeCount),
+                                            totalConv: getTotalPercentage(tookTwoOrMorePracticeCount),
+                                            color: "#ec4899",
+                                            onClick: () => setSelectedUsers({ label: 'Users who took at least 2 practice tests', ids: activationFunnel.tookTwoOrMorePractice || [] })
+                                        },
+                                        {
+                                            label: "5. Took All 3 Free Tests",
+                                            value: tookThreeOrMorePracticeCount,
+                                            stepConv: getStepPercentage(tookThreeOrMorePracticeCount, tookTwoOrMorePracticeCount),
+                                            totalConv: getTotalPercentage(tookThreeOrMorePracticeCount),
+                                            color: "#10b981",
+                                            onClick: () => setSelectedUsers({ label: 'Users who took all 3 free practice tests', ids: activationFunnel.tookThreeOrMorePractice || [] })
+                                        }
+                                    ].map((row, idx) => (
+                                        <tr 
+                                            key={idx} 
+                                            style={{ 
+                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'
+                                            }}
+                                        >
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'left', fontWeight: 500 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: row.color, display: 'inline-block' }} />
+                                                    <span 
+                                                        onClick={row.onClick}
+                                                        style={{ 
+                                                            cursor: 'pointer', 
+                                                            textDecoration: 'underline',
+                                                            color: '#fff'
+                                                        }}
+                                                    >
+                                                        {row.label}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold' }}>
+                                                <span 
+                                                    onClick={row.onClick}
+                                                    style={{ 
+                                                        cursor: 'pointer', 
+                                                        textDecoration: 'underline',
+                                                        color: row.color
+                                                    }}
+                                                >
+                                                    {row.value.toLocaleString()}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', color: 'rgba(255,255,255,0.8)' }}>
+                                                {row.stepConv}
+                                            </td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', color: 'rgba(255,255,255,0.8)' }}>
+                                                {row.totalConv}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 

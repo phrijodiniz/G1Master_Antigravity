@@ -214,6 +214,11 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                             })
                         });
                         console.log('Appended Google signup to App Activity sheet centrally.');
+
+                        // Fire GTM sign_up event for Google signup
+                        import('@/lib/gtm').then(({ sendGTMEvent }) => {
+                            sendGTMEvent('sign_up', { method: 'google' });
+                        });
                     } catch (sheetError) {
                         console.error("Failed to append Google signup to sheet centrally", sheetError);
                     }

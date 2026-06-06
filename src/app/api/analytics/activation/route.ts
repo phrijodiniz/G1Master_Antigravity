@@ -49,7 +49,8 @@ export async function GET(request: Request) {
             signUp: [] as string[],
             tookFreeTest: [] as string[],
             tookAtLeastOnePractice: [] as string[],
-            tookTwoOrMorePractice: [] as string[]
+            tookTwoOrMorePractice: [] as string[],
+            tookThreeOrMorePractice: [] as string[]
         };
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -107,6 +108,9 @@ export async function GET(request: Request) {
                     }
                     if (practiceTests.length >= 2) {
                         activationFunnel.tookTwoOrMorePractice.push(userEmail);
+                    }
+                    if (practiceTests.length >= 3) {
+                        activationFunnel.tookThreeOrMorePractice.push(userEmail);
                     }
                 }
             });

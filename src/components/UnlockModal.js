@@ -90,7 +90,9 @@ export default function UnlockModal({ isOpen, results }) {
                     throw new Error("This email is already registered. Please log in instead.");
                 }
 
-                return await signupWithEmail(email, password, '', '');
+                const result = await signupWithEmail(email, password, '', '');
+                sendGTMEvent('sign_up', { method: 'email' });
+                return result;
             });
         } else {
             handleAction(() => loginWithEmail(email, password));
