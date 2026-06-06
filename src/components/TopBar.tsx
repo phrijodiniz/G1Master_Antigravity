@@ -10,32 +10,29 @@ import { supabase } from '@/lib/supabaseClient';
 import { sendGTMEvent } from '@/lib/gtm';
 
 export default function TopBar() {
-    const { user, isPremium } = useAuth();
+    const { user, isPremium, practiceCredits, isOfferActive, offerExpiryDate } = useAuth();
     const { toggleSidebar } = useSidebar();
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
-        if (!user || isPremium) return;
+        if (!offerExpiryDate) return;
 
         const updateTimer = () => {
-            if (!user.created_at) return;
-            const createdTime = new Date(user.created_at).getTime();
-            const expiryTime = createdTime + 15 * 60 * 1000;
             const now = Date.now();
-            const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
+            const remaining = Math.max(0, Math.floor((offerExpiryDate.getTime() - now) / 1000));
             setTimeLeft(remaining);
         };
 
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
-    }, [user, isPremium]);
+    }, [offerExpiryDate]);
 
     const formatTime = (seconds: number) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m}:${s < 10 ? '0' : ''}${s}`;
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return `${h}h ${m}m`;
     };
 
     const handleUpgrade = async (isPromo: boolean) => {
@@ -66,9 +63,9 @@ export default function TopBar() {
             </button>
             
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                {user && !isPremium && (
+                {user && !isPremium && practiceCredits !== null && practiceCredits <= 0 && (
                     <>
-                        {timeLeft > 0 ? (
+                        {isOfferActive && timeLeft > 0 ? (
                             <button 
                                 onClick={() => handleUpgrade(true)}
                                 disabled={isCheckingOut}
@@ -87,7 +84,7 @@ export default function TopBar() {
                                     boxShadow: '0 2px 10px rgba(239, 68, 68, 0.4)'
                                 }}
                             >
-                                <span>{isCheckingOut ? 'Loading...' : `👉 Click to Get PREMIUM - 83% OFF | $4.97 (was $29.97) | Ends in ${formatTime(timeLeft)}`}</span>
+                                <span>{isCheckingOut ? 'Loading...' : `👉 Get PREMIUM - 20% OFF | $15.98 (Pay Once) | Ends in ${formatTime(timeLeft)}`}</span>
                             </button>
                         ) : (
                             <button 
@@ -108,7 +105,7 @@ export default function TopBar() {
                                     boxShadow: '0 2px 10px rgba(212, 255, 0, 0.2)'
                                 }}
                             >
-                                👑 {isCheckingOut ? 'Loading...' : 'Upgrade to PREMIUM'}
+                                👑 {isCheckingOut ? 'Loading...' : 'Upgrade to PREMIUM ($19.97 Pay Once)'}
                             </button>
                         )}
                     </>

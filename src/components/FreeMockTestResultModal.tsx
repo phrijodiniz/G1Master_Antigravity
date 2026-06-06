@@ -60,10 +60,10 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
     }
 
     return (
-        <div className={styles.container} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: 'rgba(15,23,42,0.95)', overflowY: 'auto', WebkitOverflowScrolling: 'touch', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div className={styles.gradientBg} style={{ position: 'fixed' }}></div>
+        <div className={styles.container}>
+            <div className={styles.gradientBg}></div>
             
-            <div className={styles.content} style={{ margin: '2rem auto' }}>
+            <div className={styles.content}>
                 {/* Result Title */}
                 <h2 className={styles.title} style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: 800 }}>
                     G1 Test Diagnostic

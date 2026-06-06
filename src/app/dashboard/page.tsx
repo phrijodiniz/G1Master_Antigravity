@@ -11,12 +11,50 @@ import DashboardLayout from "@/components/DashboardLayout";
 // ... imports
 import { useRouter } from "next/navigation";
 import LimitModal from "@/components/LimitModal";
+import ParentShareModal from "@/components/ParentShareModal";
 import FreeMockTestResultModal from "@/components/FreeMockTestResultModal";
+import { sendGTMEvent } from "@/lib/gtm";
 
-// ... existing imports
+function Countdown({ targetDate }: { targetDate: Date }) {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        function updateTimer() {
+            const now = new Date().getTime();
+            const target = new Date(targetDate).getTime();
+            const distance = target - now;
+
+            if (distance < 0) {
+                setTimeLeft('00:00:00');
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            const parts = [];
+            if (days > 0) {
+                parts.push(`${days}d`);
+            }
+            parts.push(`${hours.toString().padStart(2, '0')}h`);
+            parts.push(`${minutes.toString().padStart(2, '0')}m`);
+            parts.push(`${seconds.toString().padStart(2, '0')}s`);
+
+            setTimeLeft(parts.join(' '));
+        }
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [targetDate]);
+
+    return <span className={styles.diagTimerVal}>{timeLeft}</span>;
+}
 
 export default function Dashboard() {
-    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, loading } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, loading, history, isOfferActive, offerExpiryDate } = useAuth();
     const router = useRouter();
 
     // Helper to capitalize
@@ -50,6 +88,78 @@ export default function Dashboard() {
     const [resultData, setResultData] = useState(null);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [limitVariant, setLimitVariant] = useState<'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_quiz' | 'all_limit' | 'progressbar_upgrade'>('default');
+    const [isUpgrading, setIsUpgrading] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const [shareUrl, setShareUrl] = useState('');
+    const [isShareOpen, setIsShareOpen] = useState(false);
+
+    const handleShareWithParent = async () => {
+        sendGTMEvent('begin_checkout', { source: 'dashboard_diagnostic_widget_share' });
+        setIsSharing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Please log in again.");
+                setIsSharing(false);
+                return;
+            }
+
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ isPromo: isOfferActive, source: 'dashboard_diagnostic_widget_share' })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            if (data.url) {
+                setShareUrl(data.url);
+                setIsShareOpen(true);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error generating checkout link.");
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
+    const handleUpgradeDirectly = async () => {
+        sendGTMEvent('begin_checkout', { source: 'dashboard_diagnostic_widget' });
+        setIsUpgrading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Please log in again.");
+                setIsUpgrading(false);
+                return;
+            }
+
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ isPromo: isOfferActive, source: 'dashboard_diagnostic_widget' })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error initiating checkout.");
+            setIsUpgrading(false);
+        }
+    };
 
     const processingRef = useRef(false);
 
@@ -138,14 +248,56 @@ export default function Dashboard() {
         if (isPremium || (simulationCredits || 0) > 0) {
             router.push("/quiz/simulation");
         } else {
-            if ((practiceCredits || 0) <= 0) {
-                setLimitVariant('all_limit');
-            } else {
-                setLimitVariant('simulation_quiz');
-            }
+            setLimitVariant('simulation_quiz');
             setShowLimitModal(true);
         }
     };
+
+    // Compute rolling averages for Rules and Signs categories
+    // Option 2: last 3 category-specific tests rolling average (disregarding free/mixed tests)
+    const getRollingCategoryAverages = (historyList: any[]) => {
+        const rulesPercentages: number[] = [];
+        const signsPercentages: number[] = [];
+
+        for (const test of historyList) {
+            if (rulesPercentages.length < 3 && test.test_type === 'Rules of the Road') {
+                rulesPercentages.push(test.score);
+            }
+            if (signsPercentages.length < 3 && test.test_type === 'Road Signs') {
+                signsPercentages.push(test.score);
+            }
+            if (rulesPercentages.length >= 3 && signsPercentages.length >= 3) {
+                break;
+            }
+        }
+
+        const rulesAvg = rulesPercentages.length > 0
+            ? Math.round(rulesPercentages.reduce((a, b) => a + b, 0) / rulesPercentages.length)
+            : null;
+
+        const signsAvg = signsPercentages.length > 0
+            ? Math.round(signsPercentages.reduce((a, b) => a + b, 0) / signsPercentages.length)
+            : null;
+
+        return { rulesAvg, signsAvg };
+    };
+
+    const { rulesAvg, signsAvg } = getRollingCategoryAverages(history || []);
+    const hasDiagnostic = rulesAvg !== null || signsAvg !== null;
+
+    let avgPercentage = 0;
+    if (rulesAvg !== null && signsAvg !== null) {
+        avgPercentage = (rulesAvg + signsAvg) / 2;
+    } else if (rulesAvg !== null) {
+        avgPercentage = rulesAvg;
+    } else if (signsAvg !== null) {
+        avgPercentage = signsAvg;
+    }
+
+    const computedPassProb = Math.round(40 + (avgPercentage * 0.5));
+    const computedFailRisk = 100 - computedPassProb;
+    const isTestReady = computedPassProb >= 80 && (rulesAvg === null || rulesAvg >= 80) && (signsAvg === null || signsAvg >= 80);
+    const hasPracticeCredits = isPremium || (practiceCredits !== null && practiceCredits !== undefined && practiceCredits > 0);
 
     // Show loading state while auth is initializing or data is being fetched
     if (loading || (!isPremium && (practiceCredits === null || simulationCredits === null))) {
@@ -197,6 +349,107 @@ export default function Dashboard() {
                         </div>
                     </div>
 
+                    {hasDiagnostic && (
+                        <div className={styles.diagnosticCard}>
+                            <div className={styles.diagHeader}>
+                                <h3 className={styles.diagTitle}>📊 G1 Diagnostic Status</h3>
+                                <div className={`${styles.diagBadge} ${isTestReady ? styles.diagBadgeReady : styles.diagBadgeNotReady}`}>
+                                    <span className={styles.diagDot} />
+                                    <span>
+                                        {isTestReady 
+                                            ? `Test Ready (${computedPassProb}% Pass Probability)` 
+                                            : `Not Test Ready (${computedFailRisk}% Failure Risk)`
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className={styles.diagGrid}>
+                                <div className={styles.diagSection}>
+                                    <div className={styles.diagSectionHeader}>
+                                        <span className={styles.diagSectionTitle}>Rules of the Road</span>
+                                        <span className={styles.diagSectionScore}>
+                                            {rulesAvg !== null ? `${rulesAvg}%` : 'Not Tested'}
+                                        </span>
+                                    </div>
+                                    <div className={styles.diagTrack}>
+                                        <div 
+                                            className={styles.diagBar} 
+                                            style={{ 
+                                                width: `${rulesAvg !== null ? rulesAvg : 0}%`, 
+                                                background: (rulesAvg !== null && rulesAvg >= 80) ? '#22c55e' : '#ef4444' 
+                                            }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className={styles.diagSection}>
+                                    <div className={styles.diagSectionHeader}>
+                                        <span className={styles.diagSectionTitle}>Road Signs</span>
+                                        <span className={styles.diagSectionScore}>
+                                            {signsAvg !== null ? `${signsAvg}%` : 'Not Tested'}
+                                        </span>
+                                    </div>
+                                    <div className={styles.diagTrack}>
+                                        <div 
+                                            className={styles.diagBar} 
+                                            style={{ 
+                                                width: `${signsAvg !== null ? signsAvg : 0}%`, 
+                                                background: (signsAvg !== null && signsAvg >= 80) ? '#22c55e' : '#ef4444' 
+                                            }} 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!isPremium && (
+                                <div className={styles.diagUpgradeBox}>
+                                    <p className={styles.diagUpgradeText}>
+                                        <strong>⚠️ Ontario G1 Separate Passing Requirement:</strong> You must score 80% or higher in both sections separately to pass. Failure in one is a fail on the entire test. Upgrade to Premium to practice as much as you need!
+                                    </p>
+                                    {practiceCredits !== null && practiceCredits <= 0 && (
+                                        <>
+                                            <button 
+                                                onClick={handleUpgradeDirectly} 
+                                                disabled={isUpgrading} 
+                                                className={styles.diagUpgradeBtn}
+                                            >
+                                                {isUpgrading ? 'Redirecting...' : `🚀 Unlock Full Premium Access - ${isOfferActive ? '$15.98 (20% OFF)' : '$19.97'}`}
+                                            </button>
+                                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                                🔒 One-time payment. Lifetime access. No subscriptions.
+                                            </div>
+                                            <button
+                                                onClick={handleShareWithParent}
+                                                disabled={isSharing}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: '#2563eb',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 600,
+                                                    cursor: isSharing ? 'not-allowed' : 'pointer',
+                                                    textDecoration: 'underline',
+                                                    display: 'block',
+                                                    margin: '0.5rem auto 0 auto',
+                                                    textAlign: 'center',
+                                                    padding: '0.25rem'
+                                                }}
+                                            >
+                                                {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
+                                            </button>
+                                        </>
+                                    )}
+                                    {!hasPracticeCredits && renewalDate && (
+                                        <div className={styles.diagTimerText}>
+                                            ⏱️ {isOfferActive ? 'Next free credit & 20% OFF offer expires in: ' : 'Next free practice test unlocks in: '}<Countdown targetDate={renewalDate} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <h2 className={styles.sectionTitle}>How do you feel like studying today?</h2>
                     <div className={styles.actionCardsGrid}>
                         <div className={styles.actionCard}>
@@ -230,7 +483,7 @@ export default function Dashboard() {
                             <h3 className={styles.actionTitle}>G1 Test Simulation</h3>
                             <p className={styles.actionSubtitle}>Test yourself just like the real exam.</p>
                             <p className={styles.actionDescription}>
-                                A true G1-style test with timed, mixed questions and no hints. Covers both Road Signs and Rules of the Road. See if you're ready to pass.
+                                A true G1-style test with timed, mixed questions and no hints. Covers both Road Signs and Rules of the Road. See if you&apos;re ready to pass.
                             </p>
 
                             <button 
@@ -243,20 +496,8 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                </div>
-
-                {/* Right Column */}
-                <div className={styles.widgetsColumn}>
-                    {/* Exam Readiness Meter */}
-                    <div className={`${styles.widget} glass-panel`}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Exam Readiness</h3>
-                        </div>
-                        <ReadinessGauge />
-                    </div>
-
-                    {/* Test History */}
-                    <div className={`${styles.widget} ${styles.testHistoryWidget} glass-panel`}>
+                    {/* Test History Card moved to bottom */}
+                    <div className={`${styles.widget} ${styles.testHistoryWidget} glass-panel`} style={{ marginTop: '2.5rem' }}>
                         <h3 className={styles.sectionTitle}>Test History</h3>
                         <TestHistoryTable />
                     </div>
@@ -275,6 +516,13 @@ export default function Dashboard() {
                 variant={limitVariant}
                 renewalDate={renewalDate}
                 onClose={() => setShowLimitModal(false)}
+            />
+
+            <ParentShareModal 
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                checkoutUrl={shareUrl}
+                isPromoActive={isOfferActive}
             />
         </DashboardLayout>
     );
@@ -334,134 +582,4 @@ function TestHistoryTable() {
     );
 }
 
-function ReadinessGauge() {
-    const { user, history } = useAuth();
-    const [score, setScore] = useState(0);
-    const [isBlurred, setIsBlurred] = useState(true);
 
-    useEffect(() => {
-        if (!history) return;
-
-        const practiceTests = history.filter((h: any) => h.test_type !== 'Simulation');
-
-        if (practiceTests.length >= 5) {
-            const last5 = practiceTests.slice(0, 5);
-            const sum = last5.reduce((acc: number, curr: any) => acc + Number(curr.score), 0);
-            const avg = sum / 5;
-            const probability = 40 + (avg * 0.5);
-            setScore(Math.round(probability));
-            setIsBlurred(false);
-        } else {
-            setScore(0);
-            setIsBlurred(true);
-        }
-    }, [history]);
-
-    // Geometry Config - Standard SVG Angles
-    // 0 = 3 o'clock. 90 = 6 o'clock. 180 = 9 o'clock. 270 = 12 o'clock.
-    // We want a gauge from Bottom Left to Bottom Right.
-    // Start: 160 degrees (approx 8 o'clock position)
-    // End: 380 degrees (approx 4 o'clock position, 360+20)
-    // Span: 220 degrees.
-    const cx = 100;
-    const cy = 100;
-    const r = 80;
-    const startDeg = 160;
-    const endDeg = 380;
-
-    const valueToAngle = (val: number) => {
-        const v = Math.min(Math.max(val, 0), 100);
-        return startDeg + (v / 100) * (endDeg - startDeg);
-    };
-
-    const polarToCartesian = (cx: number, cy: number, r: number, angleInDegrees: number) => {
-        const angleInRadians = (angleInDegrees * Math.PI) / 180.0;
-        return {
-            x: Number((cx + (r * Math.cos(angleInRadians))).toFixed(4)),
-            y: Number((cy + (r * Math.sin(angleInRadians))).toFixed(4))
-        };
-    };
-
-    // Draw Arc Helper
-    const describeArc = (x: number, y: number, r: number, startAngle: number, endAngle: number) => {
-        const start = polarToCartesian(x, y, r, endAngle);
-        const end = polarToCartesian(x, y, r, startAngle);
-        const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-        // Sweep flag 1 for clockwise direction in SVG
-        return [
-            "M", start.x, start.y,
-            "A", r, r, 0, largeArcFlag, 0, end.x, end.y
-        ].join(" ");
-    };
-
-    // Needle
-    const currentAngle = valueToAngle(isBlurred ? 0 : score);
-    const needleTip = polarToCartesian(cx, cy, r - 15, currentAngle);
-
-    // Ticks
-    const renderTicks = () => {
-        const ticks = [];
-        for (let i = 0; i <= 100; i += 2) {
-            const isMajor = i % 10 === 0;
-            const a = valueToAngle(i);
-            // Ticks inside arc radius
-            // r=80. Ticks from 68 to 78.
-            const p1 = polarToCartesian(cx, cy, 68, a);
-            const p2 = polarToCartesian(cx, cy, 78, a);
-
-            ticks.push(
-                <line
-                    key={i}
-                    x1={p1.x} y1={p1.y}
-                    x2={p2.x} y2={p2.y}
-                    stroke={isMajor ? "#334155" : "#cbd5e1"}
-                    strokeWidth={isMajor ? 2 : 1}
-                />
-            );
-        }
-        return ticks;
-    };
-
-    return (
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div className={styles.gaugeContainer} style={{ marginBottom: 0 }}>
-                <svg viewBox="0 0 200 130" width="200" height="130">
-                    {/* Color Segments 
-                        Red: 0-30 (Left)
-                        Yellow: 30-80
-                        Green: 80-100 (Right)
-                        Stroke width 8 puts it centered on r=84 roughly? 
-                        Band can be r=84 width=8.
-                    */}
-                    <path d={describeArc(cx, cy, 84, valueToAngle(0), valueToAngle(30))}
-                        fill="none" stroke="#ef4444" strokeWidth="8" strokeLinecap="butt" />
-
-                    <path d={describeArc(cx, cy, 84, valueToAngle(30), valueToAngle(80))}
-                        fill="none" stroke="#eab308" strokeWidth="8" strokeLinecap="butt" />
-
-                    <path d={describeArc(cx, cy, 84, valueToAngle(80), valueToAngle(100))}
-                        fill="none" stroke="#22c55e" strokeWidth="8" strokeLinecap="butt" />
-
-                    {/* Ticks */}
-                    {renderTicks()}
-
-                    {/* Score Text - Spaced out from arc, smaller size */}
-                    {/* Placed below center to balance */}
-                    <text x="100" y="125" textAnchor="middle" fontSize="18" fontWeight="700" fill="#0f172a" style={isBlurred ? { filter: 'blur(5px)', opacity: 0.5 } : {}}>
-                        {isBlurred ? "82%" : `${score}%`}
-                    </text>
-
-                    {/* Needle - On Top */}
-                    <line x1={cx} y1={cy} x2={needleTip.x} y2={needleTip.y} stroke="#0f172a" strokeWidth="4" strokeLinecap="round" opacity={isBlurred ? 0.3 : 1} />
-                    <circle cx={cx} cy={cy} r="6" fill="#0f172a" opacity={isBlurred ? 0.3 : 1} />
-                </svg>
-            </div>
-            {isBlurred && (
-                <p className={styles.readinessText}>
-                    The readiness meter is only available after 5 completed practice tests.
-                </p>
-            )}
-        </div>
-    );
-}

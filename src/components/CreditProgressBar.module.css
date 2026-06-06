@@ -86,3 +86,11 @@
     background: #ef4444;
     /* red to indicate empty */
 }
+
+.countdownText {
+    color: #ef4444;
+    font-weight: 700;
+    font-family: monospace;
+    font-size: 0.95rem;
+    margin-left: 0.3rem;
+}

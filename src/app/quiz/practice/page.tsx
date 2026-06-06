@@ -10,9 +10,49 @@ import { useAuth } from '@/context/AuthContext';
 import LoginModal from '@/components/LoginModal';
 import ExitModal from '@/components/ExitModal';
 import LimitModal from '@/components/LimitModal';
+import ParentShareModal from '@/components/ParentShareModal';
+import { sendGTMEvent } from '@/lib/gtm';
+
+function Countdown({ targetDate }: { targetDate: Date }) {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        function updateTimer() {
+            const now = new Date().getTime();
+            const target = new Date(targetDate).getTime();
+            const distance = target - now;
+
+            if (distance < 0) {
+                setTimeLeft('00:00:00');
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            const parts = [];
+            if (days > 0) {
+                parts.push(`${days}d`);
+            }
+            parts.push(`${hours.toString().padStart(2, '0')}h`);
+            parts.push(`${minutes.toString().padStart(2, '0')}m`);
+            parts.push(`${seconds.toString().padStart(2, '0')}s`);
+
+            setTimeLeft(parts.join(' '));
+        }
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [targetDate]);
+
+    return <span className={styles.countdownText}>{timeLeft}</span>;
+}
 
 function QuizContent() {
-    const { user, isPremium, practiceCredits, refreshProfile, renewalDate, loading: authLoading, history } = useAuth();
+    const { user, isPremium, practiceCredits, refreshProfile, renewalDate, loading: authLoading, history, isOfferActive, offerExpiryDate } = useAuth();
     const searchParams = useSearchParams();
     const category = searchParams.get('category'); // e.g., "Rules of the Road"
 
@@ -27,6 +67,78 @@ function QuizContent() {
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [showReview, setShowReview] = useState(false);
     const [limitVariant, setLimitVariant] = useState<'practice_limit' | 'all_limit'>('practice_limit');
+    const [isUpgrading, setIsUpgrading] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const [shareUrl, setShareUrl] = useState('');
+    const [isShareOpen, setIsShareOpen] = useState(false);
+
+    const handleShareWithParent = async () => {
+        sendGTMEvent('begin_checkout', { source: 'practice_results_exhausted_share' });
+        setIsSharing(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Please log in again.");
+                setIsSharing(false);
+                return;
+            }
+
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ isPromo: isOfferActive, source: 'practice_results_exhausted_share' })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            if (data.url) {
+                setShareUrl(data.url);
+                setIsShareOpen(true);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error generating checkout link.");
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
+    const handleUpgradeDirectly = async () => {
+        sendGTMEvent('begin_checkout', { source: 'practice_results_exhausted' });
+        setIsUpgrading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Please log in again.");
+                setIsUpgrading(false);
+                return;
+            }
+
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ isPromo: isOfferActive, source: 'practice_results_exhausted' })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            if (data.url) {
+                window.location.href = data.url;
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error initiating checkout.");
+            setIsUpgrading(false);
+        }
+    };
 
     // Compute motivational quote
     const motivationQuote = useMemo(() => {
@@ -69,89 +181,64 @@ function QuizContent() {
         return texts[Math.floor(Math.random() * texts.length)];
     }, [completed, score, questions.length]);
 
-    // Compute pass probability
-    const passProbability = useMemo(() => {
-        if (!completed || questions.length === 0) return 0;
+    // Compute rolling averages for Rules and Signs categories
+    // Option 2: last 3 category-specific tests rolling average (disregarding free/mixed tests)
+    const rollingCategoryAverages = useMemo(() => {
+        if (!completed || questions.length === 0) return { rulesAvg: null, signsAvg: null };
 
-        // Find prior practice tests in history
-        const priorPracticeTests = (history || []).filter((h: any) => h.test_type !== 'Simulation');
+        const currentScore = Math.round((score / questions.length) * 100);
+        
+        // We inject the newly completed test to evaluate the new rolling average
+        const currentTest = {
+            test_type: category,
+            score: currentScore
+        };
 
-        // Does this current score exist in the history yet? 
-        // Since history fetch might not have caught up with the just-saved result, 
-        // we'll manually prepend the current score to be safe when evaluating the last 5.
-        // We know the current test score is: Math.round((score / questions.length) * 100)
-        const currentScorePercent = (score / questions.length) * 100;
+        const combinedHistory = [currentTest, ...(history || [])];
 
-        // Compile the recent scores (up to 5)
-        const recentScores = [currentScorePercent];
-        for (const test of priorPracticeTests) {
-            if (recentScores.length >= 5) break;
-            // Check if this test in history is the *exact* one we just saved to avoid double counting
-            // We can approximate this by skipping if it was created in the last 10 seconds, 
-            // but the safest way is if the component just mounted, we know `resultSaved` state.
-            // For simplicity and to avoid race conditions, we'll just take the top 4 from history to make 5 total.
-            if (recentScores.length < 5) {
-                recentScores.push(test.score);
+        const rulesPercentages: number[] = [];
+        const signsPercentages: number[] = [];
+
+        for (const test of combinedHistory) {
+            if (rulesPercentages.length < 3 && test.test_type === 'Rules of the Road') {
+                rulesPercentages.push(test.score);
+            }
+            if (signsPercentages.length < 3 && test.test_type === 'Road Signs') {
+                signsPercentages.push(test.score);
+            }
+            if (rulesPercentages.length >= 3 && signsPercentages.length >= 3) {
+                break;
             }
         }
 
-        let baseProb = 40;
-        let finalProb = 0;
+        const rulesAvg = rulesPercentages.length > 0
+            ? Math.round(rulesPercentages.reduce((a, b) => a + b, 0) / rulesPercentages.length)
+            : null;
 
-        if (recentScores.length < 5) {
-            // If < 5 tests: 40% + (current_test_score_percentage * 0.05)
-            // Wait, the user req said: pass_probability = 40% + (test score × 5%)
-            // Assuming "test score x 5%" means if they got 80%, it's 80 * 0.05 = 4
-            // Let's use the exact formula: currentScorePercent * 0.05
-            finalProb = baseProb + (currentScorePercent * 0.05); // Wait, "test score * 5%". If score is 80%, 80 * 0.05 = 4%.  40 + 4 = 44%.
-            // Wait, maybe they meant "score * 5%" where score is out of 100?
-            // "If user has less than 5 practice tests: pass_probability = 40% + (test score × 5%)"
-            // Let's assume `test score` is the percentage (0-100).
-            // Example: Score = 80%. 40 + (80 * 0.05) = 40 + 4. Wait, 44% seems low for an 80% score.
-            // Wait! "test score * 5%" -> if score is 10/10 (10), 10 * 5% = 50%. 40 + 50 = 90%. 
-            // Ah! "test score" is the RAW SCORE! Out of 10 for practice, out of 40 for sim!
-            // Wait, for Simulation, there are 40 questions. 40 * 5% = 200%. That's wrong.
-            // Let's look at the second formula: "average_score = total_correct / total_questions of last 5 tests. pass_probability = 40% + (average_score × 50%)"
-            // `average_score` is a decimal (e.g. 0.8). 0.8 * 50 = 40. 40 + 40 = 80%. This makes perfect sense!
-            // So for < 5 tests: test score must be the PERCENTAGE (0-100) * 0.50 ? No, user specifically wrote `test score x 5%`.
-            // Let's just calculate `average_score * 50` for BOTH, or `score / total * 50` for the first.
-            // Wait! The user wrote `40% + (test score * 5%)`. If `test score` is 10 (raw score), 10 * 5 = 50. 40 + 50 = 90%.
-            // OK, so for Practice Tests (< 5): test score is raw score (0-10). `40 + (raw_score * 5)`.
-            // For > 5 tests: `total_correct / total_questions` of last 5. This is a decimal (0-1). `0-1 * 50` is max 50. Wait, `40% + (average_score * 50)` -> wait, 0.8 * 50 = 40. 40 + 40 = 80%. Wait, what if they get 100%? 1.0 * 50 = 50%. 40 + 50 = 90%. 
-            // Let's use `average_percentage` as a 0-100 value.
-            // Formula 1: 40 + (raw_score * 5)
-        }
+        const signsAvg = signsPercentages.length > 0
+            ? Math.round(signsPercentages.reduce((a, b) => a + b, 0) / signsPercentages.length)
+            : null;
 
-        // Let's calculate total correct and total questions for the last 5 tests.
-        // Wait, the DB `simulation_results` stores `score` as a PERCENTAGE (0-100), not raw score!
-        // We know this from payload: `score: Math.round((score / questions.length) * 100)`
-        // If the DB only has percentage, we can't easily get raw score unless we assume 10 Qs for practice.
-        // Let's normalize everything to percentages to be safe and accurate.
-        // If percentage is 0-100:
-        // User formula 1: 40 + (percentage * 0.5)  -> if 100%, 40 + 50 = 90%
-        // User formula 2: 40 + (average_percentage * 0.5) -> if 100%, 40 + 50 = 90%
-        // Yes, both formulas are mathematically identical if evaluated as percentages multiplied by 0.5!
+        return { rulesAvg, signsAvg };
+    }, [completed, score, questions.length, history, category]);
 
-        let passProb = 0;
+    // Compute pass probability based on rolling averages of Rules and Signs
+    const passProbability = useMemo(() => {
+        const { rulesAvg, signsAvg } = rollingCategoryAverages;
 
-        if (priorPracticeTests.length < 5) {
-            // Less than 5 total practice tests in history (including this one, so < 4 in DB + current)
-            const percentage = (score / questions.length) * 100;
-            passProb = 40 + (percentage * 0.5);
+        let avgPercentage = 0;
+        if (rulesAvg !== null && signsAvg !== null) {
+            avgPercentage = (rulesAvg + signsAvg) / 2;
+        } else if (rulesAvg !== null) {
+            avgPercentage = rulesAvg;
+        } else if (signsAvg !== null) {
+            avgPercentage = signsAvg;
         } else {
-            // 5 or more tests
-            // we need the average of the last 5 tests (including the current one)
-            // So we take current + last 4 from history.
-            const last4 = priorPracticeTests.slice(0, 4);
-            let sumPercentages = currentScorePercent;
-            last4.forEach((test: any) => sumPercentages += test.score); // test.score is a percentage 0-100 in DB
-
-            const avgPercentage = sumPercentages / 5;
-            passProb = 40 + (avgPercentage * 0.5);
+            return 40; // Base baseline
         }
 
-        return Math.round(passProb);
-    }, [completed, score, questions.length, history]);
+        return Math.round(40 + (avgPercentage * 0.5));
+    }, [rollingCategoryAverages]);
 
     const STORAGE_KEY = `practice_session_${category}`;
 
@@ -238,7 +325,7 @@ function QuizContent() {
                     score: Math.round((score / questions.length) * 100),
                     rules_score: isRules ? score : 0,
                     signs_score: !isRules ? score : 0,
-                    passed: score >= 16,
+                    passed: Math.round((score / questions.length) * 100) >= 80,
                     test_type: category || 'Practice'
                 };
                 console.log('Attempting to save result:', payload);
@@ -367,50 +454,143 @@ function QuizContent() {
 
     if (completed) {
         // Results
+        const hasCredits = isPremium || (practiceCredits !== null && practiceCredits !== undefined && practiceCredits > 0);
+        const nextCategory = category === 'Rules of the Road' ? 'Road Signs' : 'Rules of the Road';
+
         return (
             <DashboardLayout>
                 <div className={styles.mainWrapper}>
                     <div className={styles.resultsContainer}>
-                        <div style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 500, marginBottom: '1.5rem' }}>
+                        <div style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 500, marginBottom: '1rem' }}>
                             Score
                         </div>
                         <div style={{ fontSize: '5rem', fontWeight: 800, color: '#e1ff21', WebkitTextStroke: '2.5px black', lineHeight: 1 }}>
                             {score}/{questions.length}
                         </div>
-                        <div style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 500, marginTop: '1.5rem' }}>
-                            Pass Probability: <span style={{ color: '#0f172a', fontWeight: 700 }}>{passProbability}%</span>
+                        
+                        {/* Status badge based on pass probability / score readiness */}
+                        <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+                            {passProbability >= 80 ? (
+                                <div className={`${styles.riskBadge} ${styles.riskBadgeReady}`}>
+                                    <span className={`${styles.riskDot} ${styles.riskDotReady}`} />
+                                    <span>G1 Ready ({passProbability}% Pass Probability)</span>
+                                </div>
+                            ) : (
+                                <div className={`${styles.riskBadge} ${styles.riskBadgeNotReady}`}>
+                                    <span className={`${styles.riskDot} ${styles.riskDotNotReady}`} />
+                                    <span>Not Test Ready ({100 - passProbability}% Failure Risk)</span>
+                                </div>
+                            )}
                         </div>
 
-                        <p style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a', margin: '2.5rem 0' }}>
+                        {/* Double-80% Ontario warning */}
+                        <div className={styles.doubleTrapBox}>
+                            <div className={styles.doubleTrapTitle}>
+                                ⚠️ Ontario G1 Separate Passing Requirement
+                            </div>
+                            <p className={styles.doubleTrapText}>
+                                The official Ontario G1 exam requires scoring at least <strong>80% on Rules of the Road</strong> AND <strong>80% on Road Signs</strong> separately to pass. If you fail either section, you fail the whole test. Practice until both categories show safe margins.
+                            </p>
+                        </div>
+
+                        {/* Timer countdown if user is out of credits */}
+                        {!hasCredits && renewalDate && (
+                            <div className={styles.countdownBox}>
+                                ⏱️ {isOfferActive ? 'Next free credit & 20% OFF offer expires in: ' : 'Next free practice test unlocks in: '}<Countdown targetDate={renewalDate} />
+                            </div>
+                        )}
+
+                        <p style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a', margin: '1.5rem 0' }}>
                             {motivationQuote}
                         </p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', width: '100%', maxWidth: '480px', margin: '0 auto' }}>
-                            <button
-                                onClick={() => handleRetake(category as string)}
-                                disabled={isSaving}
-                                style={{
-                                    width: '100%',
-                                    background: isSaving ? '#94a3b8' : '#0f172a', color: 'white', padding: '1rem',
-                                    borderRadius: '8px', border: 'none', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '1rem'
-                                }}
-                            >
-                                {isSaving ? 'Processing...' : `Retake ${category} Test`}
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const nextCategory = category === 'Rules of the Road' ? 'Road Signs' : 'Rules of the Road';
-                                    handleRetake(nextCategory);
-                                }}
-                                disabled={isSaving}
-                                style={{
-                                    width: '100%',
-                                    background: 'white', color: isSaving ? '#cbd5e1' : '#0f172a', padding: '1rem',
-                                    borderRadius: '8px', border: '1px solid #e2e8f0', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '1rem'
-                                }}
-                            >
-                                Take {category === 'Rules of the Road' ? 'Road Signs' : 'Rules of the Road'} Test
-                            </button>
+                        <div className={styles.ctaStack}>
+                            {!hasCredits ? (
+                                <>
+                                    <button
+                                        onClick={handleUpgradeDirectly}
+                                        disabled={isUpgrading}
+                                        className={styles.primaryUpgradeBtn}
+                                    >
+                                        {isUpgrading 
+                                            ? 'Redirecting to checkout...' 
+                                            : `🚀 Unlock Full Premium Access - ${isOfferActive ? '$15.98 (20% OFF)' : '$19.97'}`
+                                        }
+                                    </button>
+                                    <div style={{ fontSize: '0.85rem', color: '#475569', textAlign: 'center', marginTop: '0.4rem', fontWeight: 600 }}>
+                                        🔒 One-Time Payment • Lifetime Access • No Subscriptions
+                                    </div>
+                                    <button
+                                        onClick={handleShareWithParent}
+                                        disabled={isSharing}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#2563eb',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 600,
+                                            cursor: isSharing ? 'not-allowed' : 'pointer',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            margin: '0.5rem auto 0 auto',
+                                            textAlign: 'center',
+                                            padding: '0.25rem'
+                                        }}
+                                    >
+                                        {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
+                                    </button>
+                                    <div className={styles.guaranteeText}>
+                                        🛡️ Pass Guarantee: Pass on your first try or get a 100% refund.
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => {
+                                            setLimitVariant('all_limit');
+                                            setShowLimitModal(true);
+                                        }}
+                                        className={styles.lockedBtn}
+                                    >
+                                        🔒 Retake {category} Test (0 Credits)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setLimitVariant('all_limit');
+                                            setShowLimitModal(true);
+                                        }}
+                                        className={styles.lockedBtn}
+                                    >
+                                        🔒 Take {nextCategory} Test (0 Credits)
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => handleRetake(category as string)}
+                                        disabled={isSaving}
+                                        style={{
+                                            width: '100%',
+                                            background: isSaving ? '#94a3b8' : '#0f172a', color: 'white', padding: '1rem',
+                                            borderRadius: '8px', border: 'none', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '1rem'
+                                        }}
+                                    >
+                                        {isSaving ? 'Processing...' : `Retake ${category} Test`}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleRetake(nextCategory);
+                                        }}
+                                        disabled={isSaving}
+                                        style={{
+                                            width: '100%',
+                                            background: 'white', color: isSaving ? '#cbd5e1' : '#0f172a', padding: '1rem',
+                                            borderRadius: '8px', border: '1px solid #e2e8f0', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '1rem'
+                                        }}
+                                    >
+                                        Take {nextCategory} Test
+                                    </button>
+                                </>
+                            )}
+                            
                             <div
                                 onClick={() => setShowReview(!showReview)}
                                 style={{
@@ -461,6 +641,13 @@ function QuizContent() {
                     onClose={() => setShowLimitModal(false)}
                     variant={limitVariant}
                     renewalDate={renewalDate}
+                />
+                
+                <ParentShareModal 
+                    isOpen={isShareOpen}
+                    onClose={() => setIsShareOpen(false)}
+                    checkoutUrl={shareUrl}
+                    isPromoActive={isOfferActive}
                 />
             </DashboardLayout>
         );
@@ -515,6 +702,13 @@ function QuizContent() {
                 onClose={() => setShowLimitModal(false)}
                 variant={limitVariant}
                 renewalDate={renewalDate}
+            />
+
+            <ParentShareModal 
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                checkoutUrl={shareUrl}
+                isPromoActive={isOfferActive}
             />
         </DashboardLayout>
     );

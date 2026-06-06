@@ -6,9 +6,48 @@ import styles from "./account.module.css";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/DashboardLayout";
+import ParentShareModal from "@/components/ParentShareModal";
+
+function Countdown({ targetDate }: { targetDate: Date }) {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        function updateTimer() {
+            const now = new Date().getTime();
+            const target = new Date(targetDate).getTime();
+            const distance = target - now;
+
+            if (distance < 0) {
+                setTimeLeft('00:00:00');
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            const parts = [];
+            if (days > 0) {
+                parts.push(`${days}d`);
+            }
+            parts.push(`${hours.toString().padStart(2, '0')}h`);
+            parts.push(`${minutes.toString().padStart(2, '0')}m`);
+            parts.push(`${seconds.toString().padStart(2, '0')}s`);
+
+            setTimeLeft(parts.join(' '));
+        }
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [targetDate]);
+
+    return <span>{timeLeft}</span>;
+}
 
 function AccountContent() {
-    const { user, isPremium, practiceCredits, simulationCredits, renewalDate } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, isOfferActive, offerExpiryDate } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [firstName, setFirstName] = useState("");
@@ -20,6 +59,47 @@ function AccountContent() {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isGoogleAuth, setIsGoogleAuth] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const [shareUrl, setShareUrl] = useState('');
+    const [isShareOpen, setIsShareOpen] = useState(false);
+
+    const handleShareWithParent = async () => {
+        setIsSharing(true);
+        // Track Checkout Start
+        import('@/lib/gtm').then(({ sendGTMEvent }) => {
+            sendGTMEvent('begin_checkout', { source: 'account_page_share' });
+        });
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error("Please log in to share.");
+            }
+
+            const response = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ isPromo: isOfferActive, source: 'account_page_share' })
+            });
+
+            const { url, error } = await response.json();
+            if (error) throw new Error(error);
+
+            if (url) {
+                setShareUrl(url);
+                setIsShareOpen(true);
+            } else {
+                throw new Error("Failed to create checkout session");
+            }
+        } catch (error: any) {
+            setMsg({ type: "error", text: error.message || "Failed to initiate checkout link generation" });
+        } finally {
+            setIsSharing(false);
+        }
+    };
 
     useEffect(() => {
         if (user) {
@@ -54,7 +134,7 @@ function AccountContent() {
                 sendGTMEvent('purchase', {
                     method: 'stripe',
                     session_id: searchParams.get('session_id'),
-                    value: 29.97,
+                    value: isOfferActive ? 15.98 : 19.97,
                     currency: 'CAD'
                 });
             });
@@ -127,7 +207,7 @@ function AccountContent() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ isPromo: false, source: 'account_page' })
+                body: JSON.stringify({ isPromo: isOfferActive, source: 'account_page' })
             });
 
             const { url, error } = await response.json();
@@ -226,13 +306,42 @@ function AccountContent() {
 
                 {!isPremium && (
                     <div className={styles.marketingContainer}>
+                        {isOfferActive && offerExpiryDate && (
+                            <div style={{ marginBottom: '1rem', color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', textAlign: 'center', backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '0.6rem', borderRadius: '8px', border: '1px dashed rgba(239, 68, 68, 0.2)' }}>
+                                ⏱️ Special 20% OFF Offer ends in: <Countdown targetDate={offerExpiryDate} />
+                            </div>
+                        )}
+
                         <button
                             className={styles.upgradeBtn}
                             onClick={handleUpgrade}
                             disabled={loading}
                             style={{ marginBottom: '1rem', width: '100%' }}
                         >
-                            Click here to unlock your Premium plan for only $29.97 (One-Time Fee)
+                            {isOfferActive 
+                                ? "Click here to unlock your Premium plan for only $15.98 (20% OFF - One-Time Payment, No Subscriptions)"
+                                : "Click here to unlock your Premium plan for only $19.97 (One-Time Payment, No Subscriptions)"
+                            }
+                        </button>
+
+                        <button
+                            onClick={handleShareWithParent}
+                            disabled={isSharing || loading}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#2563eb',
+                                fontSize: '0.9rem',
+                                fontWeight: 600,
+                                cursor: (isSharing || loading) ? 'not-allowed' : 'pointer',
+                                textDecoration: 'underline',
+                                display: 'block',
+                                margin: '0 auto 1rem auto',
+                                textAlign: 'center',
+                                padding: '0.25rem'
+                            }}
+                        >
+                            {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
                         </button>
 
                         <div className={styles.marketingText}>
@@ -288,6 +397,13 @@ function AccountContent() {
                     </div>
                 )}
             </div>
+
+            <ParentShareModal 
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                checkoutUrl={shareUrl}
+                isPromoActive={isOfferActive}
+            />
         </DashboardLayout>
     );
 }

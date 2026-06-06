@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabase } from '@/lib/supabaseClient'; // We need the auth one to identify the user
+import { appendActivityToSheet } from '@/services/sheets';
 
 export async function POST(req) {
     try {
@@ -26,29 +27,113 @@ export async function POST(req) {
         }
 
         const body = await req.json().catch(() => ({}));
-        const isPromo = body.isPromo === true;
         const source = body.source || 'unknown';
 
-        const unitAmount = isPromo ? 497 : 2997;
-        const productName = isPromo ? 'Premium Upgrade (New User Offer)' : 'Premium Upgrade';
+        // Log Checkout Initiated event to Google Sheets (America/Toronto timezone)
+        try {
+            const dateObj = new Date();
+            const localTimeString = dateObj.toLocaleString('en-CA', {
+                timeZone: 'America/Toronto',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).replace(/,/g, '');
 
-        // 2. Create Checkout Session
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('first_name')
+                .eq('id', user.id)
+                .single();
+
+            const firstName = profile?.first_name || user.user_metadata?.first_name || 'User';
+
+            await appendActivityToSheet([
+                localTimeString,
+                user.email || 'unknown_email',
+                firstName,
+                `Checkout Initiated - Button: ${source}`
+            ]);
+            console.log(`Appended Checkout Initiated event to sheet for user ${user.id} from source: ${source}`);
+        } catch (sheetError) {
+            console.error("Failed to append Checkout Initiated to sheet:", sheetError);
+        }
+
+        // Check if user is eligible for New Sign Up 20% OFF offer
+        // Expires 3 hours after the first practice/simulation test, or 3 hours from registration if no tests taken.
+        let isPromoActive = false;
+        const { data: results, error: resultsError } = await supabase
+            .from('simulation_results')
+            .select('created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+        if (!resultsError) {
+            let oldestTestTime = null;
+            if (results && results.length > 0) {
+                oldestTestTime = new Date(results[0].created_at).getTime();
+            }
+
+            let expiryTime = null;
+            if (oldestTestTime) {
+                expiryTime = oldestTestTime + 3 * 60 * 60 * 1000;
+            } else if (user.created_at) {
+                expiryTime = new Date(user.created_at).getTime() + 3 * 60 * 60 * 1000;
+            }
+
+            if (expiryTime && Date.now() < expiryTime) {
+                isPromoActive = true;
+            }
+        }
+
+        const couponId = 'NEWUSER20';
+        if (isPromoActive) {
+            // Check if coupon exists in Stripe
+            try {
+                await stripe.coupons.retrieve(couponId);
+            } catch (err) {
+                if (err.statusCode === 404 || err.code === 'resource_missing' || (err.message && err.message.includes('No such coupon'))) {
+                    // Create coupon if it doesn't exist
+                    try {
+                        await stripe.coupons.create({
+                            id: couponId,
+                            percent_off: 20,
+                            duration: 'forever',
+                            name: '20% OFF New Sign Up Offer',
+                        });
+                    } catch (createErr) {
+                        console.error('Error creating Stripe coupon:', createErr);
+                    }
+                } else {
+                    console.error('Error retrieving Stripe coupon:', err);
+                }
+            }
+        }
+
+        const sessionConfig = {
             line_items: [
                 {
                     price_data: {
                         currency: 'cad', // Updated to CAD
                         product_data: {
-                            name: productName,
-                            description: 'Unlock all features and unlimited practice tests.',
+                            name: 'Premium Upgrade (One-Time Payment)',
+                            description: 'Unlock all features, unlimited practice tests, and timed G1 simulations. One-time payment, lifetime access.',
                         },
-                        unit_amount: unitAmount, // $4.97 or $29.97 CAD
+                        unit_amount: 1997, // Always standard price $19.97 CAD
                     },
                     quantity: 1,
                 },
             ],
             mode: 'payment',
+            custom_text: {
+                submit: {
+                    message: 'This is a **one-time charge**. You will not be enrolled in any subscription or recurring fees.',
+                },
+            },
             success_url: `${req.headers.get('origin')}/account?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${req.headers.get('origin')}/account`,
             client_reference_id: user.id, // Critical: Attach User ID to the session
@@ -57,7 +142,20 @@ export async function POST(req) {
                 userId: user.id,
                 source: source
             },
-        });
+        };
+
+        if (isPromoActive) {
+            sessionConfig.discounts = [
+                {
+                    coupon: couponId,
+                },
+            ];
+        } else {
+            sessionConfig.allow_promotion_codes = true;
+        }
+
+        // 2. Create Checkout Session
+        const session = await stripe.checkout.sessions.create(sessionConfig);
 
         return NextResponse.json({ sessionId: session.id, url: session.url });
     } catch (error) {

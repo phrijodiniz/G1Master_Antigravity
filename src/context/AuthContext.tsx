@@ -19,6 +19,8 @@ interface AuthContextType {
     history: any[];
     refreshProfile: (force?: boolean) => Promise<void>;
     renewalDate: Date | null;
+    isOfferActive: boolean;
+    offerExpiryDate: Date | null;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -41,6 +43,20 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
     const [calcPracticeCredits, setCalcPracticeCredits] = useState<number | null>(null);
     const [calcSimulationCredits, setCalcSimulationCredits] = useState<number | null>(null);
     const [renewalDate, setRenewalDate] = useState<Date | null>(null);
+    const [isOfferActive, setIsOfferActive] = useState(false);
+    const [offerExpiryDate, setOfferExpiryDate] = useState<Date | null>(null);
+
+    useEffect(() => {
+        if (!offerExpiryDate) return;
+
+        const updateOfferStatus = () => {
+            setIsOfferActive(Date.now() < offerExpiryDate.getTime());
+        };
+
+        updateOfferStatus();
+        const interval = setInterval(updateOfferStatus, 1000);
+        return () => clearInterval(interval);
+    }, [offerExpiryDate]);
 
     useEffect(() => {
         let mounted = true;
@@ -310,30 +326,30 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     console.log("Profile loaded:", profileData);
                     setProfile(profileData);
 
-                    // 7-Day Rolling Window Logic
-                    const sevenDaysAgo = new Date();
-                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                    const isoSevenDaysAgo = sevenDaysAgo.toISOString();
+                    // 3-Hour Rolling Window Logic
+                    const threeHoursAgo = new Date();
+                    threeHoursAgo.setHours(threeHoursAgo.getHours() - 3);
+                    const isoThreeHoursAgo = threeHoursAgo.toISOString();
 
-                    // Fetch Usage History (Last 7 Days Only for Counts)
+                    // Fetch Usage History (Last 3 Hours Only for Counts)
                     // We need actual rows to find the "oldest" test in the window for renewal date
                     const historyFetchPromise = Promise.all([
-                        // Simulations in last 7 days
+                        // Simulations in last 3 hours
                         supabase
                             .from('simulation_results')
                             .select('created_at')
                             .eq('user_id', userId)
                             .eq('test_type', 'Simulation')
-                            .gte('created_at', isoSevenDaysAgo)
+                            .gte('created_at', isoThreeHoursAgo)
                             .order('created_at', { ascending: true }), // Oldest first
 
-                        // Practice Tests in last 7 days
+                        // Practice Tests in last 3 hours
                         supabase
                             .from('simulation_results')
                             .select('created_at')
                             .eq('user_id', userId)
                             .in('test_type', ['Rules of the Road', 'Road Signs'])
-                            .gte('created_at', isoSevenDaysAgo)
+                            .gte('created_at', isoThreeHoursAgo)
                             .order('created_at', { ascending: true }), // Oldest first
 
                         // Full History for Display (Top 50, regardless of date)
@@ -356,41 +372,57 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     const usedPractice = practiceResult.data?.length || 0;
 
                     setCalcSimulationCredits(0);
-                    setCalcPracticeCredits(Math.max(0, 2 - usedPractice));
+                    setCalcPracticeCredits(Math.max(0, 3 - usedPractice));
 
-                    // Calculate Renewal Date (Oldest test + 7 days)
+                    // Calculate Renewal Date (Oldest test + 3 hours)
                     let nextRenewal = null;
 
                     // If NO credits left, find when the next one frees up
-                    // logic: The NEXT credit becomes available 7 days after the OLDEST test in the current window drops out.
-                    if (usedPractice >= 2) {
+                    // logic: The NEXT credit becomes available 3 hours after the OLDEST test in the current window drops out.
+                    if (usedPractice >= 3) {
                         const oldestPractice = practiceResult.data?.[0]?.created_at;
 
-                        // We strictly care about the renewal of the specific type that is blocked?
-                        // Or just the earliest overall? 
-                        // Requirement: "indicate the date their new credits are going to be renewed."
-                        // Usually implies the earliest time ANY credit returns.
-
                         const dates = [];
-                        if (usedPractice >= 2 && oldestPractice) dates.push(new Date(oldestPractice).getTime());
+                        if (usedPractice >= 3 && oldestPractice) dates.push(new Date(oldestPractice).getTime());
 
                         if (dates.length > 0) {
                             const oldestTimestamp = Math.min(...dates);
                             const renewalDate = new Date(oldestTimestamp);
-                            renewalDate.setDate(renewalDate.getDate() + 7);
+                            renewalDate.setHours(renewalDate.getHours() + 3);
                             nextRenewal = renewalDate;
                         }
                     }
 
                     setRenewalDate(nextRenewal); // Add this state
 
+                    let historyList = [];
                     if (historyData?.data) {
-                        setHistory(historyData.data);
+                        historyList = historyData.data;
                     } else if (Array.isArray(historyData)) {
-                        setHistory(historyData);
+                        historyList = historyData;
                     } else if (historyData && typeof historyData === 'object' && 'data' in historyData) {
-                        setHistory(historyData.data || []);
+                        historyList = historyData.data || [];
                     }
+                    setHistory(historyList);
+
+                    // Compute Offer Expiration (20% OFF for New Sign Ups)
+                    let oldestTestDate: Date | null = null;
+                    if (historyList.length > 0) {
+                        const oldestTest = historyList[historyList.length - 1];
+                        if (oldestTest?.created_at) {
+                            oldestTestDate = new Date(oldestTest.created_at);
+                        }
+                    }
+
+                    let expiry: Date | null = null;
+                    if (oldestTestDate) {
+                        expiry = new Date(oldestTestDate.getTime() + 3 * 60 * 60 * 1000);
+                    } else if (user?.created_at) {
+                        expiry = new Date(new Date(user.created_at).getTime() + 3 * 60 * 60 * 1000);
+                    }
+
+                    setOfferExpiryDate(expiry);
+                    setIsOfferActive(expiry ? Date.now() < expiry.getTime() : false);
 
                     return; // Success
 
@@ -510,10 +542,12 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
         await supabase.auth.signOut();
         setHistory([]);
         setProfile(null);
+        setIsOfferActive(false);
+        setOfferExpiryDate(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile, renewalDate }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile, renewalDate, isOfferActive, offerExpiryDate }}>
             {children}
         </AuthContext.Provider>
     );

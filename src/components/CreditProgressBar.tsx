@@ -4,7 +4,37 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import styles from "./CreditProgressBar.module.css";
 import LimitModal from "./LimitModal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+function Countdown({ targetDate }: { targetDate: Date }) {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        function updateTimer() {
+            const now = new Date().getTime();
+            const target = new Date(targetDate).getTime();
+            const distance = target - now;
+
+            if (distance < 0) {
+                setTimeLeft('00h 00m 00s');
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)) + (days * 24); // Add days as hours
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            setTimeLeft(`${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`);
+        }
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [targetDate]);
+
+    return <span className={styles.countdownText}>{timeLeft}</span>;
+}
 
 const TARGET_ROUTES = ["/dashboard", "/account", "/history", "/study", "/practice"];
 
@@ -18,21 +48,21 @@ export default function CreditProgressBar() {
         return null;
     }
 
-    // Calculations based on 2 practice credits total
-    const totalCredits = 2;
+    // Calculations based on 3 practice credits total
+    const totalCredits = 3;
     const remaining = practiceCredits ?? 0;
     const used = totalCredits - remaining;
     const percentage = Math.min((used / totalCredits) * 100, 100);
     const isExhausted = remaining <= 0;
 
-    let message;
+    let message: any;
     if (isExhausted) {
         if (renewalDate) {
-            const formattedDate = renewalDate.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-            });
-            message = `You’ve reached your free limit. Credits renew on ${formattedDate}.`;
+            message = (
+                <span>
+                    ⏱️ Next free practice test unlocks in: <Countdown targetDate={renewalDate} />
+                </span>
+            );
         } else {
             message = "You’ve reached your free limit.";
         }
