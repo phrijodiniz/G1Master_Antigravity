@@ -16,7 +16,7 @@ import { sendGTMEvent } from '@/lib/gtm';
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const { user, isPremium, logout, practiceCredits, isOfferActive, offerExpiryDate } = useAuth();
+    const { user, isPremium, logout, practiceCredits, isOfferActive, offerExpiryDate, isAdmin } = useAuth();
     const router = useRouter();
     const { isSidebarOpen, closeSidebar } = useSidebar();
 
@@ -72,6 +72,7 @@ export default function Sidebar() {
         { name: "Account", icon: User, path: "/account" },
         { name: "History", icon: HistoryIcon, path: "/history" },
         { name: "Study Now", icon: GraduationCap, path: "/study" },
+        ...(isAdmin ? [{ name: "Admin Portal", icon: Settings, path: "/admin" }] : []),
     ];
 
     const formatTime = (seconds: number) => {
