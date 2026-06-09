@@ -433,9 +433,24 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
 
                 } catch (err: any) {
                     console.warn(`Attempt ${attempts} failed:`, err);
+                    
+                    const isAuthOrPermissionError = 
+                        err?.code === '42501' || 
+                        err?.status === 401 || 
+                        err?.status === 403 || 
+                        err?.message?.includes('JWT') ||
+                        err?.message?.toLowerCase()?.includes('unauthorized') ||
+                        err?.message?.toLowerCase()?.includes('permission');
+                    
+                    if (isAuthOrPermissionError) {
+                        console.error("Fatal authentication or permission error. Skipping retry.", err);
+                        throw err;
+                    }
+
                     if (attempts >= maxAttempts) {
                         if (profileRef.current) return;
                         console.error("Critical: Profile fetch failed.", err);
+                        throw err;
                     }
                     await new Promise(r => setTimeout(r, 2000));
                 }

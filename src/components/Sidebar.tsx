@@ -103,19 +103,6 @@ export default function Sidebar() {
                             closeSidebar();
                         };
 
-                        if (item.path === '/history' || item.path === '/dashboard') {
-                            return (
-                                <a
-                                    key={item.path}
-                                    href={item.path}
-                                    className={`${styles.navItem} ${isActive ? styles.active : ""}`}
-                                    onClick={handleClick}
-                                >
-                                    <Icon size={20} />
-                                    <span>{item.name}</span>
-                                </a>
-                            );
-                        }
                         return (
                             <Link
                                 key={item.path}

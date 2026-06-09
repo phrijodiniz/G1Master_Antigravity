@@ -54,8 +54,12 @@ function Countdown({ targetDate }: { targetDate: Date }) {
 }
 
 export default function Dashboard() {
-    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, loading, history, isOfferActive, offerExpiryDate } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, loading, history, isOfferActive, offerExpiryDate, refreshProfile } = useAuth();
     const router = useRouter();
+
+    useEffect(() => {
+        refreshProfile(true);
+    }, [refreshProfile]);
 
     // Helper to capitalize
     const formatName = (name: string) => {

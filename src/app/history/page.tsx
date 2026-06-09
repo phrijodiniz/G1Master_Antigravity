@@ -7,8 +7,11 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function HistoryPage() {
-    const { user, history, loading: authLoading } = useAuth();
-    // history is already array (cached in AuthContext)
+    const { user, history, loading: authLoading, refreshProfile } = useAuth();
+
+    useEffect(() => {
+        refreshProfile(true);
+    }, [refreshProfile]);
 
     const getTestTypeLabel = (type: string) => {
         if (!type || type === 'Simulation') return <span className={`${styles.typeBadge} ${styles.typeSimulation}`}>G1 Simulation</span>;
