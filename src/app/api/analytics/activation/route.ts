@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getActivationDataFromSheet } from '@/services/sheets';
+import { getActivationDataFromSheet, getCheckoutInitiatorsFromSheet } from '@/services/sheets';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
+    console.log('GET /api/analytics/activation called');
     try {
         const { searchParams } = new URL(request.url);
         let startStr = searchParams.get('startDate') || undefined;
@@ -50,7 +53,22 @@ export async function GET(request: Request) {
             tookFreeTest: [] as string[],
             tookAtLeastOnePractice: [] as string[],
             tookTwoOrMorePractice: [] as string[],
-            tookThreeOrMorePractice: [] as string[]
+            tookThreeOrMorePractice: [] as string[],
+            initiatedCheckout: [] as string[],
+            paid: [] as string[]
+        };
+
+        let checkoutDetails: { email: string, creditsUsed: number }[] = [];
+        let checkoutInitiators: any[] = [];
+        let checkoutSet = new Set<string>();
+
+        let creditRenewalStats = {
+            exhaustedUsers: [] as string[],
+            exhaustedDetails: [] as { email: string, hasFreeTest: boolean }[],
+            returnedUsers: [] as string[],
+            exhaustedUsersCount: 0,
+            returnedUsersCount: 0,
+            returnedDetails: [] as { email: string, firstTestTime: string, renewalTime: string, additionalTestsCount: number }[]
         };
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -60,7 +78,7 @@ export async function GET(request: Request) {
         });
 
         // Query profiles created within the date range
-        let query = supabase.from('profiles').select('id, email, created_at');
+        let query = supabase.from('profiles').select('id, email, created_at, is_premium');
         if (startStr) query = query.gte('created_at', `${startStr}T00:00:00Z`);
         if (endStr) query = query.lte('created_at', `${endStr}T23:59:59Z`);
 
@@ -74,11 +92,13 @@ export async function GET(request: Request) {
             const userTestTypes: Record<string, string[]> = {};
             const chunkSize = 200;
 
+            const userTests: Record<string, { test_type: string, created_at: string }[]> = {};
+
             for (let i = 0; i < userIds.length; i += chunkSize) {
                 const chunk = userIds.slice(i, i + chunkSize);
                 const { data: simResults } = await supabase
                     .from('simulation_results')
-                    .select('user_id, test_type')
+                    .select('user_id, test_type, created_at')
                     .in('user_id', chunk);
 
                 if (simResults) {
@@ -88,9 +108,21 @@ export async function GET(request: Request) {
                             userTestTypes[res.user_id] = [];
                         }
                         userTestTypes[res.user_id].push(res.test_type);
+
+                        if (!userTests[res.user_id]) {
+                            userTests[res.user_id] = [];
+                        }
+                        userTests[res.user_id].push({
+                            test_type: res.test_type,
+                            created_at: res.created_at
+                        });
                     });
                 }
             }
+
+            // Fetch checkout initiations from sheets
+            checkoutInitiators = await getCheckoutInitiatorsFromSheet(startStr, endStr);
+            checkoutSet = new Set(checkoutInitiators.map(ci => ci.email.toLowerCase().trim()));
 
             // Tally the users into the activation funnel using their email addresses
             profiles.forEach(p => {
@@ -113,14 +145,80 @@ export async function GET(request: Request) {
                         activationFunnel.tookThreeOrMorePractice.push(userEmail);
                     }
                 }
+
+                // Check for checkout initiation and premium status regardless of whether they saved the free test
+                const normalizedEmail = (p.email || '').toLowerCase().trim();
+                
+                if (normalizedEmail && checkoutSet.has(normalizedEmail)) {
+                    activationFunnel.initiatedCheckout.push(userEmail);
+
+                    // Find all checkout timestamps for this user
+                    const userEvents = checkoutInitiators.filter(ci => ci.email.toLowerCase().trim() === normalizedEmail);
+                    let earliestCheckoutTime = Infinity;
+                    userEvents.forEach(evt => {
+                        const formatted = evt.timestamp.replace(' ', 'T') + '-04:00';
+                        const time = new Date(formatted).getTime();
+                        if (!isNaN(time) && time < earliestCheckoutTime) {
+                            earliestCheckoutTime = time;
+                        }
+                    });
+
+                    // Count how many practice tests this user took BEFORE the earliest checkout time
+                    const userAllTests = userTests[p.id] || [];
+                    const practiceTestsBeforeCheckout = userAllTests.filter(t => {
+                        const isPractice = t.test_type === 'Rules of the Road' || t.test_type === 'Road Signs';
+                        const testTime = new Date(t.created_at).getTime();
+                        return isPractice && testTime < earliestCheckoutTime;
+                    });
+
+                    checkoutDetails.push({
+                        email: p.email || p.id,
+                        creditsUsed: practiceTestsBeforeCheckout.length
+                    });
+                }
+                if (p.is_premium) {
+                    activationFunnel.paid.push(userEmail);
+                } else {
+                    // Calculate credit renewal and retention for non-premium users
+                    const userPracticeTests = (userTests[p.id] || [])
+                        .filter(t => t.test_type === 'Rules of the Road' || t.test_type === 'Road Signs')
+                        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+                    if (userPracticeTests.length >= 3) {
+                        creditRenewalStats.exhaustedUsers.push(userEmail);
+                        creditRenewalStats.exhaustedDetails.push({
+                            email: userEmail,
+                            hasFreeTest
+                        });
+                        
+                        const firstTestTime = new Date(userPracticeTests[0].created_at).getTime();
+                        const renewalTime = firstTestTime + 3 * 60 * 60 * 1000; // 3 hours
+
+                        // Check if they took at least 1 more test after credit renewal
+                        const additionalTests = userPracticeTests.slice(3).filter(t => new Date(t.created_at).getTime() >= renewalTime);
+                        if (additionalTests.length > 0) {
+                            creditRenewalStats.returnedUsers.push(userEmail);
+                            creditRenewalStats.returnedDetails.push({
+                                email: userEmail,
+                                firstTestTime: userPracticeTests[0].created_at,
+                                renewalTime: new Date(renewalTime).toISOString(),
+                                additionalTestsCount: additionalTests.length
+                            });
+                        }
+                    }
+                }
             });
+            creditRenewalStats.exhaustedUsersCount = creditRenewalStats.exhaustedUsers.length;
+            creditRenewalStats.returnedUsersCount = creditRenewalStats.returnedUsers.length;
         }
 
         return NextResponse.json({
             landingPage,
             freeTest,
             dailyTrends,
-            activationFunnel
+            activationFunnel,
+            checkoutDetails,
+            creditRenewalStats
         });
 
     } catch (error) {

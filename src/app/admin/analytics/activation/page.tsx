@@ -58,6 +58,8 @@ export default function ActivationPage() {
     const tookAtLeastOnePracticeCount = activationFunnel.tookAtLeastOnePractice?.length || 0;
     const tookTwoOrMorePracticeCount = activationFunnel.tookTwoOrMorePractice?.length || 0;
     const tookThreeOrMorePracticeCount = activationFunnel.tookThreeOrMorePractice?.length || 0;
+    const initiatedCheckoutCount = activationFunnel.initiatedCheckout?.length || 0;
+    const paidCount = activationFunnel.paid?.length || 0;
 
     const getStepPercentage = (current: number, previous: number) => {
         if (!previous) return '0.0%';
@@ -110,27 +112,6 @@ export default function ActivationPage() {
                     <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Free Test Engagement</h2>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                            <KpiCard
-                                title="Started Test"
-                                value={(freeTest.started || 0).toLocaleString()}
-                                icon={PlayCircle}
-                                color="#6366f1"
-                            />
-                            <KpiCard
-                                title="Abandoned Test"
-                                value={(freeTest.abandoned || 0).toLocaleString()}
-                                icon={XCircle}
-                                color="#ef4444"
-                            />
-                            <KpiCard
-                                title="Completed Test"
-                                value={(freeTest.completed || 0).toLocaleString()}
-                                icon={CheckCircle}
-                                color="#10b981"
-                                subtitle={`${((freeTest.completionRate) * 100 || 0).toFixed(1)}% Completion Rate`}
-                            />
-                        </div>
 
                         {/* Funnel Section */}
                         <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
@@ -139,7 +120,7 @@ export default function ActivationPage() {
                             </h4>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                                 <FunnelStep
-                                    label="Start"
+                                    label="Started Test"
                                     value={(freeTest.started || 0).toLocaleString()}
                                     color="#6366f1"
                                 />
@@ -148,7 +129,7 @@ export default function ActivationPage() {
                                     label="Completed"
                                 />
                                 <FunnelStep
-                                    label="Complete"
+                                    label="Completed Test"
                                     value={(freeTest.completed || 0).toLocaleString()}
                                     color="#ec4899"
                                 />
@@ -157,8 +138,17 @@ export default function ActivationPage() {
                                     label="Sign Up Rate"
                                 />
                                 <FunnelStep
-                                    label="Initiate Sign Up"
+                                    label="Initiated Sign Up"
                                     value={(freeTest.conversions || 0).toLocaleString()}
+                                    color="#fbbf24"
+                                />
+                                <FunnelConnector
+                                    percentage={((signUpCount && freeTest.conversions) ? ((signUpCount / freeTest.conversions) * 100).toFixed(1) + '%' : '0%')}
+                                    label="Registration Rate"
+                                />
+                                <FunnelStep
+                                    label="Sign Up"
+                                    value={(signUpCount || 0).toLocaleString()}
                                     color="#10b981"
                                     isLast
                                 />
@@ -264,8 +254,24 @@ export default function ActivationPage() {
                                             value: tookThreeOrMorePracticeCount,
                                             stepConv: getStepPercentage(tookThreeOrMorePracticeCount, tookTwoOrMorePracticeCount),
                                             totalConv: getTotalPercentage(tookThreeOrMorePracticeCount),
-                                            color: "#10b981",
+                                            color: "#f43f5e",
                                             onClick: () => setSelectedUsers({ label: 'Users who took all 3 free practice tests', ids: activationFunnel.tookThreeOrMorePractice || [] })
+                                        },
+                                        {
+                                            label: "6. Initiated Checkout",
+                                            value: initiatedCheckoutCount,
+                                            stepConv: getStepPercentage(initiatedCheckoutCount, tookThreeOrMorePracticeCount),
+                                            totalConv: getTotalPercentage(initiatedCheckoutCount),
+                                            color: "#fbbf24",
+                                            onClick: () => setSelectedUsers({ label: 'Users who initiated checkout', ids: activationFunnel.initiatedCheckout || [] })
+                                        },
+                                        {
+                                            label: "7. Paid for Unlimited Plan",
+                                            value: paidCount,
+                                            stepConv: getStepPercentage(paidCount, initiatedCheckoutCount),
+                                            totalConv: getTotalPercentage(paidCount),
+                                            color: "#10b981",
+                                            onClick: () => setSelectedUsers({ label: 'Premium Users (Paid)', ids: activationFunnel.paid || [] })
                                         }
                                     ].map((row, idx) => (
                                         <tr 
@@ -315,6 +321,74 @@ export default function ActivationPage() {
                         </div>
                     </div>
 
+                    {/* Retention & Credit Refill Engagement Section */}
+                    <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Credit Renewal & Retention (Non-Premium Users)</h2>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                            Track the retention behavior of users who exhausted their initial 3 free practice tests without upgrading to Premium.
+                        </p>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+                            <div 
+                                onClick={() => setSelectedUsers({ 
+                                    label: 'Users who exhausted free credits (Non-Premium)', 
+                                    ids: data?.creditRenewalStats?.exhaustedUsers || [] 
+                                })}
+                                style={{ 
+                                    padding: '1.5rem', 
+                                    background: 'rgba(255,255,255,0.02)', 
+                                    border: '1px solid rgba(255,255,255,0.05)', 
+                                    borderRadius: '12px', 
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Exhausted Free Credits</div>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f43f5e' }}>
+                                    {(data?.creditRenewalStats?.exhaustedUsersCount || 0).toLocaleString()}
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.5rem' }}>
+                                    Took all 3 free practice tests & have not upgraded.
+                                </div>
+                            </div>
+
+                            <div 
+                                onClick={() => setSelectedUsers({ 
+                                    label: 'Users who returned after credit renewal (Non-Premium)', 
+                                    ids: data?.creditRenewalStats?.returnedUsers || [] 
+                                })}
+                                style={{ 
+                                    padding: '1.5rem', 
+                                    background: 'rgba(255,255,255,0.02)', 
+                                    border: '1px solid rgba(255,255,255,0.05)', 
+                                    borderRadius: '12px', 
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Returned After Credit Renewal</div>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                                    {(data?.creditRenewalStats?.returnedUsersCount || 0).toLocaleString()}
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.5rem' }}>
+                                    Took at least 1 more practice test after their 3-hour credit replenishment.
+                                </div>
+                            </div>
+
+                            <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '12px' }}>
+                                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Retention Rate</div>
+                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
+                                    {data?.creditRenewalStats?.exhaustedUsersCount 
+                                        ? `${((data.creditRenewalStats.returnedUsersCount / data.creditRenewalStats.exhaustedUsersCount) * 100).toFixed(1)}%` 
+                                        : '0.0%'
+                                    }
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.5rem' }}>
+                                    % of credit-exhausted users who returned.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                 </>
             )}
@@ -328,11 +402,109 @@ export default function ActivationPage() {
                             <button onClick={() => setSelectedUsers(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0 }}><XCircle size={24} /></button>
                         </div>
                         <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', color: '#fff' }}>
-                            {selectedUsers.ids.length > 0 ? selectedUsers.ids.map(id => (
-                                <div key={id} style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', fontSize: '0.9rem', wordBreak: 'break-all' }}>
-                                    {id}
-                                </div>
-                            )) : (
+                            {selectedUsers.ids.length > 0 ? selectedUsers.ids.map(id => {
+                                const isCheckout = selectedUsers.label === 'Users who initiated checkout';
+                                const detail = isCheckout 
+                                    ? data?.checkoutDetails?.find((d: any) => d.email.toLowerCase() === id.toLowerCase())
+                                    : null;
+                                const creditsUsed = detail ? detail.creditsUsed : null;
+
+                                const isReturned = selectedUsers.label === 'Users who returned after credit renewal (Non-Premium)';
+                                const returnedDetail = isReturned
+                                    ? data?.creditRenewalStats?.returnedDetails?.find((d: any) => d.email.toLowerCase() === id.toLowerCase())
+                                    : null;
+
+                                const isExhaustedOrReturned = 
+                                    selectedUsers.label === 'Users who exhausted free credits (Non-Premium)' ||
+                                    selectedUsers.label === 'Users who returned after credit renewal (Non-Premium)';
+                                const exhaustedDetail = isExhaustedOrReturned
+                                    ? data?.creditRenewalStats?.exhaustedDetails?.find((d: any) => d.email.toLowerCase() === id.toLowerCase())
+                                    : null;
+
+                                return (
+                                    <div 
+                                        key={id} 
+                                        style={{ 
+                                            padding: '1rem', 
+                                            background: 'rgba(255,255,255,0.03)', 
+                                            border: '1px solid rgba(255,255,255,0.05)',
+                                            borderRadius: '8px', 
+                                            fontSize: '0.9rem', 
+                                            wordBreak: 'break-all',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '0.5rem'
+                                        }}
+                                    >
+                                        <div style={{ color: '#f3f4f6', fontWeight: 500 }}>
+                                            {id}
+                                        </div>
+                                        {creditsUsed !== null && (
+                                            <div style={{ display: 'flex' }}>
+                                                <span 
+                                                    style={{ 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: 600,
+                                                        color: '#fbbf24',
+                                                        backgroundColor: 'rgba(251, 191, 36, 0.1)', 
+                                                        padding: '0.25rem 0.5rem', 
+                                                        borderRadius: '4px',
+                                                        border: '1px solid rgba(251, 191, 36, 0.2)'
+                                                    }}
+                                                >
+                                                    {creditsUsed} {creditsUsed === 1 ? 'credit' : 'credits'} used before checkout
+                                                </span>
+                                            </div>
+                                        )}
+                                        {returnedDetail && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+                                                    ⏱️ Credit Replenished: {new Date(returnedDetail.renewalTime).toLocaleString('en-CA', {
+                                                        timeZone: 'America/New_York',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: false
+                                                    })} EST
+                                                </div>
+                                                <div style={{ display: 'flex' }}>
+                                                    <span 
+                                                        style={{ 
+                                                            fontSize: '0.75rem', 
+                                                            fontWeight: 600,
+                                                            color: '#3b82f6',
+                                                            backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+                                                            padding: '0.25rem 0.5rem', 
+                                                            borderRadius: '4px',
+                                                            border: '1px solid rgba(59, 130, 246, 0.2)'
+                                                        }}
+                                                    >
+                                                        Returned and took {returnedDetail.additionalTestsCount} more practice test{returnedDetail.additionalTestsCount === 1 ? '' : 's'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {exhaustedDetail && (
+                                            <div style={{ display: 'flex' }}>
+                                                <span 
+                                                    style={{ 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: 600,
+                                                        color: exhaustedDetail.hasFreeTest ? '#10b981' : '#ef4444',
+                                                        backgroundColor: exhaustedDetail.hasFreeTest ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                                                        padding: '0.25rem 0.5rem', 
+                                                        borderRadius: '4px',
+                                                        border: exhaustedDetail.hasFreeTest ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+                                                    }}
+                                                >
+                                                    {exhaustedDetail.hasFreeTest ? '✅ Took Homepage Free Mock Test' : '❌ Skipped Homepage Free Mock Test'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }) : (
                                 <div style={{ color: 'rgba(255,255,255,0.5)', padding: '1rem', textAlign: 'center' }}>No users found for this stage.</div>
                             )}
                         </div>

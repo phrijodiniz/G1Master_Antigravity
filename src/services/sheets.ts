@@ -400,3 +400,71 @@ export async function appendActivityToSheet(eventData: (string | number)[]) {
         return false;
     }
 }
+
+export async function getCheckoutInitiatorsFromSheet(startDate?: string, endDate?: string) {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+        const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'App Activity!A:D',
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            return [];
+        }
+
+        const parseDateLocal = (dateStr: string) => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        };
+
+        const start = startDate ? parseDateLocal(startDate) : new Date(2000, 0, 1);
+        const end = endDate ? parseDateLocal(endDate) : new Date();
+
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+
+        const initiators = [];
+
+        // Skip header row
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const timestamp = row[0];
+            const email = row[1];
+            const eventType = row[3];
+
+            if (!timestamp || !email || !eventType) continue;
+
+            if (eventType.startsWith('Checkout Initiated')) {
+                const datePart = timestamp.substring(0, 10);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+                    const rowDate = parseDateLocal(datePart);
+                    rowDate.setHours(12, 0, 0, 0);
+                    if (rowDate >= start && rowDate <= end) {
+                        initiators.push({
+                            email: email.toLowerCase().trim(),
+                            timestamp: timestamp
+                        });
+                    }
+                }
+            }
+        }
+
+        return initiators;
+    } catch (error) {
+        console.error('Error fetching checkout initiators from sheet:', error);
+        return [];
+    }
+}
+
