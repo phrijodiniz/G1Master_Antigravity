@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback, ReactNode } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 import { User, Session } from "@supabase/supabase-js";
@@ -34,12 +34,17 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
     const [profile, setProfile] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
     const profileRef = useRef(profile); // Track latest profile for stale closures
+    const userRef = useRef(user); // Track latest user for stable fetch callbacks
     const fetchingPromiseRef = useRef<Promise<void> | null>(null); // Track in-progress fetch promise
     const isInitialMount = useRef(true); // Track initial mount for SSR profile fetching
 
     useEffect(() => {
         profileRef.current = profile;
     }, [profile]);
+
+    useEffect(() => {
+        userRef.current = user;
+    }, [user]);
     const [calcPracticeCredits, setCalcPracticeCredits] = useState<number | null>(null);
     const [calcSimulationCredits, setCalcSimulationCredits] = useState<number | null>(null);
     const [renewalDate, setRenewalDate] = useState<Date | null>(null);
@@ -252,7 +257,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
         };
     }, []);
 
-    const fetchProfile = async (userId: string, options?: { force?: boolean }) => {
+    const fetchProfile = useCallback(async (userId: string, options?: { force?: boolean }) => {
         // Check if data is already loaded and fresh enough (simple memory cache)
         if (!options?.force && profileRef.current && profileRef.current.id === userId) {
             console.log("Skipping profile fetch - using cached data");
@@ -422,8 +427,8 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     let expiry: Date | null = null;
                     if (oldestTestDate) {
                         expiry = new Date(oldestTestDate.getTime() + 3 * 60 * 60 * 1000);
-                    } else if (user?.created_at) {
-                        expiry = new Date(new Date(user.created_at).getTime() + 3 * 60 * 60 * 1000);
+                    } else if (userRef.current?.created_at) {
+                        expiry = new Date(new Date(userRef.current.created_at).getTime() + 3 * 60 * 60 * 1000);
                     }
 
                     setOfferExpiryDate(expiry);
@@ -463,18 +468,18 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
         });
 
         return fetchingPromiseRef.current;
-    };
+    }, []);
 
     const isPremium = profile?.status === "Premium" || profile?.is_premium === true; // Check both for backward compat if schema changed
     const isAdmin = profile?.admin === "YES" || profile?.admin === "yes" || profile?.admin === true || profile?.is_admin === true || profile?.role === "admin";
     const practiceCredits = calcPracticeCredits;
     const simulationCredits = calcSimulationCredits;
 
-    const refreshProfile = async (force?: boolean) => {
-        if (user) {
-            await fetchProfile(user.id, { force });
+    const refreshProfile = useCallback(async (force?: boolean) => {
+        if (userRef.current) {
+            await fetchProfile(userRef.current.id, { force });
         }
-    };
+    }, [fetchProfile]);
 
     const loginWithGoogle = async (nextUrl?: string) => {
         // Explicitly check for localhost to override any default Supabase site URL settings
