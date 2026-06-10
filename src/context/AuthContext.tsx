@@ -283,7 +283,10 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     attempts++;
                     console.log(`Attempt ${attempts}: Fetching profile...`);
 
-
+                    // Add a small delay on the first attempt to let client-side auth settle
+                    if (attempts === 1) {
+                        await new Promise(r => setTimeout(r, 200));
+                    }
 
                     const fetchTimeoutMs = attempts === 1 ? 10000 : 45000;
                     const timeoutPromise = new Promise((_, reject) =>
@@ -293,11 +296,13 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     // Fetch Profile with explicit cache bursting or headers
                     // Next.js aggressive cache or browser fetch cache might cache a 0-row response
                     // To prevent this, we specify no-cache and add a random query param just in case
-                    const profilePromise = supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', userId)
-                        .maybeSingle();
+                    const profilePromise = (async () => {
+                        return await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', userId)
+                            .maybeSingle();
+                    })();
 
                     // Supabase js v2 doesn't have a direct way to bypass fetch cache per query without custom fetch.
                     // But we don't want to recreate the client.
