@@ -10,8 +10,10 @@ export default function HistoryPage() {
     const { user, history, loading: authLoading, refreshProfile } = useAuth();
 
     useEffect(() => {
-        refreshProfile(true);
-    }, [refreshProfile]);
+        if (!authLoading) {
+            refreshProfile(true);
+        }
+    }, [authLoading, refreshProfile]);
 
     const getTestTypeLabel = (type: string) => {
         if (!type || type === 'Simulation') return <span className={`${styles.typeBadge} ${styles.typeSimulation}`}>G1 Simulation</span>;

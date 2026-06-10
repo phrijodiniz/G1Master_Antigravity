@@ -58,8 +58,10 @@ export default function Dashboard() {
     const router = useRouter();
 
     useEffect(() => {
-        refreshProfile(true);
-    }, [refreshProfile]);
+        if (!loading && practiceCredits === null) {
+            refreshProfile(true);
+        }
+    }, [loading, practiceCredits, refreshProfile]);
 
     // Helper to capitalize
     const formatName = (name: string) => {
