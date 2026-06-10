@@ -236,20 +236,6 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
         // 2. Trigger initial session check (hydrate calls)
         // Removed manual initAuth() as onAuthStateChange automatically fires INITIAL_SESSION
 
-        // 3. SSR Hydration Profile Load
-        // If we have an initial session from the server (SSR), fetch the profile immediately
-        // instead of waiting for onAuthStateChange to possibly fire INITIAL_SESSION.
-        if (isInitialMount.current && initialSession?.user) {
-            console.log("Hydrating profile from SSR session...");
-            loadProfileForUser(initialSession.user.id).finally(() => {
-                if (mounted) setLoading(false);
-            });
-            isInitialMount.current = false;
-        } else if (isInitialMount.current && !initialSession) {
-            setLoading(false);
-            isInitialMount.current = false;
-        }
-
         return () => {
             mounted = false;
             subscription.unsubscribe();
