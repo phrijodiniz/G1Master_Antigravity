@@ -2,14 +2,29 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { user, loading, isAdmin } = useAuth();
+    const { user, loading: authLoading, isAdmin, refreshProfile } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const isLoginPage = pathname === '/admin/login';
+    const [localLoading, setLocalLoading] = useState(true);
+
+    // Refresh profile on mount to ensure admin role is accurately loaded
+    useEffect(() => {
+        if (user && !isAdmin) {
+            setLocalLoading(true);
+            refreshProfile(true).finally(() => {
+                setLocalLoading(false);
+            });
+        } else {
+            setLocalLoading(false);
+        }
+    }, [user, isAdmin, refreshProfile]);
+
+    const loading = authLoading || localLoading;
 
     // Redirect logic
     useEffect(() => {

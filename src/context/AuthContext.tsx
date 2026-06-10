@@ -266,7 +266,8 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
 
         // If a fetch is already running for this user (or generally), join it.
         // We could optimize to check userId, but generally only one user is active.
-        if (fetchingPromiseRef.current) {
+        // Unless options.force is true, in which case we start a fresh fetch.
+        if (!options?.force && fetchingPromiseRef.current) {
             console.log("Joining existing profile fetch for", userId);
             return fetchingPromiseRef.current;
         }
@@ -447,7 +448,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                         err?.message?.toLowerCase()?.includes('unauthorized') ||
                         err?.message?.toLowerCase()?.includes('permission');
                     
-                    if (isAuthOrPermissionError) {
+                    if (isAuthOrPermissionError && attempts >= maxAttempts) {
                         console.error("Fatal authentication or permission error. Skipping retry.", err);
                         throw err;
                     }
