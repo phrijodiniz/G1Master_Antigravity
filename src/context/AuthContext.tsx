@@ -136,7 +136,10 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
             }
 
             if (shouldLoad) {
-                await loadProfileForUser(currentUser.id);
+                // Do NOT await loadProfileForUser to prevent deadlock with GoTrueClient initialization
+                loadProfileForUser(currentUser.id).finally(() => {
+                    if (mounted) setLoading(false);
+                });
 
                 // --- NEW: SESSION LOGGING LOGIC ---
                 try {
@@ -185,6 +188,8 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     console.error("Failed to log session:", err);
                 }
                 // --- END NEW LOGIC ---
+            } else {
+                setLoading(false);
             }
 
             // --- Tracking Google Signups Centrally ---
@@ -229,8 +234,6 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     }
                 }
             }
-
-            setLoading(false);
         });
 
         // 2. Trigger initial session check (hydrate calls)
