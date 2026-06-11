@@ -81,6 +81,7 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                     }}>
                         <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: passed ? '#22c55e' : '#ef4444' }}></span>
                         {passed ? 'Passed' : 'Failed'}
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: passed ? '#22c55e' : '#ef4444' }}></span>
                     </div>
 
                     {/* Secondary Score Display */}
