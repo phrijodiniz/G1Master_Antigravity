@@ -56,11 +56,11 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
     // Smart Suggestion Logic
     let suggestionText = "";
     if (rulesScore < totalRules && rulesScore < signsScore) {
-        suggestionText = "You should focus on Rules of the Road next. Try a targeted practice test to improve your score.";
+        suggestionText = "You should focus on Rules of the Road next. Try a targeted practice test to improve your score. Click the button below to start immediately.";
     } else if (signsScore < totalSigns && signsScore < rulesScore) {
-        suggestionText = "You should focus on Road Signs next. Try a targeted practice test to improve your score.";
+        suggestionText = "You should focus on Road Signs next. Try a targeted practice test to improve your score. Click the button below to start immediately.";
     } else {
-        suggestionText = "Both sections need steady practice. Keep taking tests to build confidence and reach a 100% pass guarantee.";
+        suggestionText = "Both sections need steady practice. Click the recommended test below to build confidence and guarantee a first-time pass.";
     }
 
     return (
@@ -72,13 +72,9 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                 <button onClick={onClose} className={styles.closeBtn} aria-label="Close modal">×</button>
 
                 {/* Result Title */}
-                <h2 className={styles.title} style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: 800 }}>
+                <h2 className={styles.title} style={{ fontSize: '2rem', marginBottom: '1.2rem', fontWeight: 800 }}>
                     G1 Test Diagnostic
                 </h2>
-                
-                <p className={styles.subtitle} style={{ marginBottom: '1.2rem', fontSize: '1.05rem' }}>
-                    Here is the breakdown of your first practice test.
-                </p>
 
                 {/* Step Tracker */}
                 <div className={styles.stepTracker}>
@@ -87,12 +83,20 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                     <span className={styles.stepPending}>Step 2: Start Practice Test</span>
                 </div>
 
-                {/* Status Indicator */}
-                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', padding: '0.5rem 1.2rem', borderRadius: '30px', background: passed ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: passed ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)', marginBottom: '1.5rem' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: passed ? '#22c55e' : '#ef4444' }}></span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: passed ? '#22c55e' : '#ef4444' }}>
-                        {passed ? 'Passed Standard' : 'Failed Standard'}
-                    </span>
+                {/* Status and Score Badges */}
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
+                    {/* Status Indicator */}
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.2rem', borderRadius: '30px', background: passed ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: passed ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: passed ? '#22c55e' : '#ef4444' }}></span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: passed ? '#22c55e' : '#ef4444' }}>
+                            {passed ? 'Passed' : 'Failed'}
+                        </span>
+                    </div>
+
+                    {/* Score Indicator */}
+                    <div className={styles.scoreBadge}>
+                        Score: {correctAnswers}/{tq}
+                    </div>
                 </div>
 
                 <div className={styles.diagnosticBox}>
@@ -100,34 +104,9 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                         {passed ? (
                             <><strong>Great job!</strong> You passed this practice test. However, the official Ontario G1 exam requires scoring at least 80% on both sections separately to pass. Keep practicing to make sure you pass on your first try!</>
                         ) : (
-                            <><strong>Test Result: Fail.</strong> You did not reach the passing standard today. The official G1 test requires scoring at least 80% in both Rules of the Road and Road Signs separately.</>
+                            <><strong>Official Exam Status: FAILED.</strong> Based on these results, you would fail the official Ontario G1 exam today. Retakes cost <strong>$16.00</strong> each, plus weeks of waiting for a new booking. Keep your momentum going and practice now to avoid wasting time and money.</>
                         )}
                     </p>
-
-                    {/* Section Cards */}
-                    <div className={styles.scoreCardsContainer}>
-                        {/* Rules card */}
-                        <div className={styles.scoreCard}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                <span style={{ fontWeight: 600, color: 'white' }}>Rules of the Road</span>
-                                <span style={{ fontWeight: 700, color: '#e1ff21' }}>{rulesScore}/{totalRules} correct</span>
-                            </div>
-                            <div className={styles.progressTrack}>
-                                <div className={styles.progressBar} style={{ width: `${rulesPercentage}%` }} />
-                            </div>
-                        </div>
-
-                        {/* Signs card */}
-                        <div className={styles.scoreCard}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                <span style={{ fontWeight: 600, color: 'white' }}>Road Signs</span>
-                                <span style={{ fontWeight: 700, color: '#e1ff21' }}>{signsScore}/{totalSigns} correct</span>
-                            </div>
-                            <div className={styles.progressTrack}>
-                                <div className={styles.progressBar} style={{ width: `${signsPercentage}%` }} />
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Smart suggestion bubble */}
                     <div className={styles.suggestionBubble}>
