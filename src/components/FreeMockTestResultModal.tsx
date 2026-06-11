@@ -76,19 +76,26 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                     G1 Test Diagnostic
                 </h2>
 
-                {/* Status and Score Badges */}
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
-                    {/* Status Indicator */}
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.2rem', borderRadius: '30px', background: passed ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: passed ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: passed ? '#22c55e' : '#ef4444' }}></span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: passed ? '#22c55e' : '#ef4444' }}>
-                            {passed ? 'Passed' : 'Failed'}
-                        </span>
+                {/* Status and Score Display */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', marginBottom: '1.5rem' }}>
+                    {/* Highlighted Status */}
+                    <div style={{ 
+                        fontSize: '1.6rem', 
+                        fontWeight: 800, 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '1px', 
+                        color: passed ? '#22c55e' : '#ef4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem'
+                    }}>
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: passed ? '#22c55e' : '#ef4444' }}></span>
+                        {passed ? 'Passed' : 'Failed'}
                     </div>
 
-                    {/* Score Indicator */}
-                    <div className={styles.scoreBadge}>
-                        Score: {correctAnswers}/{tq}
+                    {/* Secondary Score Display */}
+                    <div style={{ fontSize: '0.95rem', color: '#94a3b8', fontWeight: 600 }}>
+                        Score: {correctAnswers}/{tq} correct answers
                     </div>
                 </div>
 
