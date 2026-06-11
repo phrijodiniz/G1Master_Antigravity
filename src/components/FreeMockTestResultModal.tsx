@@ -122,13 +122,6 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                             Or, try a {secondaryCategory} Test
                         </button>
                     </div>
-
-                    <button 
-                        onClick={onClose} 
-                        className={styles.dashboardTextLink}
-                    >
-                        I'll explore the dashboard first
-                    </button>
                 </div>
             </div>
         </div>
