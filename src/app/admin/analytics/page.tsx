@@ -8,6 +8,12 @@ export default function AdminAnalyticsPage() {
 
     const cards = [
         {
+            title: "📄 PDF Report Generator",
+            description: "Generate and download a comprehensive PDF report from June 6th, 2026 to today.",
+            href: "/admin/analytics/report",
+            color: "#EF4444" // Red
+        },
+        {
             title: "📈 Acquisition",
             description: "Monitor traffic, cost, and signup performance.",
             href: "/admin/analytics/acquisition",
