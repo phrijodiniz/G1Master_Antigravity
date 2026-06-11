@@ -53,16 +53,6 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
     const recommendedCategory = rulesScore < signsScore ? 'Rules of the Road' : 'Road Signs';
     const secondaryCategory = recommendedCategory === 'Rules of the Road' ? 'Road Signs' : 'Rules of the Road';
 
-    // Smart Suggestion Logic
-    let suggestionText = "";
-    if (rulesScore < totalRules && rulesScore < signsScore) {
-        suggestionText = "You should focus on Rules of the Road next. Try a targeted practice test to improve your score. Click the button below to start immediately.";
-    } else if (signsScore < totalSigns && signsScore < rulesScore) {
-        suggestionText = "You should focus on Road Signs next. Try a targeted practice test to improve your score. Click the button below to start immediately.";
-    } else {
-        suggestionText = "Both sections need steady practice. Click the recommended test below to build confidence and guarantee a first-time pass.";
-    }
-
     return (
         <div className={styles.container}>
             <div className={styles.gradientBg}></div>
@@ -111,8 +101,8 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                     {/* Smart suggestion bubble */}
                     <div className={styles.suggestionBubble}>
                         <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>💡</span>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
-                            <strong>Recommendation:</strong> {suggestionText}
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5', textAlign: 'left' }}>
+                            <strong>Target Area:</strong> {recommendedCategory}. You lost the most points here. Let's fix that with a quick, focused run...
                         </p>
                     </div>
 
@@ -122,13 +112,14 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                             onClick={() => handlePracticeClick(recommendedCategory)} 
                             className={styles.primaryPulseBtn}
                         >
-                            ⚡ Start Recommended: {recommendedCategory} {!isPremium ? '(Free)' : ''}
+                            ⚡ Master {recommendedCategory} {!isPremium ? '(Free)' : ''}
                         </button>
+                        
                         <button 
                             onClick={() => handlePracticeClick(secondaryCategory)} 
-                            className={styles.secondaryGhostBtn}
+                            className={styles.secondaryTextLink}
                         >
-                            Or, Practice {secondaryCategory} {!isPremium ? '(Free)' : ''}
+                            Or, try {secondaryCategory}
                         </button>
                     </div>
 

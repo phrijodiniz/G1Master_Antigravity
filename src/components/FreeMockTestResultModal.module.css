@@ -351,6 +351,23 @@
     transform: translateY(0);
 }
 
+.secondaryTextLink {
+    color: #cbd5e1;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+    display: inline-block;
+    margin-top: 0.5rem;
+}
+
+.secondaryTextLink:hover {
+    color: white;
+}
+
 .dashboardTextLink {
     color: #64748b;
     background: none;
@@ -424,8 +441,8 @@
         padding: 0.95rem;
         font-size: 0.95rem;
     }
-    .secondaryGhostBtn {
-        padding: 0.85rem;
+    .secondaryTextLink {
         font-size: 0.9rem;
+        margin-top: 0.4rem;
     }
 }
