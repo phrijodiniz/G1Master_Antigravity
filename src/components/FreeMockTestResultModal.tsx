@@ -76,13 +76,6 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                     G1 Test Diagnostic
                 </h2>
 
-                {/* Step Tracker */}
-                <div className={styles.stepTracker}>
-                    <span className={styles.stepDone}>Step 1: Diagnostic Completed ✓</span>
-                    <span className={styles.stepDivider}>→</span>
-                    <span className={styles.stepPending}>Step 2: Start Practice Test</span>
-                </div>
-
                 {/* Status and Score Badges */}
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
                     {/* Status Indicator */}
