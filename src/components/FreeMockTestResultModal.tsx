@@ -104,7 +104,7 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                         {passed ? (
                             <><strong>Great job!</strong> You passed this practice test. However, the official Ontario G1 exam requires scoring at least 80% on both sections separately to pass. Keep practicing to make sure you pass on your first try!</>
                         ) : (
-                            <><strong>Official Exam Status: FAILED.</strong> Based on these results, you would fail the official Ontario G1 exam today. Retakes cost <strong>$16.00</strong> each, plus weeks of waiting for a new booking. Keep your momentum going and practice now to avoid wasting time and money.</>
+                            <><strong>You wouldn't pass the real G1 today.</strong> Avoid the $16 retake fee and weeks of waiting—keep practicing now</>
                         )}
                     </p>
 
