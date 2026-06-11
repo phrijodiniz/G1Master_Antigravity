@@ -95,7 +95,7 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
 
                     {/* Secondary Score Display */}
                     <div style={{ fontSize: '0.95rem', color: '#94a3b8', fontWeight: 600 }}>
-                        Score: {correctAnswers}/{tq} correct answers
+                        Score: {correctAnswers}/{tq}
                     </div>
                 </div>
 
