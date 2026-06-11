@@ -112,14 +112,14 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                             onClick={() => handlePracticeClick(recommendedCategory)} 
                             className={styles.primaryPulseBtn}
                         >
-                            ⚡ Master {recommendedCategory} {!isPremium ? '(Free)' : ''}
+                            ⚡ Start 10-Question {recommendedCategory} Test Now!
                         </button>
                         
                         <button 
                             onClick={() => handlePracticeClick(secondaryCategory)} 
                             className={styles.secondaryTextLink}
                         >
-                            Or, try {secondaryCategory}
+                            Or, try a {secondaryCategory} Test
                         </button>
                     </div>
 
