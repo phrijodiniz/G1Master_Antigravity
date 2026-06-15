@@ -562,7 +562,7 @@ function QuizContent() {
 
                                 {(rulesAvg === null || rulesAvg < 80 || signsAvg === null || signsAvg < 80) && (
                                     <p style={{ fontSize: '1rem', fontWeight: 500, color: '#0f172a', margin: '1.5rem auto', maxWidth: '600px', textAlign: 'center', lineHeight: '1.5' }}>
-                                        You're not ready today — but you're a few focused sessions away. <strong>Free users are capped at 3 tests.</strong> To keep practicing until both sections clear 80%, you'll need Premium.
+                                        You're not ready today — but you're a few focused sessions away. <strong>Free tests are time-capped (subject to renewal delays).</strong> To keep practicing without limits until both sections clear 80%, you'll need Premium.
                                     </p>
                                 )}
 

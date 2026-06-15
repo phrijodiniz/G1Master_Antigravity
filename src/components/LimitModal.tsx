@@ -203,8 +203,15 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                 {isPracticeLimit && (
                     <>
                         <p className={styles.description}>
-                            You’ve completed all 2 free practice tests <br />
-                            <strong>Upgrade to Premium now and unlock:</strong>
+                            {formattedRenewal ? (
+                                <>
+                                    Free practice tests are time-capped. Your credits will renew automatically on <strong>{formattedRenewal}</strong>.
+                                </>
+                            ) : (
+                                <>You’ve completed your active free practice tests.</>
+                            )}
+                            <br />
+                            <strong style={{ display: 'block', marginTop: '0.5rem' }}>Upgrade to Premium now and unlock:</strong>
                         </p>
 
                         <div className={styles.featureList}>

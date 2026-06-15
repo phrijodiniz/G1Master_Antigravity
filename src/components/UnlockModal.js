@@ -150,14 +150,17 @@ export default function UnlockModal({ isOpen, results }) {
                                     {SHOW_VALUE_REVEAL ? "Create your FREE account to:" : "Included with free account:"}
                                 </p>
 
-                                <ul style={{ textAlign: 'left', display: 'inline-block', marginBottom: '1.5rem', opacity: 0.9, lineHeight: '1.6', listStyleType: 'none', padding: 0 }}>
-                                    <li style={{ marginBottom: '0.4rem' }}>✅ Reveal score & passing chance</li>
-                                    <li style={{ marginBottom: '0.4rem' }}>✅ 3 free practice tests</li>
-                                    <li>✅ Review correct & wrong answers</li>
-                                </ul>
+                                 <ul style={{ textAlign: 'left', display: 'inline-block', marginBottom: '1.5rem', opacity: 0.9, lineHeight: '1.6', listStyleType: 'none', padding: 0 }}>
+                                     <li style={{ marginBottom: '0.4rem' }}>✅ Reveal score & passing chance</li>
+                                     <li style={{ marginBottom: '0.4rem' }}>✅ Unlimited Practice Tests*</li>
+                                     <li>✅ Review correct & wrong answers</li>
+                                 </ul>
                             </>
                         )}
 
+                        <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.6rem', fontStyle: 'italic' }}>
+                            *Free tests are time-capped (subject to renewal delays).
+                        </p>
                         <p style={{ fontSize: '0.9rem', opacity: 0.7, marginBottom: '1.5rem', fontStyle: 'italic' }}>
                             It takes 10 seconds. FREE. No Spam.
                         </p>
