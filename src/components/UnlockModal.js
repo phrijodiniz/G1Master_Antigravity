@@ -151,9 +151,9 @@ export default function UnlockModal({ isOpen, results }) {
                                 </p>
 
                                 <ul style={{ textAlign: 'left', display: 'inline-block', marginBottom: '1.5rem', opacity: 0.9, lineHeight: '1.6', listStyleType: 'none', padding: 0 }}>
-                                    <li style={{ marginBottom: '0.4rem' }}>✅ Access +1000 new practice tests</li>
-                                    <li style={{ marginBottom: '0.4rem' }}>✅ Review all correct & incorrect answers</li>
-                                    <li>✅ Track your real G1 Readiness</li>
+                                    <li style={{ marginBottom: '0.4rem' }}>✅ Reveal your diagnostic score & pass probability</li>
+                                    <li style={{ marginBottom: '0.4rem' }}>✅ Access 3 free practice tests (Rules & Signs)</li>
+                                    <li>✅ Detailed review of all test answers</li>
                                 </ul>
                             </>
                         )}
