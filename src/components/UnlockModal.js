@@ -158,9 +158,6 @@ export default function UnlockModal({ isOpen, results }) {
                             </>
                         )}
 
-                        <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.6rem', fontStyle: 'italic' }}>
-                            *Free tests are time-capped (subject to renewal delays).
-                        </p>
                         <p style={{ fontSize: '0.9rem', opacity: 0.7, marginBottom: '1.5rem', fontStyle: 'italic' }}>
                             It takes 10 seconds. FREE. No Spam.
                         </p>
@@ -183,6 +180,10 @@ export default function UnlockModal({ isOpen, results }) {
                         >
                             Reveal my score - see if you'd pass today!
                         </button>
+
+                        <p style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '1.2rem', marginBottom: '0.2rem', fontStyle: 'italic' }}>
+                            *Free tests are time-capped (subject to renewal delays).
+                        </p>
                     </>
                 ) : (
                     <>
