@@ -151,9 +151,9 @@ export default function UnlockModal({ isOpen, results }) {
                                 </p>
 
                                 <ul style={{ textAlign: 'left', display: 'inline-block', marginBottom: '1.5rem', opacity: 0.9, lineHeight: '1.6', listStyleType: 'none', padding: 0 }}>
-                                    <li style={{ marginBottom: '0.4rem' }}>✅ Reveal your diagnostic score & pass probability</li>
-                                    <li style={{ marginBottom: '0.4rem' }}>✅ Access 3 free practice tests (Rules & Signs)</li>
-                                    <li>✅ Detailed review of all test answers</li>
+                                    <li style={{ marginBottom: '0.4rem' }}>✅ Reveal score & passing chance</li>
+                                    <li style={{ marginBottom: '0.4rem' }}>✅ 3 free practice tests</li>
+                                    <li>✅ Review correct & wrong answers</li>
                                 </ul>
                             </>
                         )}
