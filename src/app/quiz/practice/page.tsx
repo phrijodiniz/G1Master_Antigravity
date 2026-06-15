@@ -71,6 +71,9 @@ function QuizContent() {
     const [isSharing, setIsSharing] = useState(false);
     const [shareUrl, setShareUrl] = useState('');
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const [resultSaved, setResultSaved] = useState(false);
+    const [savedRecord, setSavedRecord] = useState<any>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     const handleShareWithParent = async () => {
         sendGTMEvent('begin_checkout', { source: 'practice_results_exhausted_share' });
@@ -148,9 +151,7 @@ function QuizContent() {
         let texts = [];
         if (percentage <= 40) {
             texts = [
-                "This is your starting point. Let’s build from here.",
-                "Good news: improvement happens fast with practice.",
-                "Let’s run it again and raise that score."
+                "Good news: improvement happens fast with practice."
             ];
         } else if (percentage <= 60) {
             texts = [
@@ -194,7 +195,10 @@ function QuizContent() {
             score: currentScore
         };
 
-        const combinedHistory = [currentTest, ...(history || [])];
+        const historyList = history || [];
+        const isAlreadySaved = savedRecord && historyList.some((item: any) => item.id === savedRecord.id);
+
+        const combinedHistory = isAlreadySaved ? historyList : [currentTest, ...historyList];
 
         const rulesPercentages: number[] = [];
         const signsPercentages: number[] = [];
@@ -220,7 +224,9 @@ function QuizContent() {
             : null;
 
         return { rulesAvg, signsAvg };
-    }, [completed, score, questions.length, history, category]);
+    }, [completed, score, questions.length, history, category, savedRecord]);
+
+    const { rulesAvg, signsAvg } = rollingCategoryAverages;
 
     // Compute pass probability based on rolling averages of Rules and Signs
     const passProbability = useMemo(() => {
@@ -239,6 +245,27 @@ function QuizContent() {
 
         return Math.round(40 + (avgPercentage * 0.5));
     }, [rollingCategoryAverages]);
+
+    const recent3PracticeTests = useMemo(() => {
+        if (!completed || questions.length === 0) return [];
+
+        const currentScore = Math.round((score / questions.length) * 100);
+        
+        const currentTest = {
+            test_type: category,
+            score: currentScore
+        };
+
+        const historyList = history || [];
+        const isAlreadySaved = savedRecord && historyList.some((item: any) => item.id === savedRecord.id);
+        const combinedHistory = isAlreadySaved ? historyList : [currentTest, ...historyList];
+
+        const practiceHistory = combinedHistory.filter(
+            (test: any) => test.test_type === 'Rules of the Road' || test.test_type === 'Road Signs'
+        );
+
+        return practiceHistory.slice(0, 3).reverse();
+    }, [completed, score, questions.length, history, category, savedRecord]);
 
     const STORAGE_KEY = `practice_session_${category}`;
 
@@ -311,8 +338,6 @@ function QuizContent() {
     }, [questions, currentindex, score, userAnswers, loading, completed]);
 
     // Save Result to DB on completion
-    const [resultSaved, setResultSaved] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (completed && user && !resultSaved && questions.length > 0) {
@@ -336,6 +361,9 @@ function QuizContent() {
                     alert('Error saving result: ' + error.message);
                 } else {
                     console.log('Result saved successfully:', data);
+                    if (data && data.length > 0) {
+                        setSavedRecord(data[0]);
+                    }
 
                     try {
                         const scorePercent = Math.round((score / questions.length) * 100);
@@ -355,10 +383,8 @@ function QuizContent() {
                         console.error("Failed to append activity to sheet", sheetError);
                     }
 
-                    // Consume Credit (Implicit)
-                    if (!isPremium) {
-                        await refreshProfile(true);
-                    }
+                    // Consume Credit (Implicit) & Refresh History
+                    await refreshProfile(true);
                 }
                 setIsSaving(false);
             };
@@ -395,6 +421,7 @@ function QuizContent() {
     const handleRetake = (targetCategory: string) => {
         if (isPremium || (practiceCredits && practiceCredits > 0)) {
             localStorage.removeItem(STORAGE_KEY);
+            setSavedRecord(null);
             if (targetCategory !== category) {
                 window.location.href = `/quiz/practice?category=${encodeURIComponent(targetCategory)}`;
             } else {
@@ -469,34 +496,86 @@ function QuizContent() {
                         </div>
                         
                         {/* Status badge based on pass probability / score readiness */}
-                        <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+                        <div style={{ marginTop: '1.5rem', marginBottom: '0.2rem' }}>
                             {passProbability >= 80 ? (
-                                <div className={`${styles.riskBadge} ${styles.riskBadgeReady}`}>
+                                <div className={`${styles.riskBadge} ${styles.riskBadgeReady}`} style={{ marginBottom: '0px' }}>
                                     <span className={`${styles.riskDot} ${styles.riskDotReady}`} />
                                     <span>G1 Ready ({passProbability}% Pass Probability)</span>
                                 </div>
                             ) : (
-                                <div className={`${styles.riskBadge} ${styles.riskBadgeNotReady}`}>
-                                    <span className={`${styles.riskDot} ${styles.riskDotNotReady}`} />
-                                    <span>Not Test Ready ({100 - passProbability}% Failure Risk)</span>
+                                <div className={`${styles.riskBadge} ${styles.riskBadgeNotReady}`} style={{ marginBottom: '0px' }}>
+                                    <span>Not Test Ready ({100 - passProbability}% Failure Risk*)</span>
                                 </div>
                             )}
                         </div>
-
-                        {/* Double-80% Ontario warning */}
-                        <div className={styles.doubleTrapBox}>
-                            <div className={styles.doubleTrapTitle}>
-                                ⚠️ Ontario G1 Separate Passing Requirement
-                            </div>
-                            <p className={styles.doubleTrapText}>
-                                The official Ontario G1 exam requires scoring at least <strong>80% on Rules of the Road</strong> AND <strong>80% on Road Signs</strong> separately to pass. If you fail either section, you fail the whole test. Practice until both categories show safe margins.
-                            </p>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem', fontWeight: 500 }}>
+                            *Calculated based on your rolling average across all tests
                         </div>
 
+                        {/* Double-80% Ontario warning */}
+                        {hasCredits && (
+                            <div className={styles.doubleTrapBox}>
+                                <div className={styles.doubleTrapTitle}>
+                                    ⚠️ Ontario G1 Separate Passing Requirement
+                                </div>
+                                <p className={styles.doubleTrapText}>
+                                    The official Ontario G1 exam requires scoring at least <strong>80% on Rules of the Road</strong> AND <strong>80% on Road Signs</strong> separately to pass. If you fail either section, you fail the whole test. Practice until both categories show safe margins.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Timer countdown if user is out of credits */}
-                        {!hasCredits && renewalDate && (
+                        {/* Personalized Study Report Card & Stakes box shown when out of credits */}
+                        {!hasCredits && (
+                            <>
+                                <div className={styles.studyReportCard}>
+                                    <h3 className={styles.reportCardTitle}>📊 Your Personalized Study Report</h3>
+                                    <p className={styles.reportCardSub}>Here are your scores for your latest practice tests:</p>
+                                    <div className={styles.reportCardGrid} style={{ borderBottom: 'none', paddingBottom: '0px', marginBottom: '0px' }}>
+                                        {recent3PracticeTests.map((test, index) => {
+                                            const label = `Test ${index + 1}`;
+                                            const isPassing = test.score >= 80;
+                                            return (
+                                                <div 
+                                                    key={index} 
+                                                    className={styles.reportCardRow} 
+                                                    style={{ 
+                                                        display: 'flex', 
+                                                        justifyContent: 'space-between', 
+                                                        alignItems: 'center', 
+                                                        padding: '0.75rem 0',
+                                                        borderBottom: index < recent3PracticeTests.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', textAlign: 'left' }}>
+                                                        <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{label}</span>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{test.test_type}</span>
+                                                    </div>
+                                                    <span className={isPassing ? styles.scorePass : styles.scoreFail} style={{ fontWeight: 800, fontSize: '1rem', whiteSpace: 'nowrap' }}>
+                                                        {test.score}% {isPassing ? '✅ (Passing)' : '⚠️ (Failing)'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                     </div>
+                                </div>
+
+                                {(rulesAvg === null || rulesAvg < 80 || signsAvg === null || signsAvg < 80) && (
+                                    <p style={{ fontSize: '1rem', fontWeight: 500, color: '#0f172a', margin: '1.5rem auto', maxWidth: '600px', textAlign: 'center', lineHeight: '1.5' }}>
+                                        You're not ready today — but you're a few focused sessions away. <strong>Free users are capped at 3 tests.</strong> To keep practicing until both sections clear 80%, you'll need Premium.
+                                    </p>
+                                )}
+
+                                <div className={styles.stakesWarningBox}>
+                                    ⚠️ <strong>Real Stakes:</strong> Failing the official G1 exam costs <strong>$16.00 per retake</strong>, plus weeks of waiting for a new booking. Protect your time and money by being 100% prepared.
+                                </div>
+                            </>
+                        )}
+
+                        {/* Timer countdown if user is out of credits and offer is active */}
+                        {!hasCredits && renewalDate && isOfferActive && (
                             <div className={styles.countdownBox}>
-                                ⏱️ {isOfferActive ? 'Next free credit & 20% OFF offer expires in: ' : 'Next free practice test unlocks in: '}<Countdown targetDate={renewalDate} />
+                                ⏱️ Next free credit & 35% OFF offer expires in: <Countdown targetDate={renewalDate} />
                             </div>
                         )}
 
@@ -514,34 +593,37 @@ function QuizContent() {
                                     >
                                         {isUpgrading 
                                             ? 'Redirecting to checkout...' 
-                                            : `🚀 Unlock Full Premium Access - ${isOfferActive ? '$15.98 (20% OFF)' : '$19.97'}`
+                                            : 'Pass First Time — Unlock Unlimited Practice'
                                         }
                                     </button>
-                                    <div style={{ fontSize: '0.85rem', color: '#475569', textAlign: 'center', marginTop: '0.4rem', fontWeight: 600 }}>
-                                        🔒 One-Time Payment • Lifetime Access • No Subscriptions
+
+                                    <div className={styles.priceGuaranteeBox}>
+                                        <div className={styles.priceGuaranteeTitle}>
+                                            One-Time Payment:{' '}
+                                            {isOfferActive ? (
+                                                <>
+                                                    <span style={{ textDecoration: 'line-through', opacity: 0.5 }}>$19.97</span>{' '}
+                                                    <span style={{ color: '#22c55e', fontWeight: 900 }}>$12.98</span>
+                                                </>
+                                            ) : (
+                                                <span style={{ color: '#0f172a', fontWeight: 900 }}>$19.97</span>
+                                            )}
+                                        </div>
+                                        <div className={styles.priceGuaranteeSub}>
+                                            🛡️ Pass on your first try or get a 100% refund.
+                                        </div>
+                                        <div className={styles.priceGuaranteeDesc}>
+                                            Practice as much as you want forever. No subscriptions or recurring fees.
+                                        </div>
                                     </div>
+
                                     <button
                                         onClick={handleShareWithParent}
                                         disabled={isSharing}
-                                        style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: '#2563eb',
-                                            fontSize: '0.85rem',
-                                            fontWeight: 600,
-                                            cursor: isSharing ? 'not-allowed' : 'pointer',
-                                            textDecoration: 'underline',
-                                            display: 'block',
-                                            margin: '0.5rem auto 0 auto',
-                                            textAlign: 'center',
-                                            padding: '0.25rem'
-                                        }}
+                                        className={styles.parentPayBtn}
                                     >
-                                        {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
+                                        {isSharing ? 'Generating link...' : '🔗 Ask Parent to Pay (Share Link)'}
                                     </button>
-                                    <div className={styles.guaranteeText}>
-                                        🛡️ Pass Guarantee: Pass on your first try or get a 100% refund.
-                                    </div>
                                     
                                     <button
                                         onClick={() => {

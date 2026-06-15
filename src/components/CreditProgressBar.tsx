@@ -21,11 +21,19 @@ function Countdown({ targetDate }: { targetDate: Date }) {
             }
 
             const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)) + (days * 24); // Add days as hours
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-            setTimeLeft(`${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`);
+            const parts = [];
+            if (days > 0) {
+                parts.push(`${days}d`);
+            }
+            parts.push(`${hours.toString().padStart(2, '0')}h`);
+            parts.push(`${minutes.toString().padStart(2, '0')}m`);
+            parts.push(`${seconds.toString().padStart(2, '0')}s`);
+
+            setTimeLeft(parts.join(' '));
         }
 
         updateTimer();

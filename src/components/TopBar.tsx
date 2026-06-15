@@ -84,7 +84,7 @@ export default function TopBar() {
                                     boxShadow: '0 2px 10px rgba(239, 68, 68, 0.4)'
                                 }}
                             >
-                                <span>{isCheckingOut ? 'Loading...' : `👉 Get PREMIUM - 20% OFF | $15.98 (Pay Once) | Ends in ${formatTime(timeLeft)}`}</span>
+                                <span>{isCheckingOut ? 'Loading...' : `👉 Get PREMIUM - 35% OFF | $12.98 (Pay Once) | Ends in ${formatTime(timeLeft)}`}</span>
                             </button>
                         ) : (
                             <button 

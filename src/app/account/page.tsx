@@ -134,7 +134,7 @@ function AccountContent() {
                 sendGTMEvent('purchase', {
                     method: 'stripe',
                     session_id: searchParams.get('session_id'),
-                    value: isOfferActive ? 15.98 : 19.97,
+                    value: isOfferActive ? 12.98 : 19.97,
                     currency: 'CAD'
                 });
             });
@@ -308,7 +308,7 @@ function AccountContent() {
                     <div className={styles.marketingContainer}>
                         {isOfferActive && offerExpiryDate && (
                             <div style={{ marginBottom: '1rem', color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', textAlign: 'center', backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '0.6rem', borderRadius: '8px', border: '1px dashed rgba(239, 68, 68, 0.2)' }}>
-                                ⏱️ Special 20% OFF Offer ends in: <Countdown targetDate={offerExpiryDate} />
+                                ⏱️ Special 35% OFF Offer ends in: <Countdown targetDate={offerExpiryDate} />
                             </div>
                         )}
 
@@ -319,7 +319,7 @@ function AccountContent() {
                             style={{ marginBottom: '1rem', width: '100%' }}
                         >
                             {isOfferActive 
-                                ? "Click here to unlock your Premium plan for only $15.98 (20% OFF - One-Time Payment, No Subscriptions)"
+                                ? "Click here to unlock your Premium plan for only $12.98 (35% OFF - One-Time Payment, No Subscriptions)"
                                 : "Click here to unlock your Premium plan for only $19.97 (One-Time Payment, No Subscriptions)"
                             }
                         </button>

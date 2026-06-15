@@ -174,7 +174,18 @@ export default function Dashboard() {
         const savePendingResult = async () => {
             if (processingRef.current) return;
 
-            const pending = localStorage.getItem('pending_freetest_results');
+            let pending = localStorage.getItem('pending_freetest_results');
+            if (!pending) {
+                try {
+                    const match = document.cookie.match(/(^| )pending_freetest_results=([^;]+)/);
+                    if (match) {
+                        pending = decodeURIComponent(match[2]);
+                    }
+                } catch (cookieErr) {
+                    console.error('Failed to read backup cookie:', cookieErr);
+                }
+            }
+
             if (pending && user) {
                 processingRef.current = true;
                 try {
@@ -183,6 +194,7 @@ export default function Dashboard() {
                     // Prevent saving if too old (e.g. > 1 hour)
                     if (Date.now() - result.timestamp > 3600000) {
                         localStorage.removeItem('pending_freetest_results');
+                        document.cookie = "pending_freetest_results=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
                         processingRef.current = false;
                         return;
                     }
@@ -197,8 +209,9 @@ export default function Dashboard() {
                         .single();
 
                     if (existing) {
-                        console.log("Result already saved, clearing local storage.");
+                        console.log("Result already saved, clearing local storage and cookies.");
                         localStorage.removeItem('pending_freetest_results');
+                        document.cookie = "pending_freetest_results=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
                         return;
                     }
 
@@ -214,8 +227,9 @@ export default function Dashboard() {
                     });
 
                     if (!error) {
-                        // Clear storage
+                        // Clear storage and backup cookies
                         localStorage.removeItem('pending_freetest_results');
+                        document.cookie = "pending_freetest_results=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
                         // Show Modal
                         setResultData(result);
@@ -359,14 +373,19 @@ export default function Dashboard() {
                         <div className={styles.diagnosticCard}>
                             <div className={styles.diagHeader}>
                                 <h3 className={styles.diagTitle}>📊 G1 Diagnostic Status</h3>
-                                <div className={`${styles.diagBadge} ${isTestReady ? styles.diagBadgeReady : styles.diagBadgeNotReady}`}>
-                                    <span className={styles.diagDot} />
-                                    <span>
-                                        {isTestReady 
-                                            ? `Test Ready (${computedPassProb}% Pass Probability)` 
-                                            : `Not Test Ready (${computedFailRisk}% Failure Risk)`
-                                        }
-                                    </span>
+                                <div className={styles.diagBadgeContainer}>
+                                    <div className={`${styles.diagBadge} ${isTestReady ? styles.diagBadgeReady : styles.diagBadgeNotReady}`}>
+                                        {isTestReady && <span className={styles.diagDot} />}
+                                        <span>
+                                            {isTestReady 
+                                                ? `Test Ready (${computedPassProb}% Pass Probability*)` 
+                                                : `Not Test Ready (${computedFailRisk}% Failure Risk*)`
+                                            }
+                                        </span>
+                                    </div>
+                                    <div className={styles.diagBadgeFootnote}>
+                                        *Calculated based on your rolling average across all tests
+                                    </div>
                                 </div>
                             </div>
 
@@ -420,7 +439,7 @@ export default function Dashboard() {
                                                 disabled={isUpgrading} 
                                                 className={styles.diagUpgradeBtn}
                                             >
-                                                {isUpgrading ? 'Redirecting...' : `🚀 Unlock Full Premium Access - ${isOfferActive ? '$15.98 (20% OFF)' : '$19.97'}`}
+                                                {isUpgrading ? 'Redirecting...' : `🚀 Unlock Full Premium Access - ${isOfferActive ? '$12.98 (35% OFF)' : '$19.97'}`}
                                             </button>
                                             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
                                                 🔒 One-time payment. Lifetime access. No subscriptions.
@@ -448,7 +467,7 @@ export default function Dashboard() {
                                     )}
                                     {!hasPracticeCredits && renewalDate && (
                                         <div className={styles.diagTimerText}>
-                                            ⏱️ {isOfferActive ? 'Next free credit & 20% OFF offer expires in: ' : 'Next free practice test unlocks in: '}<Countdown targetDate={renewalDate} />
+                                            ⏱️ {isOfferActive ? 'Next free credit & 35% OFF offer expires in: ' : 'Next free practice test unlocks in: '}<Countdown targetDate={renewalDate} />
                                         </div>
                                     )}
                                 </div>

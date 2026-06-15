@@ -16,7 +16,7 @@ export default function ParentShareModal({ isOpen, onClose, checkoutUrl, isPromo
 
     if (!isOpen) return null;
 
-    const price = isPromoActive ? "$15.98 CAD" : "$19.97 CAD";
+    const price = isPromoActive ? "$12.98 CAD" : "$19.97 CAD";
     
     // Copy to clipboard
     const handleCopy = async () => {

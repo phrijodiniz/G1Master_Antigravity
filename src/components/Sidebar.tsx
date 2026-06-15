@@ -144,7 +144,7 @@ export default function Sidebar() {
                                         textAlign: 'center'
                                     }}
                                 >
-                                <span>{isCheckingOut ? 'Loading...' : `👉 Get PREMIUM - 20% OFF | $15.98 (Pay Once) | Ends in ${formatTime(timeLeft)}`}</span>
+                                <span>{isCheckingOut ? 'Loading...' : `👉 Get PREMIUM - 35% OFF | $12.98 (Pay Once) | Ends in ${formatTime(timeLeft)}`}</span>
                                 </button>
                             ) : (
                                 <button 

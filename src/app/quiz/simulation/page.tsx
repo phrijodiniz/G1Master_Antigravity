@@ -33,6 +33,8 @@ function SimulationContent() {
     const [showExitModal, setShowExitModal] = useState(false); // Added state
     const [showLimitModal, setShowLimitModal] = useState(false); // Added state
     const [resultSaved, setResultSaved] = useState(false);
+    const [savedRecord, setSavedRecord] = useState<any>(null);
+    const [isSaving, setIsSaving] = useState(false);
     const [showReview, setShowReview] = useState(false);
     const [limitVariant, setLimitVariant] = useState<'simulation_quiz' | 'all_limit'>('simulation_quiz');
 
@@ -53,9 +55,7 @@ function SimulationContent() {
         let texts = [];
         if (percentage <= 40) {
             texts = [
-                "This is your starting point — now let’s build from here.",
-                "Good news: improvement happens fast with practice.",
-                "Let’s run it again and raise that score."
+                "Good news: improvement happens fast with practice."
             ];
         } else if (percentage <= 60) {
             texts = [
@@ -95,32 +95,27 @@ function SimulationContent() {
         // Compute current score percent
         const currentScorePercent = (totalScore / 40) * 100;
 
-        // Compile the recent scores (up to 5)
-        const recentScores = [currentScorePercent];
-        for (const test of priorSimTests) {
-            if (recentScores.length >= 5) break;
-            if (recentScores.length < 5) {
-                recentScores.push(test.score);
-            }
-        }
+        // Check if the current test has already been saved and synced to history
+        const isAlreadySaved = savedRecord && (history || []).some((item: any) => item.id === savedRecord.id);
 
         let passProb = 0;
+        const simHistoryLength = isAlreadySaved ? priorSimTests.length : priorSimTests.length + 1;
 
-        if (priorSimTests.length < 5) {
+        if (simHistoryLength < 5) {
             // Less than 5 simulations in history
             passProb = 40 + (currentScorePercent * 0.5);
         } else {
             // 5 or more tests
-            const last4 = priorSimTests.slice(0, 4);
             let sumPercentages = currentScorePercent;
-            last4.forEach((test: any) => sumPercentages += test.score);
+            const olderTests = isAlreadySaved ? priorSimTests.slice(1, 5) : priorSimTests.slice(0, 4);
+            olderTests.forEach((test: any) => sumPercentages += test.score);
 
             const avgPercentage = sumPercentages / 5;
             passProb = 40 + (avgPercentage * 0.5);
         }
 
         return Math.round(passProb);
-    }, [completed, totalScore, questions.length, history]);
+    }, [completed, totalScore, questions.length, history, savedRecord]);
 
     async function fetchExamQuestions() {
         setLoading(true);
@@ -200,7 +195,6 @@ function SimulationContent() {
     }, [loading, completed, showLoginModal, user]);
 
     // Save Result Logic (Top-level Hook)
-    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (completed && user && !resultSaved && questions.length > 0) {
@@ -227,14 +221,18 @@ function SimulationContent() {
             const totalScore = Math.round(((rulesScore + signsScore) / (rulesTotal + signsTotal)) * 100);
 
             const save = async () => {
-                await supabase.from('simulation_results').insert({
+                const { data, error } = await supabase.from('simulation_results').insert({
                     user_id: user.id,
                     score: totalScore,
                     rules_score: rulesScore,
                     signs_score: signsScore,
                     passed: passedOverall,
                     test_type: 'Simulation'
-                });
+                }).select();
+
+                if (!error && data && data.length > 0) {
+                    setSavedRecord(data[0]);
+                }
 
                 try {
                     fetch('/api/activity', {
@@ -253,10 +251,8 @@ function SimulationContent() {
                     console.error("Failed to append activity to sheet", sheetError);
                 }
 
-                // Consume credit (Implicit via insert)
-                if (!isPremium) {
-                    await refreshProfile(true);
-                }
+                // Consume credit (Implicit via insert) & Refresh History
+                await refreshProfile(true);
                 setIsSaving(false);
             };
             save();
@@ -327,6 +323,7 @@ function SimulationContent() {
     const handleRetake = () => {
         if (isPremium) {
             localStorage.removeItem(STORAGE_KEY);
+            setSavedRecord(null);
             setQuestions([]);
             setCurrentIndex(0);
             setAnswers({});
@@ -413,6 +410,9 @@ function SimulationContent() {
                         </div>
                         <div style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 500, marginTop: '1.5rem' }}>
                             Pass Probability: <span style={{ color: '#0f172a', fontWeight: 700 }}>{passProbability}%</span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500 }}>
+                            *Calculated based on your rolling average across all tests
                         </div>
 
                         <p style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a', margin: '2.5rem 0' }}>

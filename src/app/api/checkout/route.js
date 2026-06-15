@@ -62,7 +62,7 @@ export async function POST(req) {
             console.error("Failed to append Checkout Initiated to sheet:", sheetError);
         }
 
-        // Check if user is eligible for New Sign Up 20% OFF offer
+        // Check if user is eligible for New Sign Up 35% OFF offer
         // Expires 3 hours after the first practice/simulation test, or 3 hours from registration if no tests taken.
         let isPromoActive = false;
         const { data: results, error: resultsError } = await supabase
@@ -90,7 +90,7 @@ export async function POST(req) {
             }
         }
 
-        const couponId = 'NEWUSER20';
+        const couponId = 'NEWUSER35';
         if (isPromoActive) {
             // Check if coupon exists in Stripe
             try {
@@ -101,9 +101,9 @@ export async function POST(req) {
                     try {
                         await stripe.coupons.create({
                             id: couponId,
-                            percent_off: 20,
+                            percent_off: 35,
                             duration: 'forever',
-                            name: '20% OFF New Sign Up Offer',
+                            name: '35% OFF New Sign Up Offer',
                         });
                     } catch (createErr) {
                         console.error('Error creating Stripe coupon:', createErr);

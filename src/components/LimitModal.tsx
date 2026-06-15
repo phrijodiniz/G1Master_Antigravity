@@ -69,7 +69,7 @@ import styles from './LimitModal.module.css';
 export default function LimitModal({ isOpen, onClose, message, variant = 'default', renewalDate }: LimitModalProps) {
     const router = useRouter();
     const { isOfferActive, offerExpiryDate } = useAuth();
-    const activePrice = isOfferActive ? "$15.98" : "$19.97";
+    const activePrice = isOfferActive ? "$12.98" : "$19.97";
     const strikePrice = isOfferActive ? " (was $19.97)" : "";
 
     const [isSharing, setIsSharing] = useState(false);
@@ -321,7 +321,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
 
                 {isOfferActive && offerExpiryDate && (
                     <div style={{ marginBottom: '1.25rem', color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', textAlign: 'center', backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '0.6rem', borderRadius: '8px', border: '1px dashed rgba(239, 68, 68, 0.2)' }}>
-                        ⏱️ New Sign Up Offer (20% OFF) ends in: <Countdown targetDate={offerExpiryDate} />
+                        ⏱️ New Sign Up Offer (35% OFF) ends in: <Countdown targetDate={offerExpiryDate} />
                     </div>
                 )}
 

@@ -331,30 +331,30 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     console.log("Profile loaded:", profileData);
                     setProfile(profileData);
 
-                    // 3-Hour Rolling Window Logic
-                    const threeHoursAgo = new Date();
-                    threeHoursAgo.setHours(threeHoursAgo.getHours() - 3);
-                    const isoThreeHoursAgo = threeHoursAgo.toISOString();
+                    // 7-Day Rolling Window Logic
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    const isoSevenDaysAgo = sevenDaysAgo.toISOString();
 
-                    // Fetch Usage History (Last 3 Hours Only for Counts)
+                    // Fetch Usage History (Last 7 Days Only for Counts)
                     // We need actual rows to find the "oldest" test in the window for renewal date
                     const historyFetchPromise = Promise.all([
-                        // Simulations in last 3 hours
+                        // Simulations in last 7 days
                         supabase
                             .from('simulation_results')
                             .select('created_at')
                             .eq('user_id', userId)
                             .eq('test_type', 'Simulation')
-                            .gte('created_at', isoThreeHoursAgo)
+                            .gte('created_at', isoSevenDaysAgo)
                             .order('created_at', { ascending: true }), // Oldest first
 
-                        // Practice Tests in last 3 hours
+                        // Practice Tests in last 7 days
                         supabase
                             .from('simulation_results')
                             .select('created_at')
                             .eq('user_id', userId)
                             .in('test_type', ['Rules of the Road', 'Road Signs'])
-                            .gte('created_at', isoThreeHoursAgo)
+                            .gte('created_at', isoSevenDaysAgo)
                             .order('created_at', { ascending: true }), // Oldest first
 
                         // Full History for Display (Top 50, regardless of date)
@@ -379,11 +379,11 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     setCalcSimulationCredits(0);
                     setCalcPracticeCredits(Math.max(0, 3 - usedPractice));
 
-                    // Calculate Renewal Date (Oldest test + 3 hours)
+                    // Calculate Renewal Date (Oldest test + 7 days)
                     let nextRenewal = null;
 
                     // If NO credits left, find when the next one frees up
-                    // logic: The NEXT credit becomes available 3 hours after the OLDEST test in the current window drops out.
+                    // logic: The NEXT credit becomes available 7 days after the OLDEST test in the current window drops out.
                     if (usedPractice >= 3) {
                         const oldestPractice = practiceResult.data?.[0]?.created_at;
 
@@ -393,7 +393,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                         if (dates.length > 0) {
                             const oldestTimestamp = Math.min(...dates);
                             const renewalDate = new Date(oldestTimestamp);
-                            renewalDate.setHours(renewalDate.getHours() + 3);
+                            renewalDate.setDate(renewalDate.getDate() + 7);
                             nextRenewal = renewalDate;
                         }
                     }
@@ -410,7 +410,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     }
                     setHistory(historyList);
 
-                    // Compute Offer Expiration (20% OFF for New Sign Ups)
+                    // Compute Offer Expiration (35% OFF for New Sign Ups)
                     let oldestTestDate: Date | null = null;
                     if (historyList.length > 0) {
                         const oldestTest = historyList[historyList.length - 1];

@@ -16,6 +16,7 @@ export default function UnlockModal({ isOpen, results }) {
     const [isSignUp, setIsSignUp] = useState(true);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [loadingMethod, setLoadingMethod] = useState(null); // 'google' | 'email' | null
     const [message, setMessage] = useState('');
     const router = useRouter();
 
@@ -25,17 +26,31 @@ export default function UnlockModal({ isOpen, results }) {
 
     if (!isOpen) return null;
 
-    const handleAction = async (actionFn) => {
+    const handleAction = async (actionFn, method) => {
         setError('');
         setMessage('');
         setLoading(true);
+        setLoadingMethod(method);
 
-        // Save results to localStorage before auth redirect/action
+        // Save results to both localStorage and cookie before redirect/action
         if (results) {
-            localStorage.setItem('pending_freetest_results', JSON.stringify({
+            const dataToStore = {
                 ...results,
                 timestamp: Date.now()
-            }));
+            };
+            try {
+                localStorage.setItem('pending_freetest_results', JSON.stringify(dataToStore));
+            } catch (storageErr) {
+                console.error('Failed to save to localStorage:', storageErr);
+            }
+
+            try {
+                // Set cookie expiring in 1 hour
+                const expires = new Date(Date.now() + 3600000).toUTCString();
+                document.cookie = `pending_freetest_results=${encodeURIComponent(JSON.stringify(dataToStore))}; path=/; expires=${expires}; SameSite=Lax; Secure`;
+            } catch (cookieErr) {
+                console.error('Failed to set backup cookie:', cookieErr);
+            }
         }
 
         try {
@@ -51,13 +66,14 @@ export default function UnlockModal({ isOpen, results }) {
             if (data?.user && !data.session) {
                 setMessage('Account created! Please check your email to confirm.');
                 setLoading(false);
+                setLoadingMethod(null);
                 return;
             }
 
             // For Google login which might redirect
             if (!data) {
                 // Might be void if it's the Google redirect flow
-                // Let it hang or maybe show "Redirecting..."
+                // Let it hang and show "Redirecting..."
             }
 
         } catch (err) {
@@ -67,13 +83,12 @@ export default function UnlockModal({ isOpen, results }) {
             }
             setError(msg);
             setLoading(false);
+            setLoadingMethod(null);
         }
     };
 
     const handleEmailSubmit = async (e) => {
         e.preventDefault();
-        // For simplicity reusing signup logic or add login toggle if needed
-        // Requirement says: "Allow Google sign-in + Email signup."
         if (isSignUp) {
             sendGTMEvent('free_test_conversion', { method: 'email' }); // Fire before action like Google
             handleAction(async () => {
@@ -93,9 +108,9 @@ export default function UnlockModal({ isOpen, results }) {
                 const result = await signupWithEmail(email, password, '', '');
                 sendGTMEvent('sign_up', { method: 'email' });
                 return result;
-            });
+            }, 'email');
         } else {
-            handleAction(() => loginWithEmail(email, password));
+            handleAction(() => loginWithEmail(email, password), 'email');
         }
     };
 
@@ -170,17 +185,18 @@ export default function UnlockModal({ isOpen, results }) {
                     <>
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', position: 'relative' }}>
                             <button
-                                onClick={() => setStep(1)}
+                                onClick={() => !loading && setStep(1)}
+                                disabled={loading}
                                 style={{
                                     background: 'transparent',
                                     border: 'none',
                                     color: 'white',
                                     fontSize: '1rem',
-                                    cursor: 'pointer',
+                                    cursor: loading ? 'not-allowed' : 'pointer',
                                     position: 'absolute',
                                     left: 0,
                                     padding: '0.5rem',
-                                    opacity: 0.8
+                                    opacity: loading ? 0.4 : 0.8
                                 }}
                             >
                                 ← Back
@@ -195,8 +211,9 @@ export default function UnlockModal({ isOpen, results }) {
                                 className="btn-primary"
                                 onClick={() => {
                                     sendGTMEvent('free_test_conversion', { method: 'google' }); // Fire before redirect
-                                    handleAction(() => loginWithGoogle('/dashboard'));
+                                    handleAction(() => loginWithGoogle('/dashboard'), 'google');
                                 }}
+                                disabled={loading}
                                 style={{
                                     display: 'flex',
                                     justifyContent: 'center',
@@ -210,13 +227,20 @@ export default function UnlockModal({ isOpen, results }) {
                                     borderRadius: '8px',
                                     fontWeight: 600,
                                     fontSize: '1rem',
-                                    cursor: 'pointer'
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    opacity: loading ? 0.7 : 1
                                 }}
                             >
-                                <svg width="20" height="20" viewBox="0 0 24 24">
-                                    <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12.5S6.42 23 12.1 23c5.83 0 8.84-4.15 8.84-11.9z" fill="currentColor" />
-                                </svg>
-                                Sign Up with Google
+                                {loadingMethod === 'google' ? (
+                                    <span>Redirecting to Google...</span>
+                                ) : (
+                                    <>
+                                        <svg width="20" height="20" viewBox="0 0 24 24">
+                                            <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12.5S6.42 23 12.1 23c5.83 0 8.84-4.15 8.84-11.9z" fill="currentColor" />
+                                        </svg>
+                                        Sign Up with Google
+                                    </>
+                                )}
                             </button>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', opacity: 0.4, margin: '0.5rem 0' }}>
@@ -232,7 +256,15 @@ export default function UnlockModal({ isOpen, results }) {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    style={{ padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
+                                    disabled={loading}
+                                    style={{
+                                        padding: '0.8rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        color: 'white',
+                                        opacity: loading ? 0.6 : 1
+                                    }}
                                 />
                                 <input
                                     type="password"
@@ -240,7 +272,15 @@ export default function UnlockModal({ isOpen, results }) {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    style={{ padding: '0.8rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
+                                    disabled={loading}
+                                    style={{
+                                        padding: '0.8rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        color: 'white',
+                                        opacity: loading ? 0.6 : 1
+                                    }}
                                 />
                                 <button
                                     type="submit"
@@ -256,10 +296,11 @@ export default function UnlockModal({ isOpen, results }) {
                                         border: 'none',
                                         fontWeight: 700,
                                         fontSize: '1rem',
-                                        cursor: 'pointer'
+                                        cursor: loading ? 'not-allowed' : 'pointer',
+                                        opacity: loading ? 0.7 : 1
                                     }}
                                 >
-                                    {loading ? 'Creating Account...' : 'Sign Up with Email'}
+                                    {loadingMethod === 'email' ? 'Creating Account...' : 'Sign Up with Email'}
                                 </button>
                             </form>
                         </div>
