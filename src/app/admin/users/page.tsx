@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Filter, ArrowLeft, User, Shield, CheckCircle, Clock, Trash2 } from "lucide-react";
+import { Search, Filter, ArrowLeft, User, Shield, CheckCircle, Clock, Trash2, Download } from "lucide-react";
 import styles from "../../../components/LoginModal.module.css"; // Reuse modal and form styles if needed
 
 export default function AdminUsersPage() {
@@ -165,6 +165,36 @@ export default function AdminUsersPage() {
         }
     };
 
+    const exportToCSV = () => {
+        const headers = ["Email", "First Name", "Last Name"];
+        
+        const rows = filteredUsers.map(user => [
+            user.email || "",
+            user.firstName || "",
+            user.lastName || ""
+        ]);
+        
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => 
+                row.map(val => {
+                    const escaped = String(val).replace(/"/g, '""');
+                    return /[,\"\n\r]/.test(escaped) ? `"${escaped}"` : escaped;
+                }).join(",")
+            )
+        ].join("\n");
+        
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div style={{ padding: "2rem" }}>
             {/* Back Button */}
@@ -189,6 +219,27 @@ export default function AdminUsersPage() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
                 <h1 style={{ fontSize: "2.2rem", fontWeight: 700 }}>Users Management</h1>
+                <button
+                    onClick={exportToCSV}
+                    style={{
+                        padding: "0.8rem 1.5rem",
+                        background: "rgba(255, 255, 255, 0.1)",
+                        color: "white",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        borderRadius: "8px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        transition: "background 0.2s"
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)"}
+                >
+                    <Download size={16} />
+                    Export CSV
+                </button>
             </div>
 
             {/* Quick Summary Cards */}
