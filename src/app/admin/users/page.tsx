@@ -11,6 +11,8 @@ export default function AdminUsersPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [roleFilter, setRoleFilter] = useState("All");
+    const [dateFilter, setDateFilter] = useState("All");
+    const [testFilter, setTestFilter] = useState("All");
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
     const fetchUsers = useCallback(async () => {
@@ -50,9 +52,39 @@ export default function AdminUsersPage() {
             const matchesStatus = statusFilter === "All" || user.status === statusFilter;
             const matchesRole = roleFilter === "All" || user.admin === roleFilter;
 
-            return matchesSearch && matchesStatus && matchesRole;
+            let matchesDate = true;
+            if (dateFilter !== "All") {
+                const signupDate = new Date(user.createdAt).getTime();
+                const now = Date.now();
+                const diffTime = now - signupDate;
+                const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+                if (dateFilter === "Today") {
+                    matchesDate = diffDays <= 1;
+                } else if (dateFilter === "Week") {
+                    matchesDate = diffDays <= 7;
+                } else if (dateFilter === "Month") {
+                    matchesDate = diffDays <= 30;
+                }
+            }
+
+            let matchesTests = true;
+            if (testFilter !== "All") {
+                const totalTests = user.stats.totalTests || 0;
+                if (testFilter === "None") {
+                    matchesTests = totalTests === 0;
+                } else if (testFilter === "1-5") {
+                    matchesTests = totalTests >= 1 && totalTests <= 5;
+                } else if (testFilter === "6-10") {
+                    matchesTests = totalTests >= 6 && totalTests <= 10;
+                } else if (testFilter === "10+") {
+                    matchesTests = totalTests > 10;
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests;
         });
-    }, [users, searchTerm, statusFilter, roleFilter]);
+    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, testFilter]);
 
     // Summary statistics (excluding test accounts)
     const stats = useMemo(() => {
@@ -193,6 +225,53 @@ export default function AdminUsersPage() {
                         <option value="All">All Roles</option>
                         <option value="YES">Admins Only</option>
                         <option value="NO">Regular Users</option>
+                    </select>
+                </div>
+
+                <div style={{ position: "relative", width: "200px" }}>
+                    <Filter style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", opacity: 0.5, color: "black" }} size={18} />
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "0.8rem 1rem 0.8rem 2.8rem",
+                            background: "white",
+                            border: "1px solid var(--glass-border)",
+                            borderRadius: "8px",
+                            color: "black",
+                            cursor: "pointer",
+                            appearance: "none"
+                        }}
+                    >
+                        <option value="All">All Sign Up Dates</option>
+                        <option value="Today">Joined Today</option>
+                        <option value="Week">Joined Last 7 Days</option>
+                        <option value="Month">Joined Last 30 Days</option>
+                    </select>
+                </div>
+
+                <div style={{ position: "relative", width: "200px" }}>
+                    <Filter style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", opacity: 0.5, color: "black" }} size={18} />
+                    <select
+                        value={testFilter}
+                        onChange={(e) => setTestFilter(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "0.8rem 1rem 0.8rem 2.8rem",
+                            background: "white",
+                            border: "1px solid var(--glass-border)",
+                            borderRadius: "8px",
+                            color: "black",
+                            cursor: "pointer",
+                            appearance: "none"
+                        }}
+                    >
+                        <option value="All">All Test Counts</option>
+                        <option value="None">0 tests taken</option>
+                        <option value="1-5">1 - 5 tests taken</option>
+                        <option value="6-10">6 - 10 tests taken</option>
+                        <option value="10+">10+ tests taken</option>
                     </select>
                 </div>
             </div>
