@@ -205,6 +205,10 @@ export async function GET(request: Request) {
                 passProbability = Math.round(40 + signsAvg * 0.5)
             }
 
+            const emailLower = (user.email || '').toLowerCase()
+            const isEmailTest = emailLower.includes('test') || emailLower.endsWith('@example.com') || emailLower.includes('demo')
+            const isTest = isEmailTest || (profile as any)?.is_test_account === true
+
             return {
                 id: user.id,
                 email: user.email,
@@ -214,6 +218,7 @@ export async function GET(request: Request) {
                 createdAt: user.created_at,
                 status: profile?.is_premium ? 'Premium' : 'Standard',
                 admin: profile?.admin || 'NO',
+                isTest,
                 stats: {
                     totalTests,
                     simulationsCount,
@@ -245,7 +250,7 @@ export async function POST(request: Request) {
         }
 
         const json = await request.json()
-        const { userId, status, admin } = json
+        const { userId, status, admin, isTestAccount } = json
 
         if (!userId) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -263,6 +268,9 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Invalid admin role' }, { status: 400 })
             }
             updates.admin = admin
+        }
+        if (isTestAccount !== undefined) {
+            updates.is_test_account = !!isTestAccount
         }
 
         if (Object.keys(updates).length === 0) {

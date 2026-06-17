@@ -54,17 +54,17 @@ export default function AdminUsersPage() {
         });
     }, [users, searchTerm, statusFilter, roleFilter]);
 
-    // Summary statistics
+    // Summary statistics (excluding test accounts)
     const stats = useMemo(() => {
-        const total = users.length;
-        const premium = users.filter(u => u.status === "Premium").length;
+        const realUsers = users.filter(u => !u.isTest);
+        const total = realUsers.length;
+        const premium = realUsers.filter(u => u.status === "Premium").length;
         const standard = total - premium;
-        const conversionRate = total > 0 ? Math.round((premium / total) * 100) : 0;
-        return { total, premium, standard, conversionRate };
+        return { total, premium, standard };
     }, [users]);
 
     // Handle user status or role updates
-    const handleUpdateUser = async (userId: string, fields: { status?: string; admin?: string }) => {
+    const handleUpdateUser = async (userId: string, fields: { status?: string; admin?: string; isTestAccount?: boolean }) => {
         setUpdatingUserId(userId);
         try {
             const res = await fetch("/api/admin/users", {
@@ -246,6 +246,7 @@ export default function AdminUsersPage() {
                                                         <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}>
                                                             {u.firstName || u.lastName ? `${u.firstName} ${u.lastName}`.trim() : "G1 Candidate"}
                                                             {u.admin === "YES" && <span title="Admin"><Shield size={14} style={{ color: "var(--primary)" }} /></span>}
+                                                            {u.isTest && <span style={{ fontSize: "0.7rem", padding: "2px 6px", background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "4px", fontWeight: "bold" }}>Test</span>}
                                                         </div>
                                                         <div style={{ fontSize: "0.8rem", opacity: 0.6 }}>{u.email}</div>
                                                     </div>
@@ -380,6 +381,29 @@ export default function AdminUsersPage() {
                                     >
                                         {updatingUserId === selectedUser.id ? "Processing..." :
                                          selectedUser.admin === "YES" ? "Revoke Admin Privileges" : "Grant Admin Privileges"}
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <div style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "0.5rem" }}>Toggle Test Account Status:</div>
+                                    <button
+                                        onClick={() => handleUpdateUser(selectedUser.id, {
+                                            isTestAccount: !selectedUser.isTest
+                                        })}
+                                        disabled={updatingUserId === selectedUser.id}
+                                        style={{
+                                            width: "100%",
+                                            padding: "0.75rem",
+                                            background: selectedUser.isTest ? "rgba(245,158,11,0.1)" : "rgba(255,255,255,0.05)",
+                                            color: selectedUser.isTest ? "#f59e0b" : "rgba(255,255,255,0.7)",
+                                            border: `1px solid ${selectedUser.isTest ? "rgba(245,158,11,0.2)" : "rgba(255,255,255,0.1)"}`,
+                                            borderRadius: "8px",
+                                            fontWeight: 600,
+                                            cursor: updatingUserId ? "not-allowed" : "pointer"
+                                        }}
+                                    >
+                                        {updatingUserId === selectedUser.id ? "Processing..." :
+                                         selectedUser.isTest ? "Unflag Test Account" : "Flag as Test Account"}
                                     </button>
                                 </div>
                             </div>
