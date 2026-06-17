@@ -437,7 +437,7 @@ export default function AdminUsersPage() {
                                         <th style={{ textAlign: "left", padding: "1rem" }}>User</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>Plan Status</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>Free Test</th>
-                                        <th style={{ textAlign: "left", padding: "1rem" }}>Credits</th>
+                                        <th style={{ textAlign: "left", padding: "1rem" }}>Available Credits</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>G1 Readiness</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>Tests Taken</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>Signed Up</th>
