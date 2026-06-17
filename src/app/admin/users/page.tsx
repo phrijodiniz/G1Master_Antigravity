@@ -76,15 +76,20 @@ export default function AdminUsersPage() {
                         matchesDate = userLocalDateStr <= endDate;
                     }
                 } else {
-                    const diffTime = Date.now() - signupDate.getTime();
-                    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+                    const todayStr = new Date().toLocaleDateString('en-CA'); // format: YYYY-MM-DD
+                    const userLocalDateStr = signupDate.toLocaleDateString('en-CA'); // format: YYYY-MM-DD
 
                     if (dateFilter === "Today") {
-                        matchesDate = diffDays <= 1;
-                    } else if (dateFilter === "Week") {
-                        matchesDate = diffDays <= 7;
-                    } else if (dateFilter === "Month") {
-                        matchesDate = diffDays <= 30;
+                        matchesDate = userLocalDateStr === todayStr;
+                    } else {
+                        const diffTime = Date.now() - signupDate.getTime();
+                        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+                        if (dateFilter === "Week") {
+                            matchesDate = diffDays <= 7;
+                        } else if (dateFilter === "Month") {
+                            matchesDate = diffDays <= 30;
+                        }
                     }
                 }
             }
