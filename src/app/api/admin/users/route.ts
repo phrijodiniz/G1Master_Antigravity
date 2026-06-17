@@ -65,30 +65,85 @@ export async function GET(request: Request) {
             return authStatus.errorResponse!
         }
 
-        // 1. Fetch all auth users using the service role admin client
-        const { data: authData, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers()
-        if (authUsersError) {
-            console.error('Error listing auth users:', authUsersError)
-            return NextResponse.json({ error: 'Failed to fetch auth users' }, { status: 500 })
+        // 1. Fetch all auth users using pagination
+        let authUsers: any[] = []
+        let page = 1
+        const perPage = 1000
+        let hasMoreUsers = true
+
+        while (hasMoreUsers) {
+            const { data: pageData, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers({
+                page,
+                perPage
+            })
+            if (authUsersError) {
+                console.error('Error listing auth users:', authUsersError)
+                return NextResponse.json({ error: 'Failed to fetch auth users' }, { status: 500 })
+            }
+            if (pageData && pageData.users && pageData.users.length > 0) {
+                authUsers = [...authUsers, ...pageData.users]
+                if (pageData.users.length < perPage) {
+                    hasMoreUsers = false
+                } else {
+                    page++
+                }
+            } else {
+                hasMoreUsers = false
+            }
         }
 
-        // 2. Fetch all public profiles
-        const { data: profiles, error: profilesError } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-        if (profilesError) {
-            console.error('Error fetching profiles:', profilesError)
-            return NextResponse.json({ error: 'Failed to fetch user profiles' }, { status: 500 })
+        // 2. Fetch all public profiles using pagination
+        let profiles: any[] = []
+        let profilesOffset = 0
+        const limit = 1000
+        let hasMoreProfiles = true
+
+        while (hasMoreProfiles) {
+            const { data: pageData, error: profilesError } = await supabaseAdmin
+                .from('profiles')
+                .select('*')
+                .range(profilesOffset, profilesOffset + limit - 1)
+            if (profilesError) {
+                console.error('Error fetching profiles:', profilesError)
+                return NextResponse.json({ error: 'Failed to fetch user profiles' }, { status: 500 })
+            }
+            if (pageData && pageData.length > 0) {
+                profiles = [...profiles, ...pageData]
+                if (pageData.length < limit) {
+                    hasMoreProfiles = false
+                } else {
+                    profilesOffset += limit
+                }
+            } else {
+                hasMoreProfiles = false
+            }
         }
 
-        // 3. Fetch all simulation results to aggregate engagement metrics
-        const { data: results, error: resultsError } = await supabaseAdmin
-            .from('simulation_results')
-            .select('*')
-            .order('created_at', { ascending: false })
-        if (resultsError) {
-            console.error('Error fetching simulation results:', resultsError)
-            return NextResponse.json({ error: 'Failed to fetch simulation results' }, { status: 500 })
+        // 3. Fetch all simulation results using pagination
+        let results: any[] = []
+        let resultsOffset = 0
+        let hasMoreResults = true
+
+        while (hasMoreResults) {
+            const { data: pageData, error: resultsError } = await supabaseAdmin
+                .from('simulation_results')
+                .select('*')
+                .range(resultsOffset, resultsOffset + limit - 1)
+                .order('created_at', { ascending: false })
+            if (resultsError) {
+                console.error('Error fetching simulation results:', resultsError)
+                return NextResponse.json({ error: 'Failed to fetch simulation results' }, { status: 500 })
+            }
+            if (pageData && pageData.length > 0) {
+                results = [...results, ...pageData]
+                if (pageData.length < limit) {
+                    hasMoreResults = false
+                } else {
+                    resultsOffset += limit
+                }
+            } else {
+                hasMoreResults = false
+            }
         }
 
         // 4. Map profiles and aggregate statistics
@@ -105,7 +160,7 @@ export async function GET(request: Request) {
 
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
 
-        const combinedUsers = authData.users.map(user => {
+        const combinedUsers = authUsers.map(user => {
             const profile = profileMap.get(user.id)
             const userResults = userResultsMap.get(user.id) || []
 
