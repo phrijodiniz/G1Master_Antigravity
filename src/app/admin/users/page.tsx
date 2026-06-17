@@ -130,10 +130,6 @@ export default function AdminUsersPage() {
                     <div style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "0.5rem" }}>Standard (Free) Users</div>
                     <div style={{ fontSize: "2rem", fontWeight: 800 }}>{stats.standard}</div>
                 </div>
-                <div className="glass-panel" style={{ padding: "1.5rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    <div style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "0.5rem", color: "var(--primary)" }}>Conversion Rate</div>
-                    <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--primary)" }}>{stats.conversionRate}%</div>
-                </div>
             </div>
 
             {/* Search and Filters */}

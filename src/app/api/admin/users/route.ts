@@ -212,7 +212,7 @@ export async function GET(request: Request) {
                 lastName: user.user_metadata?.last_name || '',
                 provider: user.app_metadata?.provider || 'email',
                 createdAt: user.created_at,
-                status: profile?.status || 'Standard',
+                status: profile?.is_premium ? 'Premium' : 'Standard',
                 admin: profile?.admin || 'NO',
                 stats: {
                     totalTests,
@@ -256,7 +256,7 @@ export async function POST(request: Request) {
             if (status !== 'Standard' && status !== 'Premium') {
                 return NextResponse.json({ error: 'Invalid plan status' }, { status: 400 })
             }
-            updates.status = status
+            updates.is_premium = (status === 'Premium')
         }
         if (admin !== undefined) {
             if (admin !== 'YES' && admin !== 'NO') {
