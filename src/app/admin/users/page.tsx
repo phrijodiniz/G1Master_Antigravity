@@ -12,6 +12,7 @@ export default function AdminUsersPage() {
     const [statusFilter, setStatusFilter] = useState("All");
     const [roleFilter, setRoleFilter] = useState("All");
     const [dateFilter, setDateFilter] = useState("All");
+    const [specificDate, setSpecificDate] = useState("");
     const [testFilter, setTestFilter] = useState("All");
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
@@ -54,37 +55,46 @@ export default function AdminUsersPage() {
 
             let matchesDate = true;
             if (dateFilter !== "All") {
-                const signupDate = new Date(user.createdAt).getTime();
-                const now = Date.now();
-                const diffTime = now - signupDate;
-                const diffDays = diffTime / (1000 * 60 * 60 * 24);
+                const signupDate = new Date(user.createdAt);
+                
+                if (dateFilter === "Specific") {
+                    if (specificDate) {
+                        const userLocalDateStr = signupDate.toLocaleDateString('en-CA'); // format: YYYY-MM-DD
+                        matchesDate = userLocalDateStr === specificDate;
+                    }
+                } else {
+                    const diffTime = Date.now() - signupDate.getTime();
+                    const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
-                if (dateFilter === "Today") {
-                    matchesDate = diffDays <= 1;
-                } else if (dateFilter === "Week") {
-                    matchesDate = diffDays <= 7;
-                } else if (dateFilter === "Month") {
-                    matchesDate = diffDays <= 30;
+                    if (dateFilter === "Today") {
+                        matchesDate = diffDays <= 1;
+                    } else if (dateFilter === "Week") {
+                        matchesDate = diffDays <= 7;
+                    } else if (dateFilter === "Month") {
+                        matchesDate = diffDays <= 30;
+                    }
                 }
             }
 
             let matchesTests = true;
             if (testFilter !== "All") {
                 const totalTests = user.stats.totalTests || 0;
-                if (testFilter === "None") {
+                if (testFilter === "0") {
                     matchesTests = totalTests === 0;
-                } else if (testFilter === "1-5") {
-                    matchesTests = totalTests >= 1 && totalTests <= 5;
-                } else if (testFilter === "6-10") {
-                    matchesTests = totalTests >= 6 && totalTests <= 10;
-                } else if (testFilter === "10+") {
-                    matchesTests = totalTests > 10;
+                } else if (testFilter === "1") {
+                    matchesTests = totalTests === 1;
+                } else if (testFilter === "2") {
+                    matchesTests = totalTests === 2;
+                } else if (testFilter === "3") {
+                    matchesTests = totalTests === 3;
+                } else if (testFilter === "3+") {
+                    matchesTests = totalTests > 3;
                 }
             }
 
             return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests;
         });
-    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, testFilter]);
+    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, testFilter]);
 
     // Summary statistics (excluding test accounts)
     const stats = useMemo(() => {
@@ -248,8 +258,28 @@ export default function AdminUsersPage() {
                         <option value="Today">Joined Today</option>
                         <option value="Week">Joined Last 7 Days</option>
                         <option value="Month">Joined Last 30 Days</option>
+                        <option value="Specific">Pick Specific Date...</option>
                     </select>
                 </div>
+
+                {dateFilter === "Specific" && (
+                    <div style={{ position: "relative", width: "200px" }}>
+                        <input
+                            type="date"
+                            value={specificDate}
+                            onChange={(e) => setSpecificDate(e.target.value)}
+                            style={{
+                                width: "100%",
+                                padding: "0.8rem 1rem",
+                                background: "white",
+                                border: "1px solid var(--glass-border)",
+                                borderRadius: "8px",
+                                color: "black",
+                                cursor: "pointer"
+                            }}
+                        />
+                    </div>
+                )}
 
                 <div style={{ position: "relative", width: "200px" }}>
                     <Filter style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", opacity: 0.5, color: "black" }} size={18} />
@@ -268,10 +298,11 @@ export default function AdminUsersPage() {
                         }}
                     >
                         <option value="All">All Test Counts</option>
-                        <option value="None">0 tests taken</option>
-                        <option value="1-5">1 - 5 tests taken</option>
-                        <option value="6-10">6 - 10 tests taken</option>
-                        <option value="10+">10+ tests taken</option>
+                        <option value="0">0 tests taken</option>
+                        <option value="1">1 test taken</option>
+                        <option value="2">2 tests taken</option>
+                        <option value="3">3 tests taken</option>
+                        <option value="3+">3+ tests taken</option>
                     </select>
                 </div>
             </div>
