@@ -209,6 +209,8 @@ export async function GET(request: Request) {
             const isEmailTest = emailLower.includes('test') || emailLower.endsWith('@example.com') || emailLower.includes('demo')
             const isTest = isEmailTest || (profile as any)?.is_test_account === true
 
+            const hasTakenFreeTest = userResults.some(r => r.test_type === 'Practice (First Try)')
+
             return {
                 id: user.id,
                 email: user.email,
@@ -219,6 +221,7 @@ export async function GET(request: Request) {
                 status: profile?.is_premium ? 'Premium' : 'Standard',
                 admin: profile?.admin || 'NO',
                 isTest,
+                hasTakenFreeTest,
                 stats: {
                     totalTests,
                     simulationsCount,

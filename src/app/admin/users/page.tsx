@@ -16,6 +16,7 @@ export default function AdminUsersPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [testFilter, setTestFilter] = useState("All");
+    const [freeTestFilter, setFreeTestFilter] = useState("All");
     const [hideTestAccounts, setHideTestAccounts] = useState(true);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
@@ -104,14 +105,24 @@ export default function AdminUsersPage() {
                 }
             }
 
+            let matchesFreeTest = true;
+            if (freeTestFilter !== "All") {
+                const hasTaken = !!user.hasTakenFreeTest;
+                if (freeTestFilter === "Taken") {
+                    matchesFreeTest = hasTaken;
+                } else if (freeTestFilter === "Not Taken") {
+                    matchesFreeTest = !hasTaken;
+                }
+            }
+
             let matchesTestAccount = true;
             if (hideTestAccounts) {
                 matchesTestAccount = !user.isTest;
             }
 
-            return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests && matchesTestAccount;
+            return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests && matchesTestAccount && matchesFreeTest;
         });
-    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, startDate, endDate, testFilter, hideTestAccounts]);
+    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, startDate, endDate, testFilter, freeTestFilter, hideTestAccounts]);
 
     // Summary statistics (excluding test accounts)
     const stats = useMemo(() => {
@@ -357,6 +368,27 @@ export default function AdminUsersPage() {
                         <option value="3+">3+ tests taken</option>
                     </select>
                 </div>
+                <div style={{ position: "relative", width: "200px" }}>
+                    <Filter style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", opacity: 0.5, color: "black" }} size={18} />
+                    <select
+                        value={freeTestFilter}
+                        onChange={(e) => setFreeTestFilter(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "0.8rem 1rem 0.8rem 2.8rem",
+                            background: "white",
+                            border: "1px solid var(--glass-border)",
+                            borderRadius: "8px",
+                            color: "black",
+                            cursor: "pointer",
+                            appearance: "none"
+                        }}
+                    >
+                        <option value="All">All Free Tests</option>
+                        <option value="Taken">Free Test Taken</option>
+                        <option value="Not Taken">Free Test Not Taken</option>
+                    </select>
+                </div>
 
                 <label style={{
                     display: "flex",
@@ -401,6 +433,8 @@ export default function AdminUsersPage() {
                                     <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>User</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>Plan Status</th>
+                                        <th style={{ textAlign: "left", padding: "1rem" }}>Free Test</th>
+                                        <th style={{ textAlign: "left", padding: "1rem" }}>Credits</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>G1 Readiness</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>Tests Taken</th>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>Signed Up</th>
@@ -453,6 +487,41 @@ export default function AdminUsersPage() {
                                                         {u.status}
                                                     </span>
                                                 </td>
+                                                <td style={{ padding: "1rem" }}>
+                                                    {u.hasTakenFreeTest ? (
+                                                        <span style={{
+                                                            fontSize: "0.75rem",
+                                                            padding: "4px 8px",
+                                                            background: "rgba(16,185,129,0.15)",
+                                                            color: "#10B981",
+                                                            border: "1px solid rgba(16,185,129,0.3)",
+                                                            borderRadius: "6px",
+                                                            fontWeight: "bold"
+                                                        }}>
+                                                            Yes
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{
+                                                            fontSize: "0.75rem",
+                                                            padding: "4px 8px",
+                                                            background: "rgba(255,255,255,0.05)",
+                                                            color: "rgba(255,255,255,0.5)",
+                                                            border: "1px solid rgba(255,255,255,0.1)",
+                                                            borderRadius: "6px"
+                                                        }}>
+                                                            No
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: "1rem" }}>
+                                                    {u.status === "Premium" ? (
+                                                        <span style={{ color: "#10B981", fontWeight: "bold", fontSize: "0.85rem" }}>Unlimited</span>
+                                                    ) : (
+                                                        <span style={{ fontSize: "0.85rem", opacity: 0.9 }}>
+                                                            {u.stats.practiceCreditsLeft} / 3 <span style={{ opacity: 0.5, fontSize: "0.75rem" }}>(prac)</span>
+                                                        </span>
+                                                    )}
+                                                </td>
                                                 <td style={{ padding: "1rem", color: readyColor, fontWeight: 700 }}>
                                                     {u.stats.totalTests > 0 ? `${u.stats.passProbability}%` : "—"}
                                                 </td>
@@ -494,6 +563,9 @@ export default function AdminUsersPage() {
                                 <div style={{ opacity: 0.4, fontSize: "0.8rem", fontFamily: "monospace" }}>ID: {selectedUser.id}</div>
                                 <div style={{ opacity: 0.6, fontSize: "0.85rem", marginTop: "0.25rem" }}>
                                     Auth Method: <strong style={{ textTransform: "capitalize" }}>{selectedUser.provider}</strong>
+                                </div>
+                                <div style={{ opacity: 0.6, fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                                    Landing Free Test: <strong>{selectedUser.hasTakenFreeTest ? "Yes" : "No"}</strong>
                                 </div>
                             </div>
 
