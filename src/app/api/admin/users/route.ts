@@ -165,7 +165,7 @@ export async function GET(request: Request) {
             const userResults = userResultsMap.get(user.id) || []
 
             // A. Compute total test counts
-            const totalTests = userResults.length
+            const totalTests = userResults.filter(r => r.test_type !== 'Practice (First Try)').length
             const simulationsCount = userResults.filter(r => r.test_type === 'Simulation').length
             const practiceCount = userResults.filter(r => r.test_type === 'Rules of the Road' || r.test_type === 'Road Signs').length
 
