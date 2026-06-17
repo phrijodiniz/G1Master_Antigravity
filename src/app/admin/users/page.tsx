@@ -18,6 +18,7 @@ export default function AdminUsersPage() {
     const [testFilter, setTestFilter] = useState("All");
     const [freeTestFilter, setFreeTestFilter] = useState("All");
     const [hideTestAccounts, setHideTestAccounts] = useState(true);
+    const [checkoutFilter, setCheckoutFilter] = useState("All");
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
     const fetchUsers = useCallback(async () => {
@@ -125,9 +126,19 @@ export default function AdminUsersPage() {
                 matchesTestAccount = !user.isTest;
             }
 
-            return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests && matchesTestAccount && matchesFreeTest;
+            let matchesCheckout = true;
+            if (checkoutFilter !== "All") {
+                const hasCheckout = !!user.initiatedCheckout;
+                if (checkoutFilter === "Initiated") {
+                    matchesCheckout = hasCheckout;
+                } else if (checkoutFilter === "No Checkout") {
+                    matchesCheckout = !hasCheckout;
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests && matchesTestAccount && matchesFreeTest && matchesCheckout;
         });
-    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, startDate, endDate, testFilter, freeTestFilter, hideTestAccounts]);
+    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, startDate, endDate, testFilter, freeTestFilter, hideTestAccounts, checkoutFilter]);
 
     // Summary statistics (excluding test accounts)
     const stats = useMemo(() => {
@@ -445,6 +456,28 @@ export default function AdminUsersPage() {
                         <option value="Not Taken">Free Test Not Taken</option>
                     </select>
                 </div>
+
+                <div style={{ position: "relative", width: "200px" }}>
+                    <Filter style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", opacity: 0.5, color: "black" }} size={18} />
+                    <select
+                        value={checkoutFilter}
+                        onChange={(e) => setCheckoutFilter(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "0.8rem 1rem 0.8rem 2.8rem",
+                            background: "white",
+                            border: "1px solid var(--glass-border)",
+                            borderRadius: "8px",
+                            color: "black",
+                            cursor: "pointer",
+                            appearance: "none"
+                        }}
+                    >
+                        <option value="All">All Checkout Statuses</option>
+                        <option value="Initiated">Initiated Checkout</option>
+                        <option value="No Checkout">Did Not Initiate Checkout</option>
+                    </select>
+                </div>
             </div>
 
             {/* Filter Result Summary and Hide/Show Test Toggle */}
@@ -526,6 +559,19 @@ export default function AdminUsersPage() {
                                                                 : (u.email ? u.email.split('@')[0] : "G1 Candidate")}
                                                             {u.admin === "YES" && <span title="Admin"><Shield size={14} style={{ color: "var(--primary)" }} /></span>}
                                                             {u.isTest && <span style={{ fontSize: "0.7rem", padding: "2px 6px", background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "4px", fontWeight: "bold" }}>Test</span>}
+                                                            {u.initiatedCheckout && (
+                                                                <span style={{
+                                                                    fontSize: "0.7rem",
+                                                                    padding: "2px 6px",
+                                                                    background: "rgba(139, 92, 246, 0.15)",
+                                                                    color: "#a78bfa",
+                                                                    border: "1px solid rgba(139, 92, 246, 0.3)",
+                                                                    borderRadius: "4px",
+                                                                    fontWeight: "bold"
+                                                                }} title="Initiated Checkout">
+                                                                    Checkout
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div style={{ fontSize: "0.8rem", opacity: 0.6 }}>{u.email}</div>
                                                     </div>
@@ -624,6 +670,9 @@ export default function AdminUsersPage() {
                                 </div>
                                 <div style={{ opacity: 0.6, fontSize: "0.85rem", marginTop: "0.25rem" }}>
                                     Landing Free Test: <strong>{selectedUser.hasTakenFreeTest ? "Yes" : "No"}</strong>
+                                </div>
+                                <div style={{ opacity: 0.6, fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                                    Initiated Checkout: <strong>{selectedUser.initiatedCheckout ? "Yes" : "No"}</strong>
                                 </div>
                             </div>
 

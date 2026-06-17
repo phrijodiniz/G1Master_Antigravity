@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { getCheckoutInitiatorsFromSheet } from '@/services/sheets'
 
 // Initialize the Service Role admin client securely on the server
 const supabaseAdmin = createClient(
@@ -63,6 +64,15 @@ export async function GET(request: Request) {
         const authStatus = await verifyAdmin(request)
         if (!authStatus.authorized) {
             return authStatus.errorResponse!
+        }
+
+        // Fetch checkout initiations from sheets
+        let checkoutSet = new Set<string>()
+        try {
+            const checkoutInitiators = await getCheckoutInitiatorsFromSheet()
+            checkoutSet = new Set(checkoutInitiators.map((ci: any) => ci.email.toLowerCase().trim()))
+        } catch (sheetError) {
+            console.error('Error fetching checkout initiators from sheet in admin route:', sheetError)
         }
 
         // 1. Fetch all auth users using pagination
@@ -220,11 +230,12 @@ export async function GET(request: Request) {
                 lastName = parts.slice(1).join(' ') || ''
             }
 
-            const emailLower = (user.email || '').toLowerCase()
+            const emailLower = (user.email || '').toLowerCase().trim()
             const isEmailTest = emailLower.includes('test') || emailLower.endsWith('@example.com') || emailLower.includes('demo')
             const isTest = isEmailTest || (profile as any)?.is_test_account === true
 
             const hasTakenFreeTest = userResults.some(r => r.test_type === 'Practice (First Try)')
+            const initiatedCheckout = checkoutSet.has(emailLower)
 
             return {
                 id: user.id,
@@ -237,6 +248,7 @@ export async function GET(request: Request) {
                 admin: profile?.admin || 'NO',
                 isTest,
                 hasTakenFreeTest,
+                initiatedCheckout,
                 stats: {
                     totalTests,
                     simulationsCount,
