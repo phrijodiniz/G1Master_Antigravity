@@ -18,11 +18,6 @@ export const sendGTMEvent = (eventName: string, eventDetails: object = {}) => {
                 ...eventDetails,
             });
         }
-        // Forward to gtag directly if available (useful for direct Google Ads tracking)
-        const gtag = (window as any).gtag;
-        if (typeof gtag === 'function') {
-            gtag('event', eventName, eventDetails);
-        }
     } else {
         console.warn("GTM: window not defined");
     }

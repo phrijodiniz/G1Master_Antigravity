@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -25,7 +25,7 @@ export default function FreeTestPage() {
     const totalQuestions = questionsData.length;
 
     // Track Test Start
-    useState(() => {
+    useEffect(() => {
         sendGTMEvent('free_test_start');
     }, []);
 
