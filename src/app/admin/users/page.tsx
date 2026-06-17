@@ -13,6 +13,8 @@ export default function AdminUsersPage() {
     const [roleFilter, setRoleFilter] = useState("All");
     const [dateFilter, setDateFilter] = useState("All");
     const [specificDate, setSpecificDate] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [testFilter, setTestFilter] = useState("All");
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
@@ -62,6 +64,15 @@ export default function AdminUsersPage() {
                         const userLocalDateStr = signupDate.toLocaleDateString('en-CA'); // format: YYYY-MM-DD
                         matchesDate = userLocalDateStr === specificDate;
                     }
+                } else if (dateFilter === "Range") {
+                    const userLocalDateStr = signupDate.toLocaleDateString('en-CA'); // format: YYYY-MM-DD
+                    if (startDate && endDate) {
+                        matchesDate = userLocalDateStr >= startDate && userLocalDateStr <= endDate;
+                    } else if (startDate) {
+                        matchesDate = userLocalDateStr >= startDate;
+                    } else if (endDate) {
+                        matchesDate = userLocalDateStr <= endDate;
+                    }
                 } else {
                     const diffTime = Date.now() - signupDate.getTime();
                     const diffDays = diffTime / (1000 * 60 * 60 * 24);
@@ -94,7 +105,7 @@ export default function AdminUsersPage() {
 
             return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests;
         });
-    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, testFilter]);
+    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, startDate, endDate, testFilter]);
 
     // Summary statistics (excluding test accounts)
     const stats = useMemo(() => {
@@ -259,6 +270,7 @@ export default function AdminUsersPage() {
                         <option value="Week">Joined Last 7 Days</option>
                         <option value="Month">Joined Last 30 Days</option>
                         <option value="Specific">Pick Specific Date...</option>
+                        <option value="Range">Pick Date Range...</option>
                     </select>
                 </div>
 
@@ -277,6 +289,40 @@ export default function AdminUsersPage() {
                                 color: "black",
                                 cursor: "pointer"
                             }}
+                        />
+                    </div>
+                )}
+
+                {dateFilter === "Range" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            style={{
+                                padding: "0.8rem 1rem",
+                                background: "white",
+                                border: "1px solid var(--glass-border)",
+                                borderRadius: "8px",
+                                color: "black",
+                                cursor: "pointer"
+                            }}
+                            placeholder="Start Date"
+                        />
+                        <span style={{ opacity: 0.6 }}>to</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            style={{
+                                padding: "0.8rem 1rem",
+                                background: "white",
+                                border: "1px solid var(--glass-border)",
+                                borderRadius: "8px",
+                                color: "black",
+                                cursor: "pointer"
+                            }}
+                            placeholder="End Date"
                         />
                     </div>
                 )}
@@ -305,6 +351,11 @@ export default function AdminUsersPage() {
                         <option value="3+">3+ tests taken</option>
                     </select>
                 </div>
+            </div>
+
+            {/* Filter Result Summary */}
+            <div style={{ marginBottom: "1.5rem", fontSize: "0.95rem", opacity: 0.9 }}>
+                Found <strong>{filteredUsers.length}</strong> {filteredUsers.length === 1 ? "user" : "users"} matching current filters (out of {users.length} total).
             </div>
 
             {/* Content Split: Table and Edit Drawer */}
