@@ -16,6 +16,7 @@ export default function AdminUsersPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [testFilter, setTestFilter] = useState("All");
+    const [hideTestAccounts, setHideTestAccounts] = useState(true);
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
     const fetchUsers = useCallback(async () => {
@@ -103,9 +104,14 @@ export default function AdminUsersPage() {
                 }
             }
 
-            return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests;
+            let matchesTestAccount = true;
+            if (hideTestAccounts) {
+                matchesTestAccount = !user.isTest;
+            }
+
+            return matchesSearch && matchesStatus && matchesRole && matchesDate && matchesTests && matchesTestAccount;
         });
-    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, startDate, endDate, testFilter]);
+    }, [users, searchTerm, statusFilter, roleFilter, dateFilter, specificDate, startDate, endDate, testFilter, hideTestAccounts]);
 
     // Summary statistics (excluding test accounts)
     const stats = useMemo(() => {
@@ -351,6 +357,28 @@ export default function AdminUsersPage() {
                         <option value="3+">3+ tests taken</option>
                     </select>
                 </div>
+
+                <label style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    cursor: "pointer",
+                    color: "white",
+                    padding: "0.8rem 1.2rem",
+                    background: "rgba(255,255,255,0.05)",
+                    borderRadius: "8px",
+                    border: "1px solid var(--glass-border)",
+                    fontSize: "0.9rem",
+                    userSelect: "none"
+                }}>
+                    <input
+                        type="checkbox"
+                        checked={hideTestAccounts}
+                        onChange={(e) => setHideTestAccounts(e.target.checked)}
+                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                    />
+                    <span>Hide Test Accounts</span>
+                </label>
             </div>
 
             {/* Filter Result Summary */}
