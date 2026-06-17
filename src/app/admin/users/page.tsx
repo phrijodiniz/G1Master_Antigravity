@@ -472,7 +472,9 @@ export default function AdminUsersPage() {
                                                     </div>
                                                     <div>
                                                         <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                                                            {u.firstName || u.lastName ? `${u.firstName} ${u.lastName}`.trim() : "G1 Candidate"}
+                                                            {u.firstName || u.lastName 
+                                                                ? `${u.firstName} ${u.lastName}`.trim() 
+                                                                : (u.email ? u.email.split('@')[0] : "G1 Candidate")}
                                                             {u.admin === "YES" && <span title="Admin"><Shield size={14} style={{ color: "var(--primary)" }} /></span>}
                                                             {u.isTest && <span style={{ fontSize: "0.7rem", padding: "2px 6px", background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "4px", fontWeight: "bold" }}>Test</span>}
                                                         </div>
@@ -562,7 +564,9 @@ export default function AdminUsersPage() {
                             {/* User Header Details */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", marginBottom: "1.5rem" }}>
                                 <div style={{ fontSize: "1.2rem", fontWeight: 800 }}>
-                                    {selectedUser.firstName || selectedUser.lastName ? `${selectedUser.firstName} ${selectedUser.lastName}`.trim() : "G1 Candidate"}
+                                    {selectedUser.firstName || selectedUser.lastName 
+                                        ? `${selectedUser.firstName} ${selectedUser.lastName}`.trim() 
+                                        : (selectedUser.email ? selectedUser.email.split('@')[0] : "G1 Candidate")}
                                 </div>
                                 <div style={{ opacity: 0.6, fontSize: "0.9rem" }}>{selectedUser.email}</div>
                                 <div style={{ opacity: 0.4, fontSize: "0.8rem", fontFamily: "monospace" }}>ID: {selectedUser.id}</div>
