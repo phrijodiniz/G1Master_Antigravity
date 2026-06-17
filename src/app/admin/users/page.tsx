@@ -435,12 +435,12 @@ export default function AdminUsersPage() {
                                 <thead>
                                     <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}>
                                         <th style={{ textAlign: "left", padding: "1rem" }}>User</th>
-                                        <th style={{ textAlign: "left", padding: "1rem" }}>Plan Status</th>
-                                        <th style={{ textAlign: "left", padding: "1rem" }}>Free Test</th>
-                                        <th style={{ textAlign: "left", padding: "1rem" }}>Available Credits</th>
-                                        <th style={{ textAlign: "left", padding: "1rem" }}>G1 Readiness</th>
-                                        <th style={{ textAlign: "left", padding: "1rem" }}>Tests Taken</th>
-                                        <th style={{ textAlign: "left", padding: "1rem" }}>Signed Up</th>
+                                        <th style={{ textAlign: "center", padding: "1rem" }}>Plan Status</th>
+                                        <th style={{ textAlign: "center", padding: "1rem" }}>Free Test</th>
+                                        <th style={{ textAlign: "center", padding: "1rem" }}>Available Credits</th>
+                                        <th style={{ textAlign: "center", padding: "1rem" }}>G1 Readiness</th>
+                                        <th style={{ textAlign: "center", padding: "1rem" }}>Tests Taken</th>
+                                        <th style={{ textAlign: "center", padding: "1rem" }}>Signed Up</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -479,7 +479,7 @@ export default function AdminUsersPage() {
                                                         <div style={{ fontSize: "0.8rem", opacity: 0.6 }}>{u.email}</div>
                                                     </div>
                                                 </td>
-                                                <td style={{ padding: "1rem" }}>
+                                                <td style={{ padding: "1rem", textAlign: "center" }}>
                                                     <span style={{
                                                         fontSize: "0.75rem",
                                                         padding: "4px 10px",
@@ -492,7 +492,7 @@ export default function AdminUsersPage() {
                                                         {u.status}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: "1rem" }}>
+                                                <td style={{ padding: "1rem", textAlign: "center" }}>
                                                     {u.hasTakenFreeTest ? (
                                                         <span style={{
                                                             fontSize: "0.75rem",
@@ -518,7 +518,7 @@ export default function AdminUsersPage() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: "1rem" }}>
+                                                <td style={{ padding: "1rem", textAlign: "center" }}>
                                                     {u.status === "Premium" ? (
                                                         <span style={{ color: "#10B981", fontWeight: "bold", fontSize: "0.85rem" }}>Unlimited</span>
                                                     ) : (
@@ -527,13 +527,13 @@ export default function AdminUsersPage() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: "1rem", color: readyColor, fontWeight: 700 }}>
+                                                <td style={{ padding: "1rem", color: readyColor, fontWeight: 700, textAlign: "center" }}>
                                                     {u.stats.totalTests > 0 ? `${u.stats.passProbability}%` : "—"}
                                                 </td>
-                                                <td style={{ padding: "1rem" }}>
+                                                <td style={{ padding: "1rem", textAlign: "center" }}>
                                                     {u.stats.totalTests} <span style={{ opacity: 0.5, fontSize: "0.85rem" }}>({u.stats.simulationsCount} sim, {u.stats.practiceCount} prac)</span>
                                                 </td>
-                                                <td style={{ padding: "1rem", fontSize: "0.85rem", opacity: 0.7 }}>
+                                                <td style={{ padding: "1rem", fontSize: "0.85rem", opacity: 0.7, textAlign: "center" }}>
                                                     {new Date(u.createdAt).toLocaleDateString()}
                                                 </td>
                                             </tr>
