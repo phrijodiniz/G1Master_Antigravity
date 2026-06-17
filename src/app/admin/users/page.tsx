@@ -394,33 +394,31 @@ export default function AdminUsersPage() {
                         <option value="Not Taken">Free Test Not Taken</option>
                     </select>
                 </div>
-
-                <label style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    cursor: "pointer",
-                    color: "white",
-                    padding: "0.8rem 1.2rem",
-                    background: "rgba(255,255,255,0.05)",
-                    borderRadius: "8px",
-                    border: "1px solid var(--glass-border)",
-                    fontSize: "0.9rem",
-                    userSelect: "none"
-                }}>
-                    <input
-                        type="checkbox"
-                        checked={hideTestAccounts}
-                        onChange={(e) => setHideTestAccounts(e.target.checked)}
-                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                    />
-                    <span>Hide Test Accounts</span>
-                </label>
             </div>
 
-            {/* Filter Result Summary */}
-            <div style={{ marginBottom: "1.5rem", fontSize: "0.95rem", opacity: 0.9 }}>
-                Found <strong>{filteredUsers.length}</strong> {filteredUsers.length === 1 ? "user" : "users"} matching current filters (out of {users.length} total).
+            {/* Filter Result Summary and Hide/Show Test Toggle */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", fontSize: "0.95rem", flexWrap: "wrap", gap: "1rem", width: "100%" }}>
+                <div style={{ opacity: 0.9 }}>
+                    Found <strong>{filteredUsers.length}</strong> {filteredUsers.length === 1 ? "user" : "users"} matching current filters (out of {users.length} total).
+                </div>
+                <button
+                    onClick={() => setHideTestAccounts(!hideTestAccounts)}
+                    style={{
+                        background: "none",
+                        border: "none",
+                        color: "rgba(255, 255, 255, 0.75)",
+                        textDecoration: "underline",
+                        cursor: "pointer",
+                        padding: 0,
+                        fontSize: "0.9rem",
+                        fontWeight: 500,
+                        fontFamily: "inherit"
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = "white"}
+                    onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255, 255, 255, 0.75)"}
+                >
+                    {hideTestAccounts ? "Show Test Accounts" : "Hide Test Accounts"}
+                </button>
             </div>
 
             {/* Content Split: Table and Edit Drawer */}
