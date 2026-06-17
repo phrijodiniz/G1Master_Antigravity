@@ -205,6 +205,21 @@ export async function GET(request: Request) {
                 passProbability = Math.round(40 + signsAvg * 0.5)
             }
 
+            // Resolve firstName and lastName with fallbacks for Google OAuth and profiles table
+            let firstName = user.user_metadata?.first_name || (profile as any)?.first_name || ''
+            let lastName = user.user_metadata?.last_name || (profile as any)?.last_name || ''
+
+            // Extract from full_name or name if first_name/last_name is not direct
+            if (!firstName && user.user_metadata?.full_name) {
+                const parts = user.user_metadata.full_name.trim().split(/\s+/)
+                firstName = parts[0] || ''
+                lastName = parts.slice(1).join(' ') || ''
+            } else if (!firstName && user.user_metadata?.name) {
+                const parts = user.user_metadata.name.trim().split(/\s+/)
+                firstName = parts[0] || ''
+                lastName = parts.slice(1).join(' ') || ''
+            }
+
             const emailLower = (user.email || '').toLowerCase()
             const isEmailTest = emailLower.includes('test') || emailLower.endsWith('@example.com') || emailLower.includes('demo')
             const isTest = isEmailTest || (profile as any)?.is_test_account === true
@@ -214,8 +229,8 @@ export async function GET(request: Request) {
             return {
                 id: user.id,
                 email: user.email,
-                firstName: user.user_metadata?.first_name || '',
-                lastName: user.user_metadata?.last_name || '',
+                firstName,
+                lastName,
                 provider: user.app_metadata?.provider || 'email',
                 createdAt: user.created_at,
                 status: profile?.is_premium ? 'Premium' : 'Standard',
