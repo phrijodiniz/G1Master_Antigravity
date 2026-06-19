@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         }
 
         // 1. Fetch user profile
-        let query = supabaseAdmin.from('profiles').select('id, email, first_name, is_premium')
+        let query = supabaseAdmin.from('profiles').select('id, email, is_premium')
         if (userId) {
             query = query.eq('id', userId)
         } else {

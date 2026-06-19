@@ -23,7 +23,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Missing email or userId parameter' }, { status: 400 })
         }
 
-        let query = supabaseAdmin.from('profiles').select('id, email, first_name, is_premium')
+        let query = supabaseAdmin.from('profiles').select('id, email, is_premium')
 
         if (userId) {
             query = query.eq('id', userId)
@@ -42,10 +42,28 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 })
         }
 
+        // Fetch user metadata from Auth Admin API to get the first name
+        let firstName = ''
+        try {
+            const { data: { user }, error: authError } = await supabaseAdmin.auth.admin.getUserById(profile.id)
+            if (!authError && user) {
+                firstName = user.user_metadata?.first_name || ''
+                if (!firstName && user.user_metadata?.full_name) {
+                    const parts = user.user_metadata.full_name.trim().split(/\s+/)
+                    firstName = parts[0] || ''
+                } else if (!firstName && user.user_metadata?.name) {
+                    const parts = user.user_metadata.name.trim().split(/\s+/)
+                    firstName = parts[0] || ''
+                }
+            }
+        } catch (authErr) {
+            console.error('Error fetching Auth user details:', authErr)
+        }
+
         return NextResponse.json({
             id: profile.id,
             email: profile.email,
-            firstName: profile.first_name || '',
+            firstName,
             isPremium: !!profile.is_premium
         })
 
