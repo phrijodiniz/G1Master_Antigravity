@@ -114,9 +114,9 @@ function ParentPayContent() {
                 <div className={styles.perkItem}>
                     <span className={styles.perkIcon}>🏷️</span>
                     <div>
-                        <div className={styles.perkTitle}>One-Time Payment of $13.98 CAD</div>
+                        <div className={styles.perkTitle}>One-Time Payment of $12.98 CAD</div>
                         <div className={styles.perkDescription}>
-                            Enjoy a special campaign discount of <span className={styles.highlight}>30% OFF</span> the standard price. Single payment, lifetime access. No subscriptions.
+                            Enjoy a special campaign discount of <span className={styles.highlight}>35% OFF</span> the standard price. Single payment, lifetime access. No subscriptions.
                         </div>
                     </div>
                 </div>
@@ -153,7 +153,7 @@ function ParentPayContent() {
             </div>
 
             <button className={styles.ctaButton} onClick={handleUnlock}>
-                Unlock Premium for {childName} ($13.98)
+                Unlock Premium for {childName} ($12.98)
             </button>
 
             <div className={styles.guaranteeText}>

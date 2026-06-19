@@ -53,7 +53,7 @@ export async function GET(request: Request) {
         }
 
         // 3. Ensure Coupon exists in Stripe
-        const couponId = 'CAMPAIGN30'
+        const couponId = 'CAMPAIGN35'
         try {
             await stripe.coupons.retrieve(couponId)
         } catch (err: any) {
@@ -62,9 +62,9 @@ export async function GET(request: Request) {
                 try {
                     await stripe.coupons.create({
                         id: couponId,
-                        percent_off: 30,
+                        percent_off: 35,
                         duration: 'forever',
-                        name: '30% OFF Campaign Offer',
+                        name: '35% OFF Campaign Offer',
                     })
                     console.log(`Created Stripe coupon ${couponId} dynamically.`)
                 } catch (createErr) {
