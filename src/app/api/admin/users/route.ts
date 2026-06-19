@@ -215,6 +215,12 @@ export async function GET(request: Request) {
                 passProbability = Math.round(40 + signsAvg * 0.5)
             }
 
+            // E. Compute average score of all tests excluding 'Practice (First Try)'
+            const validTests = userResults.filter(r => r.test_type !== 'Practice (First Try)')
+            const averageScore = validTests.length > 0
+                ? Math.round(validTests.reduce((sum, r) => sum + Number(r.score), 0) / validTests.length)
+                : null
+
             // Resolve firstName and lastName with fallbacks for Google OAuth and profiles table
             let firstName = user.user_metadata?.first_name || (profile as any)?.first_name || ''
             let lastName = user.user_metadata?.last_name || (profile as any)?.last_name || ''
@@ -256,7 +262,8 @@ export async function GET(request: Request) {
                     practiceCreditsLeft,
                     rulesAvg,
                     signsAvg,
-                    passProbability
+                    passProbability,
+                    averageScore
                 }
             }
         })

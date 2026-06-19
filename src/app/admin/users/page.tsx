@@ -177,12 +177,13 @@ export default function AdminUsersPage() {
     };
 
     const exportToCSV = () => {
-        const headers = ["Email", "First Name", "Last Name"];
+        const headers = ["Email", "First Name", "Last Name", "Average Score"];
         
         const rows = filteredUsers.map(user => [
             user.email || "",
             user.firstName || "",
-            user.lastName || ""
+            user.lastName || "",
+            user.stats.averageScore !== null ? `${user.stats.averageScore}%` : "—"
         ]);
         
         const csvContent = [
@@ -523,6 +524,7 @@ export default function AdminUsersPage() {
                                         <th style={{ textAlign: "center", padding: "1rem" }}>Free Test</th>
                                         <th style={{ textAlign: "center", padding: "1rem" }}>Available Credits</th>
                                         <th style={{ textAlign: "center", padding: "1rem" }}>G1 Readiness</th>
+                                        <th style={{ textAlign: "center", padding: "1rem" }}>Avg Score</th>
                                         <th style={{ textAlign: "center", padding: "1rem" }}>Tests Taken</th>
                                         <th style={{ textAlign: "center", padding: "1rem" }}>Signed Up</th>
                                     </tr>
@@ -626,6 +628,9 @@ export default function AdminUsersPage() {
                                                 </td>
                                                 <td style={{ padding: "1rem", color: readyColor, fontWeight: 700, textAlign: "center" }}>
                                                     {u.stats.totalTests > 0 ? `${u.stats.passProbability}%` : "—"}
+                                                </td>
+                                                <td style={{ padding: "1rem", textAlign: "center", fontWeight: 600 }}>
+                                                    {u.stats.averageScore !== null ? `${u.stats.averageScore}%` : "—"}
                                                 </td>
                                                 <td style={{ padding: "1rem", textAlign: "center" }}>
                                                     {u.stats.totalTests} <span style={{ opacity: 0.5, fontSize: "0.85rem" }}>({u.stats.simulationsCount} sim, {u.stats.practiceCount} prac)</span>
