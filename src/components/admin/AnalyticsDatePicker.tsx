@@ -132,6 +132,7 @@ export default function AnalyticsDatePicker({ onDateChange, currentLabel }: Anal
                         <PresetButton label="Last 7 Days" onClick={() => handlePresetSelect(7, 'Last 7 Days')} active={selectedLabel === 'Last 7 Days'} />
                         <PresetButton label="Last 15 Days" onClick={() => handlePresetSelect(15, 'Last 15 Days')} active={selectedLabel === 'Last 15 Days'} />
                         <PresetButton label="Last 30 Days" onClick={() => handlePresetSelect(30, 'Last 30 Days')} active={selectedLabel === 'Last 30 Days'} />
+                        <PresetButton label="Last 180 Days" onClick={() => handlePresetSelect(180, 'Last 180 Days')} active={selectedLabel === 'Last 180 Days'} />
                     </div>
 
                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem' }}>

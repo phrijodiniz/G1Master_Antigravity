@@ -34,7 +34,7 @@ export default function AdminAnalyticsPage() {
         {
             title: "💰 Revenue",
             description: "Monitor premium sales, revenue growth, and customer acquisition cost.",
-            href: "#", // Placeholder
+            href: "/admin/analytics/revenue",
             color: "#F59E0B" // Amber
         }
     ];
