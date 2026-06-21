@@ -76,10 +76,35 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
 
         console.log('Successfully fetched users. Count:', allUsers.length);
 
+        // Fetch profiles to identify test and admin accounts
+        const { data: profilesData } = await supabase.from('profiles').select('id, email, is_test_account, admin');
+        const testUserIds = new Set();
+        const testEmails = new Set();
+        if (profilesData) {
+            profilesData.forEach(p => {
+                const emailLower = (p.email || '').toLowerCase().trim();
+                const isEmailTest = emailLower.includes('test') || emailLower.endsWith('@example.com') || emailLower.includes('demo') || emailLower === 'pedro.rijo.diniz@hotmail.com' || emailLower === 'hello@alberdinni.com' || emailLower === 'g1masterapp@gmail.com';
+                if (p.is_test_account === true || p.admin === 'YES' || p.admin === 'yes' || isEmailTest) {
+                    testUserIds.add(p.id);
+                    if (p.email) {
+                        testEmails.add(emailLower);
+                    }
+                }
+            });
+        }
+
         const signupsMap = new Map();
         if (allUsers.length > 0) {
             allUsers.forEach((user: any) => {
                 if (user.created_at) {
+                    const emailLower = (user.email || '').toLowerCase().trim();
+                    const isEmailTest = emailLower.includes('test') || emailLower.endsWith('@example.com') || emailLower.includes('demo') || emailLower === 'pedro.rijo.diniz@hotmail.com' || emailLower === 'hello@alberdinni.com' || emailLower === 'g1masterapp@gmail.com';
+                    
+                    // Exclude test, admin, and developer accounts
+                    if (testUserIds.has(user.id) || testEmails.has(emailLower) || isEmailTest) {
+                        return;
+                    }
+
                     // Extract YYYY-MM-DD from timestamp using America/New_York timezone
                     // 'en-CA' locale formats as YYYY-MM-DD
                     const dateStr = new Date(user.created_at).toLocaleDateString('en-CA', {
@@ -98,7 +123,7 @@ export async function getAcquisitionDataFromSheet(startDate?: string, endDate?: 
                 }
             });
         }
-        console.log('Signups aggregation result:', Object.fromEntries(signupsMap));
+        console.log('Signups aggregation result (excluding test accounts):', Object.fromEntries(signupsMap));
         // ---------------------------
 
         // Map rows to objects and merge by Date

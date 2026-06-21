@@ -78,15 +78,23 @@ export async function GET(request: Request) {
         });
 
         // Query profiles created within the date range
-        let query = supabase.from('profiles').select('id, email, created_at, is_premium');
+        let query = supabase.from('profiles').select('id, email, created_at, is_premium, is_test_account, admin');
         if (startStr) query = query.gte('created_at', `${startStr}T00:00:00Z`);
         if (endStr) query = query.lte('created_at', `${endStr}T23:59:59Z`);
 
         const { data: profiles, error: profileError } = await query;
 
         if (!profileError && profiles && profiles.length > 0) {
-            const userIds = profiles.map(p => p.id);
-            activationFunnel.signUp = profiles.map(p => p.email || p.id);
+            // Exclude test, admin, and developer accounts from activation analytics
+            const filteredProfiles = profiles.filter(p => {
+                const emailLower = (p.email || '').toLowerCase().trim();
+                const isEmailTest = emailLower.includes('test') || emailLower.endsWith('@example.com') || emailLower.includes('demo') || emailLower === 'pedro.rijo.diniz@hotmail.com' || emailLower === 'hello@alberdinni.com' || emailLower === 'g1masterapp@gmail.com';
+                const isTest = isEmailTest || p.is_test_account === true || p.admin === 'YES' || p.admin === 'yes';
+                return !isTest;
+            });
+
+            const userIds = filteredProfiles.map(p => p.id);
+            activationFunnel.signUp = filteredProfiles.map(p => p.email || p.id);
 
             const userCounts: Record<string, number> = {};
             const userTestTypes: Record<string, string[]> = {};
@@ -125,7 +133,7 @@ export async function GET(request: Request) {
             checkoutSet = new Set(checkoutInitiators.map(ci => ci.email.toLowerCase().trim()));
 
             // Tally the users into the activation funnel using their email addresses
-            profiles.forEach(p => {
+            filteredProfiles.forEach(p => {
                 const userEmail = p.email || p.id;
                 const tests = userTestTypes[p.id] || [];
 
