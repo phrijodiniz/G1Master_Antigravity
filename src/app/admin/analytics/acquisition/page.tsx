@@ -6,6 +6,7 @@ import { ArrowLeft, TrendingUp, Users, DollarSign, MousePointerClick, ArrowRight
 import { formatCurrency } from '@/services/analyticsExample';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import AnalyticsDatePicker from '@/components/admin/AnalyticsDatePicker';
+import EventTimelineWidget from '@/components/admin/EventTimelineWidget';
 
 export default function AcquisitionPage() {
     const router = useRouter();
@@ -255,6 +256,11 @@ export default function AcquisitionPage() {
                                 </div>
                             </div>
                         )}
+                    </div>
+
+                    {/* Event Timeline Widget */}
+                    <div style={{ marginTop: '2rem' }}>
+                        <EventTimelineWidget startDate={dateRange.startDate} endDate={dateRange.endDate} />
                     </div>
                 </>
             )}

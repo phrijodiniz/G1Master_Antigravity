@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, TrendingUp, DollarSign, CreditCard, ShieldCheck, ArrowRight } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import AnalyticsDatePicker from '@/components/admin/AnalyticsDatePicker';
+import EventTimelineWidget from '@/components/admin/EventTimelineWidget';
 
 // Helper to format currency in CAD
 const formatCAD = (amount: number) => {
@@ -299,6 +300,11 @@ export default function RevenueAnalyticsPage() {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+
+                    {/* Event Timeline Widget */}
+                    <div style={{ marginTop: '2rem' }}>
+                        <EventTimelineWidget startDate={dateRange.startDate} endDate={dateRange.endDate} />
                     </div>
                 </>
             )}

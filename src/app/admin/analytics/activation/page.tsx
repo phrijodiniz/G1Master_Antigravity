@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, MousePointerClick, PlayCircle, XCircle, CheckCircle, TrendingUp, ArrowRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import AnalyticsDatePicker from '@/components/admin/AnalyticsDatePicker';
+import EventTimelineWidget from '@/components/admin/EventTimelineWidget';
 
 export default function ActivationPage() {
     const router = useRouter();
@@ -390,6 +391,10 @@ export default function ActivationPage() {
                         </div>
                     </div>
 
+                    {/* Event Timeline Widget */}
+                    <div style={{ marginTop: '2rem' }}>
+                        <EventTimelineWidget startDate={dateRange.startDate} endDate={dateRange.endDate} />
+                    </div>
                 </>
             )}
 

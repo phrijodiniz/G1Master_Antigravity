@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AnalyticsDatePicker from '@/components/admin/AnalyticsDatePicker';
+import EventTimelineWidget from '@/components/admin/EventTimelineWidget';
 
 type TestFilter = 'All Tests' | 'Free Test' | 'Rules of the Road' | 'Road Signs' | 'Simulation';
 
@@ -429,6 +430,11 @@ export default function ScorePerformancePage() {
                         </ResponsiveContainer>
                     </div>
                 )}
+            </div>
+
+            {/* Event Timeline Widget */}
+            <div style={{ marginTop: '2rem' }}>
+                <EventTimelineWidget startDate={dateRange.startDate} endDate={dateRange.endDate} />
             </div>
         </div>
     );

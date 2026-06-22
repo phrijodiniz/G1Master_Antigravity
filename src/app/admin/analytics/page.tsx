@@ -36,6 +36,12 @@ export default function AdminAnalyticsPage() {
             description: "Monitor premium sales, revenue growth, and customer acquisition cost.",
             href: "/admin/analytics/revenue",
             color: "#F59E0B" // Amber
+        },
+        {
+            title: "📅 Event & Preset Manager",
+            description: "Manage custom date range presets and log business events/milestones.",
+            href: "/admin/analytics/events",
+            color: "#3B82F6" // Blue
         }
     ];
 

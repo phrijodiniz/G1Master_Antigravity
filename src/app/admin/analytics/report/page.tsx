@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, DollarSign, Activity, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Printer, DollarSign, Activity, RefreshCw, TrendingUp, CreditCard, ShieldCheck } from 'lucide-react';
 import { formatCurrency } from '@/services/analyticsExample';
 import AnalyticsDatePicker from '@/components/admin/AnalyticsDatePicker';
+import EventTimelineWidget from '@/components/admin/EventTimelineWidget';
 
 export default function ReportPage() {
     const router = useRouter();
@@ -12,6 +13,8 @@ export default function ReportPage() {
     const [acquisitionData, setAcquisitionData] = useState<any>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [activationData, setActivationData] = useState<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [revenueData, setRevenueData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +47,16 @@ export default function ReportPage() {
                 }
                 const actJson = await actRes.ok ? await actRes.json() : null;
 
+                // Fetch Revenue data
+                const revRes = await fetch(`/api/analytics/revenue?startDate=${startStr}&endDate=${endStr}`);
+                if (!revRes.ok) {
+                    throw new Error('Failed to load revenue data');
+                }
+                const revJson = await revRes.ok ? await revRes.json() : null;
+
                 setAcquisitionData(acqJson);
                 setActivationData(actJson);
+                setRevenueData(revJson);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (err: any) {
                 console.error(err);
@@ -67,6 +78,13 @@ export default function ReportPage() {
     const actFunnel = activationData?.activationFunnel || {};
     const freeTest = activationData?.freeTest || {};
     const creditStats = activationData?.creditRenewalStats || {};
+    const revSummary = revenueData?.summary || {};
+
+    const grossRevenue = revSummary.totalGross || 0;
+    const refundedRevenue = revSummary.totalRefunded || 0;
+    const totalCosts = revSummary.totalOutflow || 0;
+    const netProfit = revSummary.netProfit || 0;
+    const paidUpgrades = revSummary.totalPaidConversions || 0;
 
     const totalAdSpent = acqSummary.totalSpend || 0;
     const totalSignups = acqSummary.totalSignups || 0;
@@ -94,6 +112,13 @@ export default function ReportPage() {
     const getStepPercentage = (current: number, previous: number) => {
         if (!previous) return '0.0%';
         return `${((current / previous) * 100).toFixed(1)}%`;
+    };
+
+    const getConversionAndDropStr = (current: number, previous: number) => {
+        if (!previous) return 'Conversion: 0.0% | Drop: 100.0%';
+        const conversionVal = (current / previous) * 100;
+        const dropVal = Math.max(0, 100 - conversionVal);
+        return `Conversion: ${conversionVal.toFixed(1)}% | Drop: ${dropVal.toFixed(1)}%`;
     };
 
     const getTotalPercentage = (current: number) => {
@@ -183,6 +208,10 @@ export default function ReportPage() {
                         color: #0f172a !important;
                         font-size: 1.2rem !important;
                     }
+                    .kpi-sub {
+                        color: #64748b !important;
+                        font-size: 0.7rem !important;
+                    }
                     .grid-3-cols, .grid-4-cols {
                         display: flex !important;
                         flex-direction: row !important;
@@ -193,6 +222,11 @@ export default function ReportPage() {
                         flex: 1 !important;
                         min-width: 0 !important;
                         padding: 0.5rem 0.75rem !important;
+                    }
+                }
+                @media screen and (min-width: 768px) {
+                    .grid-4-cols-desktop {
+                        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
                     }
                 }
             `}</style>
@@ -350,6 +384,55 @@ export default function ReportPage() {
                         </div>
                     </div>
 
+                    {/* Financial Performance */}
+                    <div className="report-card glass-panel" style={{ padding: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                            <div style={{ padding: '0.5rem', background: 'rgba(59,130,246,0.1)', borderRadius: '8px', color: '#3b82f6' }}>
+                                <TrendingUp size={20} />
+                            </div>
+                            <h2 style={{ fontSize: '1.35rem', fontWeight: 600 }}>Financial Performance</h2>
+                        </div>
+
+                        <div className="grid-4-cols grid-4-cols-desktop" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Gross Revenue</div>
+                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
+                                    {formatCurrency(grossRevenue)}
+                                </div>
+                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                    Refunds: {formatCurrency(refundedRevenue)}
+                                </div>
+                            </div>
+                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Total Costs</div>
+                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
+                                    {formatCurrency(totalCosts)}
+                                </div>
+                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                    Ad Spend: {formatCurrency(revSummary.totalAdSpend || 0)} | Stripe: {formatCurrency(revSummary.totalStripeFees || 0)}
+                                </div>
+                            </div>
+                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Net Profit</div>
+                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: netProfit >= 0 ? '#10b981' : '#ef4444', marginTop: '0.25rem' }}>
+                                    {formatCurrency(netProfit)}
+                                </div>
+                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                    ROAS: {revSummary.roas || 0}x
+                                </div>
+                            </div>
+                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Paid Upgrades</div>
+                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
+                                    {paidUpgrades.toLocaleString()}
+                                </div>
+                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                    AOV: {formatCurrency(revSummary.aov || 0)} | CAC: {formatCurrency(revSummary.cac || 0)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Activation & Behavior */}
                     <div className="report-card glass-panel" style={{ padding: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -364,22 +447,34 @@ export default function ReportPage() {
                             <h3 style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.7)', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
                                 Free Test Engagement
                             </h3>
-                            <div className="grid-4-cols" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                            <div className="grid-4-cols grid-4-cols-desktop" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
                                     <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Free Landing Page Test Starts</div>
                                     <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{freeTestStarts.toLocaleString()}</div>
+                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                        Baseline
+                                    </div>
                                 </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
                                     <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Completed Free Tests</div>
                                     <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{completedFreeTests.toLocaleString()}</div>
+                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                        {getConversionAndDropStr(completedFreeTests, freeTestStarts)}
+                                    </div>
                                 </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
                                     <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}># Users Initiated Sign Up</div>
                                     <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{usersInitiatedSignUp.toLocaleString()}</div>
+                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                        {getConversionAndDropStr(usersInitiatedSignUp, completedFreeTests)}
+                                    </div>
                                 </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
                                     <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}># Sign Ups</div>
                                     <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{totalSignUpsActivation.toLocaleString()}</div>
+                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                        {getConversionAndDropStr(totalSignUpsActivation, usersInitiatedSignUp)}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -453,6 +548,9 @@ export default function ReportPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Business Event Timeline */}
+                    <EventTimelineWidget startDate={dateRange.startDate} endDate={dateRange.endDate} />
 
                 </div>
             )}
