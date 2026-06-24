@@ -1,0 +1,535 @@
+.sectionContainer {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin: 1.25rem auto;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    text-align: left;
+    box-sizing: border-box;
+}
+
+.scoreTitle {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+}
+
+.scoreSub {
+    font-size: 0.95rem;
+    color: #475569;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.scoreNumber {
+    font-size: 4.5rem;
+    font-weight: 900;
+    color: #e1ff21;
+    -webkit-text-stroke: 2px #000000;
+    line-height: 1;
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.radarContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+@media (min-width: 480px) {
+    .radarContainer {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.gaugeWrapper {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    flex-shrink: 0;
+}
+
+.gaugeText {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.gaugeLabel {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.gaugeStatus {
+    font-size: 0.7rem;
+    color: #ef4444;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.radarDetails {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.radarBarRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.radarBarBg {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 0.25rem;
+    width: 100%;
+}
+
+.radarBarFill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.stakesCard {
+    border-radius: 12px;
+    padding: 1.25rem;
+    line-height: 1.5;
+    font-size: 0.925rem;
+}
+
+.stakesCardRed {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #7f1d1d;
+}
+
+.stakesCardAmber {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    color: #78350f;
+}
+
+.benefitsTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+}
+
+.benefitsSub {
+    font-size: 0.9rem;
+    color: #475569;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.benefitList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.benefitItem {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    font-size: 0.95rem;
+}
+
+.benefitIcon {
+    color: #22c55e;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.benefitText {
+    color: #334155;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.proofCard {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.proofStat {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+}
+
+.proofText {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.stickyCtaBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    padding: 1rem 1.5rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .stickyCtaBar {
+        display: none; /* Hide on desktop, mobile-only */
+    }
+}
+
+.ctaBtnPrimary {
+    width: 100%;
+    background: #e1ff21;
+    color: #000000;
+    border: none;
+    padding: 0.9rem;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 1.05rem;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(225, 255, 33, 0.3);
+    transition: all 0.2s;
+}
+
+.ctaBtnPrimary:hover {
+    background: #d4f010;
+    transform: translateY(-1px);
+}
+
+.ctaBtnSecondary {
+    width: 100%;
+    background: #ffffff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    padding: 0.8rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.ctaBtnSecondary:hover {
+    background: #f0f9ff;
+    border-color: #3b82f6;
+}
+
+.ctaLinkBtn {
+    background: none;
+    border: none;
+    color: #64748b;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.ctaLinkBtn:hover {
+    color: #0f172a;
+}
+
+/* Segmented Track */
+.segmentedTrack {
+    display: flex;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 1.5rem;
+    position: relative;
+    width: 100%;
+    gap: 2px;
+    background-color: #ffffff;
+}
+
+.segmentedZone {
+    position: relative;
+    height: 100%;
+}
+
+.segmentedZoneGrey {
+    background-color: #f1f5f9;
+}
+
+.segmentedZoneOrange {
+    background-color: #ffedd5;
+}
+
+.segmentedZoneYellow {
+    background-color: #fef9c3;
+}
+
+.segmentedZoneGreen {
+    background-color: #d1fae5;
+}
+
+.segmentedFill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s ease;
+}
+
+.segmentedFillGrey {
+    background-color: #94a3b8;
+}
+
+.segmentedFillOrange {
+    background-color: #f97316;
+}
+
+.segmentedFillYellow {
+    background-color: #eab308;
+}
+
+.segmentedFillGreen {
+    background-color: #059669;
+}
+
+.trackLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.trackLabelItem {
+    width: 33%;
+    text-align: center;
+}
+
+.trackLabelItem:first-child {
+    text-align: left;
+}
+
+.trackLabelItem:last-child {
+    text-align: right;
+}
+
+/* Info Icon & Math Info Card */
+.infoIconBtn {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+    margin-left: 0.5rem;
+}
+
+.infoIconBtn:hover {
+    color: #0f172a;
+    background-color: #f1f5f9;
+}
+
+.mathInfoCard {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.875rem;
+    color: #0369a1;
+    line-height: 1.5;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mathInfoTitle {
+    font-weight: 700;
+    color: #0369a1;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.mathFormula {
+    background: #e0f2fe;
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-family: monospace;
+    font-weight: 700;
+    text-align: center;
+    margin: 0.5rem 0;
+    color: #0369a1;
+}
+
+.mathInfoList {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.mathInfoList li {
+    margin-bottom: 0.25rem;
+}
+
+/* Category Bars & Pass Ticks */
+.categoryTrack {
+    position: relative;
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    margin-top: 0.35rem;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.categoryFill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.categoryFillGreen {
+    background: #059669;
+}
+
+.categoryFillOrange {
+    background: #d97706;
+}
+
+.passTick {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 2px;
+    background-color: #0f172a;
+    z-index: 10;
+}
+
+.passCaption {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    margin-bottom: 1.25rem;
+    font-weight: 500;
+}
+
+/* Reliability Badge */
+.reliabilityCard {
+    background: #fdfcfa;
+    border: 1px solid #f2efeb;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.reliabilityLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reliabilityTitle {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.reliabilitySubtext {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+}
+
+.reliabilityBars {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.reliabilityBar {
+    width: 6px;
+    height: 14px;
+    border-radius: 2px;
+    background-color: #e2e8f0;
+}
+
+.reliabilityBarActiveRed {
+    background-color: #ef4444;
+}
+
+.reliabilityBarActiveOrange {
+    background-color: #f97316;
+}
+
+.reliabilityBarActiveAmber {
+    background-color: #facc15;
+}
+
+.reliabilityBarActiveGreenBlue {
+    background-color: #10b981;
+}
+
+.reliabilityBarActiveGreen {
+    background-color: #059669;
+}
+
+.readinessMarkTick {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    width: 2px;
+    background-color: #000000;
+    z-index: 20;
+    transform: translateX(-50%);
+}

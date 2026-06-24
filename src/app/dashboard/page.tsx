@@ -14,6 +14,7 @@ import LimitModal from "@/components/LimitModal";
 import ParentShareModal from "@/components/ParentShareModal";
 import FreeMockTestResultModal from "@/components/FreeMockTestResultModal";
 import { sendGTMEvent } from "@/lib/gtm";
+import ReadinessCheckSection from "../quiz/practice/components/ReadinessCheckSection";
 
 function Countdown({ targetDate }: { targetDate: Date }) {
     const [timeLeft, setTimeLeft] = useState('');
@@ -280,11 +281,17 @@ export default function Dashboard() {
         const signsPercentages: number[] = [];
 
         for (const test of historyList) {
-            if (rulesPercentages.length < 3 && test.test_type === 'Rules of the Road') {
-                rulesPercentages.push(test.score);
-            }
-            if (signsPercentages.length < 3 && test.test_type === 'Road Signs') {
-                signsPercentages.push(test.score);
+            if (test.test_type === 'Rules of the Road') {
+                if (rulesPercentages.length < 3) rulesPercentages.push(test.score);
+            } else if (test.test_type === 'Road Signs') {
+                if (signsPercentages.length < 3) signsPercentages.push(test.score);
+            } else if (test.test_type === 'Mixed Practice') {
+                if (rulesPercentages.length < 3) {
+                    rulesPercentages.push((test.rules_score || 0) * 20);
+                }
+                if (signsPercentages.length < 3) {
+                    signsPercentages.push((test.signs_score || 0) * 20);
+                }
             }
             if (rulesPercentages.length >= 3 && signsPercentages.length >= 3) {
                 break;
@@ -304,6 +311,9 @@ export default function Dashboard() {
 
     const { rulesAvg, signsAvg } = getRollingCategoryAverages(history || []);
     const hasDiagnostic = rulesAvg !== null || signsAvg !== null;
+    const practiceHistoryCount = history 
+        ? history.filter((test: any) => test.test_type === 'Rules of the Road' || test.test_type === 'Road Signs' || test.test_type === 'Mixed Practice').length
+        : 0;
 
     let avgPercentage = 0;
     if (rulesAvg !== null && signsAvg !== null) {
@@ -314,7 +324,25 @@ export default function Dashboard() {
         avgPercentage = signsAvg;
     }
 
-    const computedPassProb = Math.round(40 + (avgPercentage * 0.5));
+    const rawPassProb = Math.round(40 + (avgPercentage * 0.5));
+    
+    // Apply confidence weight based on number of tests completed
+    let weight = 1.0;
+    if (practiceHistoryCount <= 0) {
+        weight = 0.0;
+    } else if (practiceHistoryCount === 1) {
+        weight = 0.35;
+    } else if (practiceHistoryCount <= 3) {
+        weight = 0.56;
+    } else if (practiceHistoryCount <= 6) {
+        weight = 0.70;
+    } else if (practiceHistoryCount <= 9) {
+        weight = 0.78;
+    } else {
+        weight = 1.0;
+    }
+
+    const computedPassProb = Math.round(40 + (rawPassProb - 40) * weight);
     const computedFailRisk = 100 - computedPassProb;
     const isTestReady = computedPassProb >= 80 && (rulesAvg === null || rulesAvg >= 80) && (signsAvg === null || signsAvg >= 80);
     const hasPracticeCredits = isPremium || (practiceCredits !== null && practiceCredits !== undefined && practiceCredits > 0);
@@ -370,109 +398,15 @@ export default function Dashboard() {
                     </div>
 
                     {hasDiagnostic && (
-                        <div className={styles.diagnosticCard}>
-                            <div className={styles.diagHeader}>
-                                <h3 className={styles.diagTitle}>📊 G1 Diagnostic Status</h3>
-                                <div className={styles.diagBadgeContainer}>
-                                    <div className={`${styles.diagBadge} ${isTestReady ? styles.diagBadgeReady : styles.diagBadgeNotReady}`}>
-                                        {isTestReady && <span className={styles.diagDot} />}
-                                        <span>
-                                            {isTestReady 
-                                                ? `Test Ready (${computedPassProb}% Pass Probability*)` 
-                                                : `Not Test Ready (${computedFailRisk}% Failure Risk*)`
-                                            }
-                                        </span>
-                                    </div>
-                                    <div className={styles.diagBadgeFootnote}>
-                                        *Calculated based on your rolling average across all tests
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={styles.diagGrid}>
-                                <div className={styles.diagSection}>
-                                    <div className={styles.diagSectionHeader}>
-                                        <span className={styles.diagSectionTitle}>Rules of the Road</span>
-                                        <span className={styles.diagSectionScore}>
-                                            {rulesAvg !== null ? `${rulesAvg}%` : 'Not Tested'}
-                                        </span>
-                                    </div>
-                                    <div className={styles.diagTrack}>
-                                        <div 
-                                            className={styles.diagBar} 
-                                            style={{ 
-                                                width: `${rulesAvg !== null ? rulesAvg : 0}%`, 
-                                                background: (rulesAvg !== null && rulesAvg >= 80) ? '#22c55e' : '#ef4444' 
-                                            }} 
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className={styles.diagSection}>
-                                    <div className={styles.diagSectionHeader}>
-                                        <span className={styles.diagSectionTitle}>Road Signs</span>
-                                        <span className={styles.diagSectionScore}>
-                                            {signsAvg !== null ? `${signsAvg}%` : 'Not Tested'}
-                                        </span>
-                                    </div>
-                                    <div className={styles.diagTrack}>
-                                        <div 
-                                            className={styles.diagBar} 
-                                            style={{ 
-                                                width: `${signsAvg !== null ? signsAvg : 0}%`, 
-                                                background: (signsAvg !== null && signsAvg >= 80) ? '#22c55e' : '#ef4444' 
-                                            }} 
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {!isPremium && (
-                                <div className={styles.diagUpgradeBox}>
-                                    <p className={styles.diagUpgradeText}>
-                                        <strong>⚠️ Ontario G1 Separate Passing Requirement:</strong> You must score 80% or higher in both sections separately to pass. Failure in one is a fail on the entire test. Upgrade to Premium to practice as much as you need!
-                                    </p>
-                                    {practiceCredits !== null && practiceCredits <= 0 && (
-                                        <>
-                                            <button 
-                                                onClick={handleUpgradeDirectly} 
-                                                disabled={isUpgrading} 
-                                                className={styles.diagUpgradeBtn}
-                                            >
-                                                {isUpgrading ? 'Redirecting...' : `🚀 Unlock Full Premium Access - ${isOfferActive ? '$12.98 (35% OFF)' : '$19.97'}`}
-                                            </button>
-                                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                                                🔒 One-time payment. Lifetime access. No subscriptions.
-                                            </div>
-                                            <button
-                                                onClick={handleShareWithParent}
-                                                disabled={isSharing}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: '#2563eb',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 600,
-                                                    cursor: isSharing ? 'not-allowed' : 'pointer',
-                                                    textDecoration: 'underline',
-                                                    display: 'block',
-                                                    margin: '0.5rem auto 0 auto',
-                                                    textAlign: 'center',
-                                                    padding: '0.25rem'
-                                                }}
-                                            >
-                                                {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
-                                            </button>
-                                        </>
-                                    )}
-                                    {!hasPracticeCredits && renewalDate && (
-                                        <div className={styles.diagTimerText}>
-                                            ⏱️ {isOfferActive ? 'Next free credit & 35% OFF offer expires in: ' : 'Next free practice test unlocks in: '}<Countdown targetDate={renewalDate} />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        <ReadinessCheckSection
+                            rulesAvg={rulesAvg}
+                            signsAvg={signsAvg}
+                            passProbability={computedPassProb}
+                            showWeakestName={true}
+                            practiceCount={practiceHistoryCount}
+                            style={{ maxWidth: 'none', margin: '0 0 1.5rem 0' }}
+                            title="Smart Readiness Calibration"
+                        />
                     )}
 
                     <h2 className={styles.sectionTitle}>How do you feel like studying today?</h2>

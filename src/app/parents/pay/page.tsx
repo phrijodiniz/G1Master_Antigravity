@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
+import PricingCardGrid from '@/components/PricingCardGrid';
 
 interface UserInfo {
     firstName: string;
@@ -55,9 +56,9 @@ function ParentPayContent() {
         fetchUserInfo();
     }, [email, userId]);
 
-    const handleUnlock = () => {
+    const handleSelectTier = (tier: '2_weeks' | '30_days' | 'lifetime') => {
         const param = userId ? `userId=${encodeURIComponent(userId)}` : `email=${encodeURIComponent(email!)}`;
-        window.location.href = `/api/checkout/direct?${param}`;
+        window.location.href = `/api/checkout/direct?${param}&tier=${tier}`;
     };
 
     if (loading) {
@@ -99,7 +100,7 @@ function ParentPayContent() {
     const childName = userInfo?.firstName ? userInfo.firstName : "your child";
 
     return (
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.cardWide}`}>
             <div className={styles.logo}>G1 MASTER</div>
             
             <div className={styles.header}>
@@ -111,16 +112,6 @@ function ParentPayContent() {
             </div>
 
             <div className={styles.perksList}>
-                <div className={styles.perkItem}>
-                    <span className={styles.perkIcon}>🏷️</span>
-                    <div>
-                        <div className={styles.perkTitle}>One-Time Payment of $12.98 CAD</div>
-                        <div className={styles.perkDescription}>
-                            Enjoy a special campaign discount of <span className={styles.highlight}>35% OFF</span> the standard price. Single payment, lifetime access. No subscriptions.
-                        </div>
-                    </div>
-                </div>
-
                 <div className={styles.perkItem}>
                     <span className={styles.perkIcon}>🛡️</span>
                     <div>
@@ -152,9 +143,9 @@ function ParentPayContent() {
                 </div>
             </div>
 
-            <button className={styles.ctaButton} onClick={handleUnlock}>
-                Unlock Premium for {childName} ($12.98)
-            </button>
+            <div style={{ marginTop: '2rem', marginBottom: '2rem' }}>
+                <PricingCardGrid onSelectTier={handleSelectTier} />
+            </div>
 
             <div className={styles.guaranteeText}>
                 <span>🔒 Secure checkout powered by Stripe</span>

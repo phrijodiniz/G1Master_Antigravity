@@ -22,6 +22,22 @@ export default function HistoryPage() {
         return <span className={styles.typeBadge}>{type}</span>;
     };
 
+    const renderRulesScore = (item: any) => {
+        const type = item.test_type;
+        if (type === 'Simulation') return `${item.rules_score ?? 0} / 20`;
+        if (type === 'Rules of the Road') return `${item.rules_score ?? 0} / 10`;
+        if (type === 'Mixed Practice' || type === 'Practice (First Try)') return `${item.rules_score ?? 0} / 5`;
+        return '-';
+    };
+
+    const renderSignsScore = (item: any) => {
+        const type = item.test_type;
+        if (type === 'Simulation') return `${item.signs_score ?? 0} / 20`;
+        if (type === 'Road Signs') return `${item.signs_score ?? 0} / 10`;
+        if (type === 'Mixed Practice' || type === 'Practice (First Try)') return `${item.signs_score ?? 0} / 5`;
+        return '-';
+    };
+
     return (
         <DashboardLayout>
             <h1 className={styles.title}>Test History</h1>
@@ -59,8 +75,8 @@ export default function HistoryPage() {
                                     </td>
                                     <td>{getTestTypeLabel(item.test_type)}</td>
                                     <td style={{ fontWeight: 'bold' }}>{item.score}%</td>
-                                    <td>{item.test_type === 'Simulation' || item.test_type === 'Rules of the Road' ? `${item.rules_score || 0} / ${item.test_type === 'Simulation' ? 20 : 10}` : '-'}</td>
-                                    <td>{item.test_type === 'Simulation' || item.test_type === 'Road Signs' ? `${item.signs_score || 0} / ${item.test_type === 'Simulation' ? 20 : 10}` : '-'}</td>
+                                    <td>{renderRulesScore(item)}</td>
+                                    <td>{renderSignsScore(item)}</td>
                                     <td>
                                         <span className={`${styles.statusBadge} ${item.passed ? styles.passBadge : styles.failBadge}`}>
                                             {item.passed ? 'Passed' : 'Failed'}

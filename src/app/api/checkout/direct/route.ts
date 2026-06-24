@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         }
 
         // 1. Fetch user profile
-        let query = supabaseAdmin.from('profiles').select('id, email, is_premium')
+        let query = supabaseAdmin.from('profiles').select('id, email, is_premium, premium_until')
         if (userId) {
             query = query.eq('id', userId)
         } else {
@@ -47,32 +47,30 @@ export async function GET(request: Request) {
         const host = request.headers.get('host') || 'localhost:3000'
         const appUrl = `${protocol}://${host}`
 
-        // 2. If already premium, redirect to account
-        if (profile.is_premium) {
+        // 2. If already premium (active), redirect to account
+        const isPremiumActive = profile.is_premium && (
+            profile.premium_until === null || 
+            profile.premium_until === undefined ||
+            new Date(profile.premium_until).getTime() > Date.now()
+        )
+        if (isPremiumActive) {
             return NextResponse.redirect(`${appUrl}/account?alreadyPremium=true`)
         }
 
-        // 3. Ensure Coupon exists in Stripe
-        const couponId = 'CAMPAIGN35'
-        try {
-            await stripe.coupons.retrieve(couponId)
-        } catch (err: any) {
-            if (err.statusCode === 404 || err.code === 'resource_missing' || (err.message && err.message.includes('No such coupon'))) {
-                // Create coupon if it doesn't exist
-                try {
-                    await stripe.coupons.create({
-                        id: couponId,
-                        percent_off: 35,
-                        duration: 'forever',
-                        name: '35% OFF Campaign Offer',
-                    })
-                    console.log(`Created Stripe coupon ${couponId} dynamically.`)
-                } catch (createErr) {
-                    console.error('Error creating Stripe coupon:', createErr)
-                }
-            } else {
-                console.error('Error retrieving Stripe coupon:', err)
-            }
+        // 3. Define pricing configuration based on requested tier
+        const tier = searchParams.get('tier')?.trim() || 'lifetime'
+        let unitAmount = 1997 // Default: Lifetime Premium Upgrade
+        let name = 'Premium Upgrade (Lifetime Access)'
+        let description = 'Unlock all features, unlimited practice tests, and timed G1 simulations with no expiration.'
+
+        if (tier === '2_weeks') {
+            unitAmount = 597 // $5.97 CAD
+            name = 'Premium Upgrade (2 Weeks Access)'
+            description = 'Unlock all features, unlimited practice tests, and timed G1 simulations for 14 days.'
+        } else if (tier === '30_days') {
+            unitAmount = 997 // $9.97 CAD
+            name = 'Premium Upgrade (1 Month Access)'
+            description = 'Unlock all features, unlimited practice tests, and timed G1 simulations for 1 month.'
         }
 
         // 4. Create Stripe Checkout Session
@@ -82,10 +80,10 @@ export async function GET(request: Request) {
                     price_data: {
                         currency: 'cad',
                         product_data: {
-                            name: 'Premium Upgrade (One-Time Payment)',
-                            description: 'Unlock all features, unlimited practice tests, and timed G1 simulations. One-time payment, lifetime access.',
+                            name,
+                            description,
                         },
-                        unit_amount: 1997, // $19.97 CAD
+                        unit_amount: unitAmount,
                     },
                     quantity: 1,
                 },
@@ -96,18 +94,14 @@ export async function GET(request: Request) {
                     message: 'This is a **one-time charge**. You will not be enrolled in any subscription or recurring fees.',
                 },
             },
-            success_url: `${appUrl}/account?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `${appUrl}/account?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
             cancel_url: `${appUrl}/account`,
             client_reference_id: profile.id,
             customer_email: profile.email,
-            discounts: [
-                {
-                    coupon: couponId,
-                },
-            ],
             metadata: {
                 userId: profile.id,
-                source: 'email_campaign'
+                tier: tier,
+                source: 'direct_link'
             },
         })
 

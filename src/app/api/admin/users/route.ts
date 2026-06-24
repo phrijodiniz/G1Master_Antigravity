@@ -243,6 +243,12 @@ export async function GET(request: Request) {
             const hasTakenFreeTest = userResults.some(r => r.test_type === 'Practice (First Try)')
             const initiatedCheckout = checkoutSet.has(emailLower)
 
+            const isPremiumActive = profile?.is_premium && (
+                profile.premium_until === null ||
+                profile.premium_until === undefined ||
+                new Date(profile.premium_until).getTime() > Date.now()
+            )
+
             return {
                 id: user.id,
                 email: user.email,
@@ -250,7 +256,8 @@ export async function GET(request: Request) {
                 lastName,
                 provider: user.app_metadata?.provider || 'email',
                 createdAt: user.created_at,
-                status: profile?.is_premium ? 'Premium' : 'Standard',
+                status: isPremiumActive ? 'Premium' : 'Standard',
+                premiumUntil: profile?.premium_until || null,
                 admin: profile?.admin || 'NO',
                 isTest,
                 hasTakenFreeTest,
@@ -299,6 +306,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Invalid plan status' }, { status: 400 })
             }
             updates.is_premium = (status === 'Premium')
+            updates.premium_until = null // Manual admin toggle resets expiration to Lifetime / None
         }
         if (admin !== undefined) {
             if (admin !== 'YES' && admin !== 'NO') {

@@ -21,6 +21,7 @@ interface AuthContextType {
     renewalDate: Date | null;
     isOfferActive: boolean;
     offerExpiryDate: Date | null;
+    premiumUntil: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -52,16 +53,8 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
     const [offerExpiryDate, setOfferExpiryDate] = useState<Date | null>(null);
 
     useEffect(() => {
-        if (!offerExpiryDate) return;
-
-        const updateOfferStatus = () => {
-            setIsOfferActive(Date.now() < offerExpiryDate.getTime());
-        };
-
-        updateOfferStatus();
-        const interval = setInterval(updateOfferStatus, 1000);
-        return () => clearInterval(interval);
-    }, [offerExpiryDate]);
+        setIsOfferActive(false);
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -353,7 +346,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                             .from('simulation_results')
                             .select('created_at')
                             .eq('user_id', userId)
-                            .in('test_type', ['Rules of the Road', 'Road Signs'])
+                            .in('test_type', ['Rules of the Road', 'Road Signs', 'Mixed Practice'])
                             .gte('created_at', isoSevenDaysAgo)
                             .order('created_at', { ascending: true }), // Oldest first
 
@@ -419,15 +412,8 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                         }
                     }
 
-                    let expiry: Date | null = null;
-                    if (oldestTestDate) {
-                        expiry = new Date(oldestTestDate.getTime() + 3 * 60 * 60 * 1000);
-                    } else if (userRef.current?.created_at) {
-                        expiry = new Date(new Date(userRef.current.created_at).getTime() + 3 * 60 * 60 * 1000);
-                    }
-
-                    setOfferExpiryDate(expiry);
-                    setIsOfferActive(expiry ? Date.now() < expiry.getTime() : false);
+                    setOfferExpiryDate(null);
+                    setIsOfferActive(false);
 
                     return; // Success
 
@@ -465,7 +451,11 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
         return fetchingPromiseRef.current;
     }, []);
 
-    const isPremium = profile?.status === "Premium" || profile?.is_premium === true; // Check both for backward compat if schema changed
+    const isPremium = (profile?.status === "Premium" || profile?.is_premium === true) && (
+        profile.premium_until === null ||
+        profile.premium_until === undefined ||
+        new Date(profile.premium_until).getTime() > Date.now()
+    );
     const isAdmin = profile?.admin === "YES" || profile?.admin === "yes" || profile?.admin === true || profile?.is_admin === true || profile?.role === "admin";
     const practiceCredits = calcPracticeCredits;
     const simulationCredits = calcSimulationCredits;
@@ -567,7 +557,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile, renewalDate, isOfferActive, offerExpiryDate }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile, renewalDate, isOfferActive, offerExpiryDate, premiumUntil: profile?.premium_until || null }}>
             {children}
         </AuthContext.Provider>
     );

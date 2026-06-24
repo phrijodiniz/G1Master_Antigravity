@@ -23,7 +23,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Missing email or userId parameter' }, { status: 400 })
         }
 
-        let query = supabaseAdmin.from('profiles').select('id, email, is_premium')
+        let query = supabaseAdmin.from('profiles').select('id, email, is_premium, premium_until')
 
         if (userId) {
             query = query.eq('id', userId)
@@ -60,11 +60,17 @@ export async function GET(request: Request) {
             console.error('Error fetching Auth user details:', authErr)
         }
 
+        const isPremiumActive = profile.is_premium && (
+            profile.premium_until === null ||
+            profile.premium_until === undefined ||
+            new Date(profile.premium_until).getTime() > Date.now()
+        )
+
         return NextResponse.json({
             id: profile.id,
             email: profile.email,
             firstName,
-            isPremium: !!profile.is_premium
+            isPremium: isPremiumActive
         })
 
     } catch (err: any) {

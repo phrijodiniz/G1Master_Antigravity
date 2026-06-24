@@ -7,47 +7,12 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/DashboardLayout";
 import ParentShareModal from "@/components/ParentShareModal";
+import PricingCardGrid from "@/components/PricingCardGrid";
 
-function Countdown({ targetDate }: { targetDate: Date }) {
-    const [timeLeft, setTimeLeft] = useState('');
-
-    useEffect(() => {
-        function updateTimer() {
-            const now = new Date().getTime();
-            const target = new Date(targetDate).getTime();
-            const distance = target - now;
-
-            if (distance < 0) {
-                setTimeLeft('00:00:00');
-                return;
-            }
-
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            const parts = [];
-            if (days > 0) {
-                parts.push(`${days}d`);
-            }
-            parts.push(`${hours.toString().padStart(2, '0')}h`);
-            parts.push(`${minutes.toString().padStart(2, '0')}m`);
-            parts.push(`${seconds.toString().padStart(2, '0')}s`);
-
-            setTimeLeft(parts.join(' '));
-        }
-
-        updateTimer();
-        const interval = setInterval(updateTimer, 1000);
-        return () => clearInterval(interval);
-    }, [targetDate]);
-
-    return <span>{timeLeft}</span>;
-}
+// Countdown component removed
 
 function AccountContent() {
-    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, isOfferActive, offerExpiryDate } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, isOfferActive, offerExpiryDate, premiumUntil } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [firstName, setFirstName] = useState("");
@@ -64,6 +29,10 @@ function AccountContent() {
     const [isShareOpen, setIsShareOpen] = useState(false);
 
     const handleShareWithParent = async () => {
+        if (!user) {
+            setMsg({ type: "error", text: "Please log in to share." });
+            return;
+        }
         setIsSharing(true);
         // Track Checkout Start
         import('@/lib/gtm').then(({ sendGTMEvent }) => {
@@ -71,31 +40,11 @@ function AccountContent() {
         });
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                throw new Error("Please log in to share.");
-            }
-
-            const response = await fetch('/api/checkout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({ isPromo: isOfferActive, source: 'account_page_share' })
-            });
-
-            const { url, error } = await response.json();
-            if (error) throw new Error(error);
-
-            if (url) {
-                setShareUrl(url);
-                setIsShareOpen(true);
-            } else {
-                throw new Error("Failed to create checkout session");
-            }
+            const shareLink = `${window.location.origin}/parents/pay?userId=${user.id}`;
+            setShareUrl(shareLink);
+            setIsShareOpen(true);
         } catch (error: any) {
-            setMsg({ type: "error", text: error.message || "Failed to initiate checkout link generation" });
+            setMsg({ type: "error", text: "Failed to generate share link" });
         } finally {
             setIsSharing(false);
         }
@@ -129,12 +78,17 @@ function AccountContent() {
         if (searchParams.get('session_id')) {
             setMsg({ type: "success", text: "Payment successful! Your account is being upgraded..." });
 
+            const purchasedTier = searchParams.get('tier');
+            let purchaseValue = 19.97;
+            if (purchasedTier === '2_weeks') purchaseValue = 5.97;
+            else if (purchasedTier === '30_days') purchaseValue = 9.97;
+
             // Track Purchase
             import('@/lib/gtm').then(({ sendGTMEvent }) => {
                 sendGTMEvent('purchase', {
                     method: 'stripe',
                     session_id: searchParams.get('session_id'),
-                    value: isOfferActive ? 12.98 : 19.97,
+                    value: purchaseValue,
                     currency: 'CAD'
                 });
             });
@@ -188,11 +142,11 @@ function AccountContent() {
         }
     };
 
-    const handleUpgrade = async () => {
+    const handleSelectTier = async (tier: '2_weeks' | '30_days' | 'lifetime') => {
         setLoading(true);
         // Track Checkout Start
         import('@/lib/gtm').then(({ sendGTMEvent }) => {
-            sendGTMEvent('begin_checkout', { source: 'account_page' });
+            sendGTMEvent('begin_checkout', { source: `account_page_${tier}` });
         });
 
         try {
@@ -207,7 +161,7 @@ function AccountContent() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ isPromo: isOfferActive, source: 'account_page' })
+                body: JSON.stringify({ tier, source: 'account_page' })
             });
 
             const { url, error } = await response.json();
@@ -236,7 +190,7 @@ function AccountContent() {
             <h1 className={styles.title}>Account Settings</h1>
 
             {/* Personal Information Section */}
-            <div className={styles.card} style={{ marginBottom: '2rem' }}>
+            <div className={styles.card} style={{ marginBottom: '2rem', maxWidth: isPremium ? '800px' : '1000px' }}>
                 <h2 className={styles.sectionTitle}>Personal Information</h2>
                 <div className={styles.formGrid}>
                     <div className={styles.formGroup}>
@@ -274,14 +228,27 @@ function AccountContent() {
             </div>
 
             {/* Current Plan Section */}
-            {/* Current Plan Section */}
-            <div className={styles.card} style={{ marginBottom: '2rem' }}>
+            <div className={styles.card} style={{ marginBottom: '2rem', maxWidth: isPremium ? '800px' : '1000px' }}>
                 <h2 className={styles.sectionTitle}>Current Plan</h2>
                 <div className={styles.formGroup}>
                     <div className={styles.planContainer}>
                         <div className={`${styles.planBadge} ${isPremium ? styles.premium : ''}`}>
                             {isPremium ? "Premium Member" : `${plan} Plan`}
                         </div>
+
+                        {isPremium && (
+                            <span style={{ color: '#475569', fontSize: '0.95rem', fontWeight: 500, marginLeft: '0.5rem' }}>
+                                {premiumUntil ? (
+                                    <>
+                                        📅 Active until: <strong>{new Date(premiumUntil).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                                    </>
+                                ) : (
+                                    <>
+                                        ✨ Access: <strong>Lifetime (Unlimited)</strong>
+                                    </>
+                                )}
+                            </span>
+                        )}
 
                         {!isPremium && (
                             <div className={styles.creditsGroup}>
@@ -306,23 +273,13 @@ function AccountContent() {
 
                 {!isPremium && (
                     <div className={styles.marketingContainer}>
-                        {isOfferActive && offerExpiryDate && (
-                            <div style={{ marginBottom: '1rem', color: '#ef4444', fontWeight: 700, fontSize: '0.9rem', textAlign: 'center', backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '0.6rem', borderRadius: '8px', border: '1px dashed rgba(239, 68, 68, 0.2)' }}>
-                                ⏱️ Special 35% OFF Offer ends in: <Countdown targetDate={offerExpiryDate} />
-                            </div>
-                        )}
+                        <div className={styles.marketingText}>
+                            As a <span className={styles.marketingHighlight}>PREMIUM</span> member, you get unlimited practice tests, simulations, and full progress tracking.
+                        </div>
 
-                        <button
-                            className={styles.upgradeBtn}
-                            onClick={handleUpgrade}
-                            disabled={loading}
-                            style={{ marginBottom: '1rem', width: '100%' }}
-                        >
-                            {isOfferActive 
-                                ? "Click here to unlock your Premium plan for only $12.98 (35% OFF - One-Time Payment, No Subscriptions)"
-                                : "Click here to unlock your Premium plan for only $19.97 (One-Time Payment, No Subscriptions)"
-                            }
-                        </button>
+                        <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+                            <PricingCardGrid onSelectTier={handleSelectTier} isSubmitting={loading} />
+                        </div>
 
                         <button
                             onClick={handleShareWithParent}
@@ -341,18 +298,14 @@ function AccountContent() {
                                 padding: '0.25rem'
                             }}
                         >
-                            {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
+                            🔗 Ask parent to pay (Share payment link)
                         </button>
-
-                        <div className={styles.marketingText}>
-                            As a <span className={styles.marketingHighlight}>PREMIUM</span> member, you get unlimited practice tests, simulations, and full progress tracking. Pay once. Lifetime access. No subscriptions.
-                        </div>
                     </div>
                 )}
             </div>
 
             {/* Security Section */}
-            <div className={styles.card}>
+            <div className={styles.card} style={{ maxWidth: isPremium ? '800px' : '1000px' }}>
                 <h2 className={styles.sectionTitle}>Security</h2>
 
                 {isGoogleAuth ? (

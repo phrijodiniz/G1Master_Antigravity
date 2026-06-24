@@ -99,30 +99,55 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                         )}
                     </p>
 
-                    {/* Smart suggestion bubble */}
-                    <div className={styles.suggestionBubble}>
-                        <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>💡</span>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5', textAlign: 'left' }}>
-                            <strong>Target Area:</strong> {recommendedCategory}. You lost the most points here. Let's fix that with a quick, focused run...
-                        </p>
-                    </div>
+                    {/* Dynamic suggestion and CTAs based on premium status */}
+                    {isPremium ? (
+                        <>
+                            {/* Smart suggestion bubble */}
+                            <div className={styles.suggestionBubble}>
+                                <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>💡</span>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5', textAlign: 'left' }}>
+                                    <strong>Target Area:</strong> {recommendedCategory}. You lost the most points here. Let's fix that with a quick, focused run...
+                                </p>
+                            </div>
 
-                    {/* CTAs Stack */}
-                    <div className={styles.ctaWrapper}>
-                        <button 
-                            onClick={() => handlePracticeClick(recommendedCategory)} 
-                            className={styles.primaryPulseBtn}
-                        >
-                            ⚡ Start 10-Question {recommendedCategory} Test Now!
-                        </button>
-                        
-                        <button 
-                            onClick={() => handlePracticeClick(secondaryCategory)} 
-                            className={styles.secondaryTextLink}
-                        >
-                            Or, try a {secondaryCategory} Test
-                        </button>
-                    </div>
+                            {/* CTAs Stack */}
+                            <div className={styles.ctaWrapper}>
+                                <button 
+                                    onClick={() => handlePracticeClick(recommendedCategory)} 
+                                    className={styles.primaryPulseBtn}
+                                >
+                                    ⚡ Start 10-Question {recommendedCategory} Test Now!
+                                </button>
+                                
+                                <button 
+                                    onClick={() => handlePracticeClick(secondaryCategory)} 
+                                    className={styles.secondaryTextLink}
+                                >
+                                    Or, try a {secondaryCategory} Test
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Smart suggestion bubble */}
+                            <div className={styles.suggestionBubble}>
+                                <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>💡</span>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5', textAlign: 'left' }}>
+                                    <strong>Target Area:</strong> {recommendedCategory}. You lost the most points here. Take another 10-question Practice test to calibrate your G1 Readiness and build consistency.
+                                </p>
+                            </div>
+
+                            {/* CTAs Stack */}
+                            <div className={styles.ctaWrapper}>
+                                <button 
+                                    onClick={() => handlePracticeClick('Mixed Practice')} 
+                                    className={styles.primaryPulseBtn}
+                                >
+                                    ⚡ Start Practice Test Now!
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

@@ -179,3 +179,7 @@
         padding: 1rem 1.5rem;
     }
 }
+
+.cardWide {
+    max-width: 1000px;
+}

@@ -62,68 +62,33 @@ export async function POST(req) {
             console.error("Failed to append Checkout Initiated to sheet:", sheetError);
         }
 
-        // Check if user is eligible for New Sign Up 35% OFF offer
-        // Expires 3 hours after the first practice/simulation test, or 3 hours from registration if no tests taken.
-        let isPromoActive = false;
-        const { data: results, error: resultsError } = await supabase
-            .from('simulation_results')
-            .select('created_at')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: true })
-            .limit(1);
+        const tier = body.tier || 'lifetime';
 
-        if (!resultsError) {
-            let oldestTestTime = null;
-            if (results && results.length > 0) {
-                oldestTestTime = new Date(results[0].created_at).getTime();
-            }
+        // 3. Define pricing configuration based on requested tier
+        let unitAmount = 1997; // Default: Lifetime Premium Upgrade
+        let name = 'Premium Upgrade (Lifetime Access)';
+        let description = 'Unlock all features, unlimited practice tests, and timed G1 simulations with no expiration.';
 
-            let expiryTime = null;
-            if (oldestTestTime) {
-                expiryTime = oldestTestTime + 3 * 60 * 60 * 1000;
-            } else if (user.created_at) {
-                expiryTime = new Date(user.created_at).getTime() + 3 * 60 * 60 * 1000;
-            }
-
-            if (expiryTime && Date.now() < expiryTime) {
-                isPromoActive = true;
-            }
-        }
-
-        const couponId = 'NEWUSER35';
-        if (isPromoActive) {
-            // Check if coupon exists in Stripe
-            try {
-                await stripe.coupons.retrieve(couponId);
-            } catch (err) {
-                if (err.statusCode === 404 || err.code === 'resource_missing' || (err.message && err.message.includes('No such coupon'))) {
-                    // Create coupon if it doesn't exist
-                    try {
-                        await stripe.coupons.create({
-                            id: couponId,
-                            percent_off: 35,
-                            duration: 'forever',
-                            name: '35% OFF New Sign Up Offer',
-                        });
-                    } catch (createErr) {
-                        console.error('Error creating Stripe coupon:', createErr);
-                    }
-                } else {
-                    console.error('Error retrieving Stripe coupon:', err);
-                }
-            }
+        if (tier === '2_weeks') {
+            unitAmount = 597; // $5.97 CAD
+            name = 'Premium Upgrade (2 Weeks Access)';
+            description = 'Unlock all features, unlimited practice tests, and timed G1 simulations for 14 days.';
+        } else if (tier === '30_days') {
+            unitAmount = 997; // $9.97 CAD
+            name = 'Premium Upgrade (1 Month Access)';
+            description = 'Unlock all features, unlimited practice tests, and timed G1 simulations for 1 month.';
         }
 
         const sessionConfig = {
             line_items: [
                 {
                     price_data: {
-                        currency: 'cad', // Updated to CAD
+                        currency: 'cad',
                         product_data: {
-                            name: 'Premium Upgrade (One-Time Payment)',
-                            description: 'Unlock all features, unlimited practice tests, and timed G1 simulations. One-time payment, lifetime access.',
+                            name,
+                            description,
                         },
-                        unit_amount: 1997, // Always standard price $19.97 CAD
+                        unit_amount: unitAmount,
                     },
                     quantity: 1,
                 },
@@ -134,25 +99,17 @@ export async function POST(req) {
                     message: 'This is a **one-time charge**. You will not be enrolled in any subscription or recurring fees.',
                 },
             },
-            success_url: `${req.headers.get('origin')}/account?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `${req.headers.get('origin')}/account?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
             cancel_url: `${req.headers.get('origin')}/account`,
             client_reference_id: user.id, // Critical: Attach User ID to the session
             customer_email: user.email, // Pre-fill and lock the email field
             metadata: {
                 userId: user.id,
+                tier: tier,
                 source: source
             },
+            allow_promotion_codes: true,
         };
-
-        if (isPromoActive) {
-            sessionConfig.discounts = [
-                {
-                    coupon: couponId,
-                },
-            ];
-        } else {
-            sessionConfig.allow_promotion_codes = true;
-        }
 
         // 2. Create Checkout Session
         const session = await stripe.checkout.sessions.create(sessionConfig);

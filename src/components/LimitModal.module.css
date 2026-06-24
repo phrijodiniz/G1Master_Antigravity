@@ -244,3 +244,8 @@
         font-size: 0.9rem;
     }
 }
+
+.modalWide {
+    max-width: 950px;
+    width: 95%;
+}

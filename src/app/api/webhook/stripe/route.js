@@ -37,10 +37,24 @@ export async function POST(req) {
 
         console.log(`Processing Premium upgrade for user: ${userId}`);
 
+        const tier = session.metadata?.tier || 'lifetime';
+        let premiumUntilDate = null;
+        if (tier === '2_weeks') {
+            premiumUntilDate = new Date();
+            premiumUntilDate.setDate(premiumUntilDate.getDate() + 14);
+        } else if (tier === '30_days') {
+            premiumUntilDate = new Date();
+            premiumUntilDate.setDate(premiumUntilDate.getDate() + 30);
+        }
+
         // Update the user's profile in the 'profiles' table
         const { error: updateError } = await supabaseAdmin
             .from('profiles')
-            .update({ is_premium: true, updated_at: new Date() })
+            .update({ 
+                is_premium: true, 
+                premium_until: premiumUntilDate,
+                updated_at: new Date() 
+            })
             .eq('id', userId);
 
         if (updateError) {
@@ -48,7 +62,7 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
         }
 
-        console.log(`Successfully upgraded user ${userId} to Premium in profiles table.`);
+        console.log(`Successfully upgraded user ${userId} to Premium (${tier}) in profiles table.`);
 
         // Fetch user email context from DB to include in tracker
         const { data: userProfile } = await supabaseAdmin
@@ -62,7 +76,7 @@ export async function POST(req) {
                 new Date().toISOString(),
                 userProfile?.email || session.customer_email || 'unknown_email',
                 userProfile?.first_name || 'unknown_name',
-                `Upgraded to Premium`
+                `Upgraded to Premium (${tier})`
             ]);
             console.log('Appended upgrade event to Sheet');
         } catch (sheetError) {
