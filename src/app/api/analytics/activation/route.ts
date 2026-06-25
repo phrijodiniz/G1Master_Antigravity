@@ -138,7 +138,7 @@ export async function GET(request: Request) {
                 const tests = userTestTypes[p.id] || [];
 
                 const hasFreeTest = tests.some(t => t === 'Practice (First Try)' || t === 'Free Test');
-                const practiceTests = tests.filter(t => t === 'Rules of the Road' || t === 'Road Signs');
+                const practiceTests = tests.filter(t => t === 'Rules of the Road' || t === 'Road Signs' || t === 'Mixed Practice');
 
                 if (hasFreeTest) {
                     activationFunnel.tookFreeTest.push(userEmail);
@@ -174,7 +174,7 @@ export async function GET(request: Request) {
                     // Count how many practice tests this user took BEFORE the earliest checkout time
                     const userAllTests = userTests[p.id] || [];
                     const practiceTestsBeforeCheckout = userAllTests.filter(t => {
-                        const isPractice = t.test_type === 'Rules of the Road' || t.test_type === 'Road Signs';
+                        const isPractice = t.test_type === 'Rules of the Road' || t.test_type === 'Road Signs' || t.test_type === 'Mixed Practice';
                         const testTime = new Date(t.created_at).getTime();
                         return isPractice && testTime < earliestCheckoutTime;
                     });
@@ -189,7 +189,7 @@ export async function GET(request: Request) {
                 } else {
                     // Calculate credit renewal and retention for non-premium users
                     const userPracticeTests = (userTests[p.id] || [])
-                        .filter(t => t.test_type === 'Rules of the Road' || t.test_type === 'Road Signs')
+                        .filter(t => t.test_type === 'Rules of the Road' || t.test_type === 'Road Signs' || t.test_type === 'Mixed Practice')
                         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
                     if (userPracticeTests.length >= 3) {

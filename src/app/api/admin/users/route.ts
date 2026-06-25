@@ -177,25 +177,33 @@ export async function GET(request: Request) {
             // A. Compute total test counts
             const totalTests = userResults.filter(r => r.test_type !== 'Practice (First Try)').length
             const simulationsCount = userResults.filter(r => r.test_type === 'Simulation').length
-            const practiceCount = userResults.filter(r => r.test_type === 'Rules of the Road' || r.test_type === 'Road Signs').length
+            const practiceCount = userResults.filter(r => r.test_type === 'Rules of the Road' || r.test_type === 'Road Signs' || r.test_type === 'Mixed Practice').length
 
             // B. Compute active credits in the last 7 days (rolling window)
             const recentPracticeCount = userResults.filter(r => 
-                (r.test_type === 'Rules of the Road' || r.test_type === 'Road Signs') &&
+                (r.test_type === 'Rules of the Road' || r.test_type === 'Road Signs' || r.test_type === 'Mixed Practice') &&
                 new Date(r.created_at).getTime() >= sevenDaysAgo
             ).length
             const practiceCreditsLeft = Math.max(0, 3 - recentPracticeCount)
 
             // C. Compute category averages (last 3 tests)
-            const rulesScores = userResults
-                .filter(r => r.test_type === 'Rules of the Road')
-                .slice(0, 3)
-                .map(r => Number(r.score))
-            
-            const signsScores = userResults
-                .filter(r => r.test_type === 'Road Signs')
-                .slice(0, 3)
-                .map(r => Number(r.score))
+            const rulesScores: number[] = []
+            const signsScores: number[] = []
+            for (const r of userResults) {
+                if (r.test_type === 'Rules of the Road') {
+                    if (rulesScores.length < 3) rulesScores.push(Number(r.score))
+                } else if (r.test_type === 'Road Signs') {
+                    if (signsScores.length < 3) signsScores.push(Number(r.score))
+                } else if (r.test_type === 'Mixed Practice') {
+                    if (rulesScores.length < 3) {
+                        rulesScores.push((Number(r.rules_score) || 0) * 20)
+                    }
+                    if (signsScores.length < 3) {
+                        signsScores.push((Number(r.signs_score) || 0) * 20)
+                    }
+                }
+                if (rulesScores.length >= 3 && signsScores.length >= 3) break
+            }
 
             const rulesAvg = rulesScores.length > 0
                 ? Math.round(rulesScores.reduce((a, b) => a + b, 0) / rulesScores.length)

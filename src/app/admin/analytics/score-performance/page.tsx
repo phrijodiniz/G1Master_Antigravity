@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import AnalyticsDatePicker from '@/components/admin/AnalyticsDatePicker';
 import EventTimelineWidget from '@/components/admin/EventTimelineWidget';
 
-type TestFilter = 'All Tests' | 'Free Test' | 'Rules of the Road' | 'Road Signs' | 'Simulation';
+type TestFilter = 'All Tests' | 'Free Test' | 'Rules of the Road' | 'Road Signs' | 'Mixed Practice' | 'Simulation';
 
 export default function ScorePerformancePage() {
     const router = useRouter();
@@ -199,7 +199,7 @@ export default function ScorePerformancePage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.25rem', borderRadius: '8px' }}>
-                        {(['All Tests', 'Free Test', 'Rules of the Road', 'Road Signs', 'Simulation'] as TestFilter[]).map((filter) => (
+                        {(['All Tests', 'Free Test', 'Rules of the Road', 'Road Signs', 'Mixed Practice', 'Simulation'] as TestFilter[]).map((filter) => (
                             <button
                                 key={filter}
                                 onClick={() => setDistributionFilter(filter)}
@@ -294,7 +294,7 @@ export default function ScorePerformancePage() {
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.25rem', borderRadius: '8px' }}>
-                        {(['All Tests', 'Free Test', 'Rules of the Road', 'Road Signs', 'Simulation'] as TestFilter[]).map((filter) => (
+                        {(['All Tests', 'Free Test', 'Rules of the Road', 'Road Signs', 'Mixed Practice', 'Simulation'] as TestFilter[]).map((filter) => (
                             <button
                                 key={filter}
                                 onClick={() => setEngagementFilter(filter)}

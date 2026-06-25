@@ -483,6 +483,49 @@ function QuizContent() {
         }
     }, [completed, user, category, score, questions.length, isPremium, refreshProfile]);
 
+    // Scroll depth tracking on credit-exhausted results page
+    useEffect(() => {
+        if (!completed || questions.length === 0) return;
+        const hasCredits = isPremium || (practiceCredits !== null && practiceCredits !== undefined && practiceCredits > 0);
+        if (hasCredits) return;
+
+        let trackedPercentages: number[] = [];
+
+        const handleScrollTracking = () => {
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            if (scrollHeight <= 0) return;
+            const scrollTop = window.scrollY;
+            const scrollPercentage = Math.round((scrollTop / scrollHeight) * 100);
+
+            const milestones = [25, 50, 75, 90];
+
+            // Compute score band
+            const percent = Math.round((score / questions.length) * 100);
+            const scoreBand = percent >= 80 ? 'passing' : percent >= 60 ? 'borderline' : 'failing';
+
+            milestones.forEach((milestone) => {
+                if (scrollPercentage >= milestone && !trackedPercentages.includes(milestone)) {
+                    trackedPercentages.push(milestone);
+                    import('@/lib/gtm').then(({ sendGTMEvent }) => {
+                        sendGTMEvent('scroll_depth', {
+                            percentage: milestone,
+                            page: 'practice_results',
+                            score_band: scoreBand,
+                            credits_remaining: 0
+                        });
+                    });
+                    console.log('Tracked scroll_depth:', milestone, 'practice_results', scoreBand);
+                }
+            });
+        };
+
+        window.addEventListener('scroll', handleScrollTracking);
+        // Fire initially in case the user has already scrolled
+        handleScrollTracking();
+
+        return () => window.removeEventListener('scroll', handleScrollTracking);
+    }, [completed, questions.length, isPremium, practiceCredits, score]);
+
     const handleNext = (wasCorrect: boolean, selectedIndex: number) => {
         if (wasCorrect) setScore(p => p + 1);
         setUserAnswers(p => [...p, {

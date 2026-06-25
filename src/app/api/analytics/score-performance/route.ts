@@ -15,6 +15,7 @@ function getMedian(numbers: number[]) {
 
 // Maps the raw test_type from DB to UI display names
 function mapTestType(type: string): string {
+    if (type === 'Mixed Practice') return 'Mixed Practice';
     if (type.includes('Practice') || type === 'Free Test') return 'Free Test';
     if (type === 'Rules of the Road') return 'Rules of the Road';
     if (type === 'Road Signs') return 'Road Signs';
@@ -101,7 +102,7 @@ export async function GET(request: Request) {
         }
 
         // Initialize Aggregation Structures
-        const testTypesToTrack = ['All Tests', 'Free Test', 'Rules of the Road', 'Road Signs', 'Simulation'];
+        const testTypesToTrack = ['All Tests', 'Free Test', 'Rules of the Road', 'Road Signs', 'Mixed Practice', 'Simulation'];
 
         type Aggregation = {
             scores: number[];
