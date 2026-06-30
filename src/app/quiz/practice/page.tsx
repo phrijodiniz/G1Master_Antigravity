@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { masteryTopics, getTopicState, TopicProgress } from '@/lib/masteryConfig';
 import { supabase } from '@/lib/supabaseClient';
 import QuestionCard from '@/components/QuestionCard';
+import { Check, X } from 'lucide-react';
 import styles from '../shared_quiz_layout.module.css';
 import DashboardLayout from '@/components/DashboardLayout'; // Changed from Sidebar
 import { useAuth } from '@/context/AuthContext';
@@ -28,10 +30,11 @@ import StickyCtaSection from './components/StickyCtaSection';
 interface ObservedSectionProps {
   sectionId: string;
   scoreBand: string;
+  creditsRemaining?: number;
   children: React.ReactNode;
 }
 
-function ObservedSection({ sectionId, scoreBand, children }: ObservedSectionProps) {
+function ObservedSection({ sectionId, scoreBand, creditsRemaining, children }: ObservedSectionProps) {
   const ref = useRef<HTMLDivElement>(null);
   const trackedRef = useRef(false);
 
@@ -46,9 +49,9 @@ function ObservedSection({ sectionId, scoreBand, children }: ObservedSectionProp
             sendGTMEvent('section_view', {
               section_id: sectionId,
               score_band: scoreBand,
-              credits_remaining: 0
+              credits_remaining: creditsRemaining ?? 0
             });
-            console.log('Tracked section_view:', sectionId, scoreBand);
+            console.log('Tracked section_view:', sectionId, scoreBand, 'credits:', creditsRemaining);
           } catch (e) {
             console.error('Error sending GTM event:', e);
           }
@@ -75,9 +78,15 @@ function ObservedSection({ sectionId, scoreBand, children }: ObservedSectionProp
 }
 
 function QuizContent() {
-    const { user, isPremium, practiceCredits, refreshProfile, renewalDate, loading: authLoading, history, isOfferActive, offerExpiryDate } = useAuth();
+    const { user, isPremium, practiceCredits, refreshProfile, renewalDate, loading: authLoading, history, masteryProgress, isOfferActive, offerExpiryDate } = useAuth();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const category = searchParams.get('category'); // e.g., "Rules of the Road"
+    const topicId = searchParams.get('topic'); // e.g., "traffic_lights"
+    const topicConfig = useMemo(() => topicId ? masteryTopics.find(t => t.id === topicId) : null, [topicId]);
+
+    const [topicAttempts, setTopicAttempts] = useState<number | null>(null);
+    const [topicProgressData, setTopicProgressData] = useState<any>(null);
 
     const [questions, setQuestions] = useState<any[]>([]);
     const [currentindex, setCurrentIndex] = useState(0);
@@ -89,7 +98,7 @@ function QuizContent() {
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [showReview, setShowReview] = useState(false);
-    const [limitVariant, setLimitVariant] = useState<'practice_limit' | 'all_limit'>('practice_limit');
+    const [limitVariant, setLimitVariant] = useState<'practice_limit' | 'all_limit' | 'chapter_quiz' | 'locked_test'>('practice_limit');
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [shareUrl, setShareUrl] = useState('');
@@ -97,6 +106,157 @@ function QuizContent() {
     const [resultSaved, setResultSaved] = useState(false);
     const [savedRecord, setSavedRecord] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Load Mastery Map progress for this topic
+    useEffect(() => {
+        if (!topicConfig) return;
+
+        const loadProgress = async () => {
+            let attempts = 0;
+            let correct = 0;
+
+            const mappedProgress: Record<string, TopicProgress> = {};
+            // Pre-populate with all available topics as 0 progress
+            masteryTopics.forEach(t => {
+                mappedProgress[t.id] = {
+                    topicId: t.id,
+                    attempted: 0,
+                    correct: 0,
+                    rulesAttempted: 0,
+                    rulesCorrect: 0,
+                    signsAttempted: 0,
+                    signsCorrect: 0
+                };
+            });
+
+            if (user) {
+                try {
+                    const { data, error } = await supabase
+                        .from('user_topic_progress')
+                        .select('*')
+                        .eq('user_id', user.id);
+                    if (data && !error) {
+                        data.forEach((row: any) => {
+                            const topic = masteryTopics.find(t => t.name === row.topic);
+                            if (topic) {
+                                mappedProgress[topic.id] = {
+                                    topicId: topic.id,
+                                    attempted: row.questions_attempted,
+                                    correct: row.questions_correct,
+                                    rulesAttempted: row.rules_attempted || 0,
+                                    rulesCorrect: row.rules_correct || 0,
+                                    signsAttempted: row.signs_attempted || 0,
+                                    signsCorrect: row.signs_correct || 0
+                                };
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error("Failed to query user_topic_progress table:", err);
+                }
+            } else {
+                const localProgress = localStorage.getItem('g1_mastery_progress');
+                if (localProgress) {
+                    try {
+                        const parsed = JSON.parse(localProgress);
+                        Object.keys(parsed).forEach(topicId => {
+                            if (mappedProgress[topicId]) {
+                                mappedProgress[topicId] = {
+                                    topicId: topicId,
+                                    attempted: parsed[topicId].attempted || 0,
+                                    correct: parsed[topicId].correct || 0,
+                                    rulesAttempted: parsed[topicId].rulesAttempted || 0,
+                                    rulesCorrect: parsed[topicId].rulesCorrect || 0,
+                                    signsAttempted: parsed[topicId].signsAttempted || 0,
+                                    signsCorrect: parsed[topicId].signsCorrect || 0
+                                };
+                            }
+                        });
+                    } catch (e) {
+                        console.error("Error parsing local mastery progress:", e);
+                    }
+                }
+            }
+
+            const currentProg = mappedProgress[topicConfig.id];
+            if (currentProg) {
+                attempts = currentProg.attempted;
+                correct = currentProg.correct;
+                setTopicProgressData(currentProg);
+            }
+            
+            setTopicAttempts(attempts);
+            setScore(correct);
+
+            // Determine if this topic is unlocked
+            const state = getTopicState(topicConfig, mappedProgress, isPremium);
+
+            if (state === 'premium-locked') {
+                setLimitVariant('chapter_quiz');
+                setShowLimitModal(true);
+            } else if (state === 'blocked') {
+                setLimitVariant('locked_test');
+                setShowLimitModal(true);
+            }
+        };
+
+        if (!authLoading) {
+            loadProgress();
+        }
+    }, [user, authLoading, topicConfig, isPremium, router]);
+
+    // Initialize currentIndex to topicAttempts for topic-specific study
+    useEffect(() => {
+        if (topicConfig && questions.length > 0 && topicAttempts !== null) {
+            if (topicAttempts >= questions.length) {
+                setCompleted(true);
+                setCurrentIndex(0); // Safely point to first question to avoid out of bounds in render lifecycle
+            } else {
+                setCurrentIndex(topicAttempts);
+                setCompleted(false);
+            }
+        }
+    }, [topicConfig, questions, topicAttempts]);
+
+    const handleResetProgress = async () => {
+        if (!topicConfig) return;
+        setLoading(true);
+        if (user) {
+            await supabase
+                .from('user_topic_progress')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('topic', topicConfig.name);
+        } else {
+            const localProgress = localStorage.getItem('g1_mastery_progress');
+            if (localProgress) {
+                try {
+                    const parsed = JSON.parse(localProgress);
+                    delete parsed[topicConfig.id];
+                    localStorage.setItem('g1_mastery_progress', JSON.stringify(parsed));
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+        setTopicAttempts(0);
+        setQuestions([]);
+        setCurrentIndex(0);
+        setScore(0);
+        setUserAnswers([]);
+        setCompleted(false);
+        setResultSaved(false);
+        // re-fetch questions
+        const { data } = await supabase
+            .from('questions')
+            .select('*')
+            .in('chapter', topicConfig.dbChapters)
+            .order('created_at', { ascending: true })
+            .order('id', { ascending: true });
+        const sliced = data ? data.slice(topicConfig.questionStartIndex, topicConfig.questionStartIndex + topicConfig.questionCount) : [];
+        setQuestions(sliced);
+        setLoading(false);
+    };
 
     const handleShareWithParent = async () => {
         if (!user) {
@@ -191,131 +351,126 @@ function QuizContent() {
         return texts[Math.floor(Math.random() * texts.length)];
     }, [completed, score, questions.length]);
 
-    // Compute rolling averages for Rules and Signs categories
-    // Option 2: last 3 category-specific tests rolling average (disregarding free/mixed tests)
-    const rollingCategoryAverages = useMemo(() => {
-        if (!completed || questions.length === 0) return { rulesAvg: null, signsAvg: null };
+    // ===== NEW READINESS CALCULATION (Option A: Question-Volume Weighted Accuracy) =====
+    // Aggregate question-level data from ALL study modes for the quiz results page
+    const readinessStats = useMemo(() => {
+        // 1. Mastery Map totals
+        let masteryTotalAttempted = 0, masteryTotalCorrect = 0;
+        let masteryRulesAttempted = 0, masteryRulesCorrect = 0;
+        let masterySignsAttempted = 0, masterySignsCorrect = 0;
 
-        const currentScore = Math.round((score / questions.length) * 100);
-        
-        let currentRulesScore = 0;
-        let currentSignsScore = 0;
-        if (category === 'Mixed Practice') {
-            currentRulesScore = userAnswers.filter(a => a?.question?.category === 'Rules of the Road' && a.isCorrect).length;
-            currentSignsScore = userAnswers.filter(a => a?.question?.category === 'Road Signs' && a.isCorrect).length;
+        // Copy the masteryProgress from auth
+        const localMasteryProgress = { ...(masteryProgress || {}) };
+
+        // If we just finished a topicConfig, overlay the updated numbers
+        if (topicConfig) {
+            const sessionCorrectCount = userAnswers.filter(a => a.isCorrect).length;
+            
+            const sessionRulesAttempted = userAnswers.filter(a => a.question?.category === 'Rules of the Road').length;
+            const sessionRulesCorrect = userAnswers.filter(a => a.question?.category === 'Rules of the Road' && a.isCorrect).length;
+            const sessionSignsAttempted = userAnswers.filter(a => a.question?.category === 'Road Signs').length;
+            const sessionSignsCorrect = userAnswers.filter(a => a.question?.category === 'Road Signs' && a.isCorrect).length;
+
+            const prevRulesAttempted = topicProgressData?.rulesAttempted || topicProgressData?.rules_attempted || 0;
+            const prevRulesCorrect = topicProgressData?.rulesCorrect || topicProgressData?.rules_correct || 0;
+            const prevSignsAttempted = topicProgressData?.signsAttempted || topicProgressData?.signs_attempted || 0;
+            const prevSignsCorrect = topicProgressData?.signsCorrect || topicProgressData?.signs_correct || 0;
+
+            localMasteryProgress[topicConfig.name] = {
+                attempted: (topicAttempts || 0) + userAnswers.length,
+                correct: (topicProgressData?.questions_correct || topicProgressData?.correct || 0) + sessionCorrectCount,
+                rulesAttempted: prevRulesAttempted + sessionRulesAttempted,
+                rulesCorrect: prevRulesCorrect + sessionRulesCorrect,
+                signsAttempted: prevSignsAttempted + sessionSignsAttempted,
+                signsCorrect: prevSignsCorrect + sessionSignsCorrect
+            };
+        }
+
+        Object.values(localMasteryProgress).forEach((tp: any) => {
+            masteryTotalAttempted += tp.attempted || 0;
+            masteryTotalCorrect += tp.correct || 0;
+            masteryRulesAttempted += tp.rulesAttempted || 0;
+            masteryRulesCorrect += tp.rulesCorrect || 0;
+            masterySignsAttempted += tp.signsAttempted || 0;
+            masterySignsCorrect += tp.signsCorrect || 0;
+        });
+
+        // 2. Practice/Simulations totals
+        let practiceTotalAttempted = 0, practiceTotalCorrect = 0;
+        let practiceRulesAttempted = 0, practiceRulesCorrect = 0;
+        let practiceSignsAttempted = 0, practiceSignsCorrect = 0;
+
+        const currentScorePercent = completed && questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
+        let currentRulesScoreVal = 0;
+        let currentSignsScoreVal = 0;
+        if (completed && questions.length > 0) {
+            currentRulesScoreVal = userAnswers.filter(a => a?.question?.category === 'Rules of the Road' && a.isCorrect).length;
+            currentSignsScoreVal = userAnswers.filter(a => a?.question?.category === 'Road Signs' && a.isCorrect).length;
         }
 
         const currentTest = {
             test_type: category,
-            score: currentScore,
-            rules_score: category === 'Rules of the Road' ? score : (category === 'Mixed Practice' ? currentRulesScore : 0),
-            signs_score: category === 'Road Signs' ? score : (category === 'Mixed Practice' ? currentSignsScore : 0)
+            score: currentScorePercent,
+            rules_score: category === 'Rules of the Road' ? score : (category === 'Mixed Practice' ? currentRulesScoreVal : 0),
+            signs_score: category === 'Road Signs' ? score : (category === 'Mixed Practice' ? currentSignsScoreVal : 0)
         };
 
         const historyList = history || [];
         const isAlreadySaved = savedRecord && historyList.some((item: any) => item.id === savedRecord.id);
+        const combinedHistory = (isAlreadySaved || !category || topicConfig) ? historyList : [currentTest, ...historyList];
 
-        const combinedHistory = isAlreadySaved ? historyList : [currentTest, ...historyList];
-
-        const rulesPercentages: number[] = [];
-        const signsPercentages: number[] = [];
-
-        for (const test of combinedHistory) {
+        combinedHistory.forEach((test: any) => {
             if (test.test_type === 'Rules of the Road') {
-                if (rulesPercentages.length < 3) rulesPercentages.push(test.score);
+                practiceTotalAttempted += 10;
+                practiceTotalCorrect += Math.round((test.score / 100) * 10);
+                practiceRulesAttempted += 10;
+                practiceRulesCorrect += test.rules_score || Math.round((test.score / 100) * 10);
             } else if (test.test_type === 'Road Signs') {
-                if (signsPercentages.length < 3) signsPercentages.push(test.score);
+                practiceTotalAttempted += 10;
+                practiceTotalCorrect += Math.round((test.score / 100) * 10);
+                practiceSignsAttempted += 10;
+                practiceSignsCorrect += test.signs_score || Math.round((test.score / 100) * 10);
             } else if (test.test_type === 'Mixed Practice') {
-                if (rulesPercentages.length < 3) {
-                    rulesPercentages.push((test.rules_score || 0) * 20);
-                }
-                if (signsPercentages.length < 3) {
-                    signsPercentages.push((test.signs_score || 0) * 20);
-                }
+                practiceTotalAttempted += 10;
+                practiceTotalCorrect += Math.round((test.score / 100) * 10);
+                practiceRulesAttempted += 5;
+                practiceRulesCorrect += test.rules_score || 0;
+                practiceSignsAttempted += 5;
+                practiceSignsCorrect += test.signs_score || 0;
+            } else if (test.test_type === 'Simulation') {
+                practiceTotalAttempted += 40;
+                practiceTotalCorrect += Math.round((test.score / 100) * 40);
+                practiceRulesAttempted += 20;
+                practiceRulesCorrect += test.rules_score || 0;
+                practiceSignsAttempted += 20;
+                practiceSignsCorrect += test.signs_score || 0;
             }
-            if (rulesPercentages.length >= 3 && signsPercentages.length >= 3) {
-                break;
-            }
-        }
+        });
 
-        const rulesAvg = rulesPercentages.length > 0
-            ? Math.round(rulesPercentages.reduce((a, b) => a + b, 0) / rulesPercentages.length)
+        const totalAttempted = masteryTotalAttempted + practiceTotalAttempted;
+        const totalCorrect = masteryTotalCorrect + practiceTotalCorrect;
+        const overallAccuracy = totalAttempted > 0 ? totalCorrect / totalAttempted : 0;
+        const volumeWeight = Math.min(totalAttempted / 500, 1.0);
+        const computedPassProb = totalAttempted > 0
+            ? Math.round(40 + (overallAccuracy * 50) * volumeWeight)
+            : 40;
+
+        const totalRulesAttempted = masteryRulesAttempted + practiceRulesAttempted;
+        const totalRulesCorrect = masteryRulesCorrect + practiceRulesCorrect;
+        const totalSignsAttempted = masterySignsAttempted + practiceSignsAttempted;
+        const totalSignsCorrect = masterySignsCorrect + practiceSignsCorrect;
+
+        const rulesAvg = totalRulesAttempted > 0
+            ? Math.round((totalRulesCorrect / totalRulesAttempted) * 100)
+            : null;
+        const signsAvg = totalSignsAttempted > 0
+            ? Math.round((totalSignsCorrect / totalSignsAttempted) * 100)
             : null;
 
-        const signsAvg = signsPercentages.length > 0
-            ? Math.round(signsPercentages.reduce((a, b) => a + b, 0) / signsPercentages.length)
-            : null;
+        return { rulesAvg, signsAvg, passProbability: computedPassProb, totalAttempted };
+    }, [completed, score, questions.length, history, category, savedRecord, userAnswers, topicConfig, masteryProgress, topicAttempts, topicProgressData]);
 
-        return { rulesAvg, signsAvg };
-    }, [completed, score, questions.length, history, category, savedRecord, userAnswers]);
-
-    const { rulesAvg, signsAvg } = rollingCategoryAverages;
-
-    // Compute pass probability based on rolling averages of Rules and Signs
-    const passProbability = useMemo(() => {
-        const { rulesAvg, signsAvg } = rollingCategoryAverages;
-
-        let avgPercentage = 0;
-        if (rulesAvg !== null && signsAvg !== null) {
-            avgPercentage = (rulesAvg + signsAvg) / 2;
-        } else if (rulesAvg !== null) {
-            avgPercentage = rulesAvg;
-        } else if (signsAvg !== null) {
-            avgPercentage = signsAvg;
-        } else {
-            return 40; // Base baseline
-        }
-
-        const rawPassProb = Math.round(40 + (avgPercentage * 0.5));
-        
-        // Count practice history length (including current test if completed)
-        const currentTestTmp = { test_type: category };
-        const historyListTmp = history || [];
-        const isAlreadySavedTmp = savedRecord && historyListTmp.some((item: any) => item.id === savedRecord.id);
-        const combinedHistoryTmp = isAlreadySavedTmp ? historyListTmp : [currentTestTmp, ...historyListTmp];
-        const practiceHistoryCount = combinedHistoryTmp.filter(
-            (test: any) => test.test_type === 'Rules of the Road' || test.test_type === 'Road Signs' || test.test_type === 'Mixed Practice'
-        ).length;
-
-        // Apply confidence weight based on number of tests completed
-        let weight = 1.0;
-        if (practiceHistoryCount <= 0) {
-            weight = 0.0;
-        } else if (practiceHistoryCount === 1) {
-            weight = 0.35;
-        } else if (practiceHistoryCount <= 3) {
-            weight = 0.56;
-        } else if (practiceHistoryCount <= 6) {
-            weight = 0.70;
-        } else if (practiceHistoryCount <= 9) {
-            weight = 0.78;
-        } else {
-            weight = 1.0;
-        }
-
-        return Math.round(40 + (rawPassProb - 40) * weight);
-    }, [rollingCategoryAverages, history, category, savedRecord]);
-
-    const recent3PracticeTests = useMemo(() => {
-        if (!completed || questions.length === 0) return [];
-
-        const currentScore = Math.round((score / questions.length) * 100);
-        
-        const currentTest = {
-            test_type: category,
-            score: currentScore
-        };
-
-        const historyList = history || [];
-        const isAlreadySaved = savedRecord && historyList.some((item: any) => item.id === savedRecord.id);
-        const combinedHistory = isAlreadySaved ? historyList : [currentTest, ...historyList];
-
-        const practiceHistory = combinedHistory.filter(
-            (test: any) => test.test_type === 'Rules of the Road' || test.test_type === 'Road Signs'
-        );
-
-        return practiceHistory.slice(0, 3).reverse();
-    }, [completed, score, questions.length, history, category, savedRecord]);
+    const { rulesAvg, signsAvg, passProbability, totalAttempted } = readinessStats;
 
     const STORAGE_KEY = `practice_session_${category}`;
 
@@ -335,11 +490,11 @@ function QuizContent() {
     }, [user, category, authLoading, questions.length, completed]);
 
     async function fetchQuestions() {
-        if (!category) return;
+        if (!category && !topicConfig) return;
         setLoading(true);
 
-        // Check credits
-        if (!isPremium && (practiceCredits ?? 0) <= 0) {
+        // Check credits only for normal category practice
+        if (!topicConfig && !isPremium && (practiceCredits ?? 0) <= 0) {
             setLoading(false);
             setLimitVariant('practice_limit');
             setShowLimitModal(true);
@@ -347,7 +502,7 @@ function QuizContent() {
         }
 
         const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
+        if (saved && !topicConfig) {
             try {
                 const parsed = JSON.parse(saved);
                 if (Date.now() - parsed.timestamp < 3600000) {
@@ -361,6 +516,26 @@ function QuizContent() {
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        // Handle Topic-specific practice
+        if (topicConfig) {
+            const { data, error } = await supabase
+                .from('questions')
+                .select('*')
+                .in('chapter', topicConfig.dbChapters)
+                .order('created_at', { ascending: true })
+                .order('id', { ascending: true }); // Fixed, stable order
+            
+            if (error || !data) {
+                console.error("Error fetching topic questions:", error);
+                setQuestions([]);
+            } else {
+                const sliced = data.slice(topicConfig.questionStartIndex, topicConfig.questionStartIndex + topicConfig.questionCount);
+                setQuestions(sliced);
+            }
+            setLoading(false);
+            return;
         }
 
         if (category === 'Mixed Practice') {
@@ -414,6 +589,7 @@ function QuizContent() {
     // Save Result to DB on completion
 
     useEffect(() => {
+        if (topicConfig) return; // Do not save topic study quizzes to simulation_results
         if (completed && user && !resultSaved && questions.length > 0) {
             setResultSaved(true); // Prevent double save
             setIsSaving(true);
@@ -526,18 +702,98 @@ function QuizContent() {
         return () => window.removeEventListener('scroll', handleScrollTracking);
     }, [completed, questions.length, isPremium, practiceCredits, score]);
 
-    const handleNext = (wasCorrect: boolean, selectedIndex: number) => {
+    const handleNext = async (wasCorrect: boolean, selectedIndex: number) => {
+        const nextIndex = currentindex + 1;
         if (wasCorrect) setScore(p => p + 1);
-        setUserAnswers(p => [...p, {
+        
+        const updatedAnswers = [...userAnswers, {
             question: questions[currentindex],
             selectedIndex,
             isCorrect: wasCorrect
-        }]);
+        }];
+        setUserAnswers(updatedAnswers);
 
-        if (currentindex < questions.length - 1) {
-            setCurrentIndex(p => p + 1);
+        // Record question attempt in database for authenticated users
+        if (user) {
+            supabase.from('question_responses').insert({
+                user_id: user.id,
+                question_id: questions[currentindex].id,
+                is_correct: wasCorrect
+            }).then(({ error }) => {
+                if (error) console.error("Error saving question response:", error);
+            });
+        }
+
+        if (topicConfig && topicAttempts !== null) {
+            const newAttempted = topicAttempts + updatedAnswers.length;
+            const sessionCorrectCount = updatedAnswers.filter(a => a.isCorrect).length;
+            const newCorrect = (topicProgressData?.questions_correct || topicProgressData?.correct || 0) + sessionCorrectCount;
+            
+            // Compute per-category breakdowns for this session
+            const sessionRulesAttempted = updatedAnswers.filter(a => a.question?.category === 'Rules of the Road').length;
+            const sessionRulesCorrect = updatedAnswers.filter(a => a.question?.category === 'Rules of the Road' && a.isCorrect).length;
+            const sessionSignsAttempted = updatedAnswers.filter(a => a.question?.category === 'Road Signs').length;
+            const sessionSignsCorrect = updatedAnswers.filter(a => a.question?.category === 'Road Signs' && a.isCorrect).length;
+
+            const prevRulesAttempted = topicProgressData?.rulesAttempted || topicProgressData?.rules_attempted || 0;
+            const prevRulesCorrect = topicProgressData?.rulesCorrect || topicProgressData?.rules_correct || 0;
+            const prevSignsAttempted = topicProgressData?.signsAttempted || topicProgressData?.signs_attempted || 0;
+            const prevSignsCorrect = topicProgressData?.signsCorrect || topicProgressData?.signs_correct || 0;
+
+            const newRulesAttempted = prevRulesAttempted + sessionRulesAttempted;
+            const newRulesCorrect = prevRulesCorrect + sessionRulesCorrect;
+            const newSignsAttempted = prevSignsAttempted + sessionSignsAttempted;
+            const newSignsCorrect = prevSignsCorrect + sessionSignsCorrect;
+
+            // Save to DB or localStorage
+            if (user) {
+                await supabase.from('user_topic_progress').upsert({
+                    user_id: user.id,
+                    topic: topicConfig.name,
+                    questions_attempted: newAttempted,
+                    questions_correct: newCorrect,
+                    rules_attempted: newRulesAttempted,
+                    rules_correct: newRulesCorrect,
+                    signs_attempted: newSignsAttempted,
+                    signs_correct: newSignsCorrect,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id,topic'
+                });
+            } else {
+                const localProgress = localStorage.getItem('g1_mastery_progress') || '{}';
+                try {
+                    const parsed = JSON.parse(localProgress);
+                    parsed[topicConfig.id] = {
+                        attempted: newAttempted,
+                        correct: newCorrect,
+                        rulesAttempted: newRulesAttempted,
+                        rulesCorrect: newRulesCorrect,
+                        signsAttempted: newSignsAttempted,
+                        signsCorrect: newSignsCorrect
+                    };
+                    localStorage.setItem('g1_mastery_progress', JSON.stringify(parsed));
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            // Paywall gating check
+            const topicIndex = masteryTopics.findIndex(t => t.id === topicConfig.id);
+            if (!isPremium && topicIndex >= 3 && newAttempted >= 10) {
+                setLimitVariant('chapter_quiz');
+                setShowLimitModal(true);
+                return;
+            }
+        }
+
+        if (nextIndex < questions.length) {
+            setCurrentIndex(nextIndex);
         } else {
             setCompleted(true);
+            if (topicConfig) {
+                refreshProfile(true);
+            }
         }
     };
 
@@ -582,7 +838,12 @@ function QuizContent() {
             </div>
             <LimitModal
                 isOpen={true}
-                onClose={() => setShowLimitModal(false)}
+                onClose={() => {
+                    setShowLimitModal(false);
+                    if (limitVariant === 'locked_test') {
+                        router.push('/masterymap');
+                    }
+                }}
                 variant={limitVariant}
                 renewalDate={renewalDate}
             />
@@ -614,6 +875,68 @@ function QuizContent() {
     );
 
     if (completed) {
+        if (topicConfig) {
+            const scorePercent = Math.round((score / questions.length) * 100);
+            const isPassed = scorePercent >= 80;
+
+            return (
+                <DashboardLayout>
+                    <div style={{ maxWidth: '600px', margin: '4rem auto', textAlign: 'center', background: 'white', padding: '3rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                            {isPassed ? (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#d1fae5', color: '#065f46', padding: '0.4rem 1rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <Check size={14} strokeWidth={3} />
+                                    <span>Passed</span>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#fee2e2', color: '#991b1b', padding: '0.4rem 1rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <X size={14} strokeWidth={3} />
+                                    <span>Failed</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+                            {isPassed ? '🏆 Test Level Cleared!' : '😢 Practice Score Failed'}
+                        </h2>
+                        
+                        <div style={{ fontSize: '3rem', fontWeight: 900, color: isPassed ? '#059669' : '#dc2626', margin: '1rem 0' }}>
+                            {score} / {questions.length}
+                        </div>
+
+                        <p style={{ color: '#475569', marginBottom: '2.5rem', fontSize: '1.1rem', lineHeight: '1.5' }}>
+                            {isPassed 
+                                ? `Congratulations! You scored ${scorePercent}% and cleared the 80% passing mark on the ${topicConfig.name} test level.` 
+                                : `You scored ${scorePercent}%, which is below the 80% passing mark. Please practice again to unlock the next level.`}
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {isPassed && (
+                                <button 
+                                    onClick={() => router.push('/masterymap')}
+                                    style={{ background: '#e1ff21', color: '#000000', border: '1px solid #e1ff21', padding: '1rem 2rem', borderRadius: '8px', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(225, 255, 33, 0.25)' }}
+                                >
+                                    ➡️ Move to Next Test
+                                </button>
+                            )}
+                            <button 
+                                onClick={handleResetProgress}
+                                style={{ background: '#0f172a', color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600, fontSize: '1rem', cursor: 'pointer' }}
+                            >
+                                🔄 Practice Again (Reset Progress)
+                            </button>
+                            <button 
+                                onClick={() => router.push('/masterymap')}
+                                style={{ background: 'white', color: '#0f172a', border: '1px solid #e2e8f0', padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600, fontSize: '1rem', cursor: 'pointer' }}
+                            >
+                                Back to Mastery Map
+                            </button>
+                        </div>
+                    </div>
+                </DashboardLayout>
+            );
+        }
+
         // Results
         const hasCredits = isPremium || (practiceCredits !== null && practiceCredits !== undefined && practiceCredits > 0);
         const nextCategory = category === 'Rules of the Road' ? 'Road Signs' : 'Rules of the Road';
@@ -661,6 +984,8 @@ function QuizContent() {
             (test: any) => test.test_type === 'Rules of the Road' || test.test_type === 'Road Signs' || test.test_type === 'Mixed Practice'
         ).length;
 
+        const showTeaser = !isPremium && resultsConfig.toggles.showEarlyBenefitsTeaser && (practiceHistoryCount === 1 || practiceHistoryCount === 2);
+
         if (!hasCredits) {
             return (
                 <DashboardLayout>
@@ -685,7 +1010,7 @@ function QuizContent() {
                                         signsAvg={signsAvg}
                                         passProbability={passProbability}
                                         showWeakestName={resultsConfig.toggles.showWeakestSectionName}
-                                        practiceCount={practiceHistoryCount}
+                                        totalQuestionsAnswered={totalAttempted}
                                     />
                                 );
                             } else if (sectionId === 'stakes') {
@@ -809,7 +1134,12 @@ function QuizContent() {
 
                     <LimitModal
                         isOpen={showLimitModal}
-                        onClose={() => setShowLimitModal(false)}
+                        onClose={() => {
+                            setShowLimitModal(false);
+                            if (limitVariant === 'locked_test') {
+                                router.push('/masterymap');
+                            }
+                        }}
                         variant={limitVariant}
                         renewalDate={renewalDate}
                     />
@@ -911,6 +1241,28 @@ function QuizContent() {
                         </div>
                     </div>
 
+                    {showTeaser && (
+                        <ObservedSection 
+                            sectionId="early_teaser_benefits" 
+                            scoreBand={scoreBand} 
+                            creditsRemaining={practiceCredits ?? undefined}
+                        >
+                            <BenefitsSection 
+                                band={scoreBand} 
+                                config={bandConfig} 
+                                fullWidth={true}
+                                onCtaClick={() => {
+                                    setLimitVariant('practice_limit');
+                                    setShowLimitModal(true);
+                                    sendGTMEvent('teaser_cta_click', {
+                                        test_number: practiceHistoryCount,
+                                        credits_remaining: practiceCredits
+                                    });
+                                }}
+                            />
+                        </ObservedSection>
+                    )}
+
                     {showReview && (
                         <div className={styles.reviewSection}>
                             <h2 style={{ paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>Review Answers</h2>
@@ -961,7 +1313,7 @@ function QuizContent() {
             <div className={styles.mainWrapper}>
                 <div className={styles.header}>
                     <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        {category}
+                        {topicConfig ? topicConfig.name : category}
                     </div>
                     {/* Stats removed to prevent duplication */}
                     <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
@@ -972,23 +1324,21 @@ function QuizContent() {
                 <div className={styles.contentGrid} style={{ gridTemplateColumns: 'minmax(0, 1000px)', justifyContent: 'center' }}>
                     {/* Left Column: Question */}
                     <div>
-                        <QuestionCard
-                            question={questions[currentindex]}
-                            onNext={handleNext}
-                            isLast={currentindex === questions.length - 1}
-                            mode="practice"
-                            // Find answer for this index in userAnswers history? 
-                            // userAnswers is push-only history, so finding by index might be tricky if we skipped? 
-                            // But usually we don't skip in practice. 
-                            // Let's rely on QuestionCard's internal state resetting for now to keep it simple, 
-                            // OR, improved: find partial answer if we want navigation support.
-                            // For minimal risk path: Don't pass 'selected' yet, relies on resets. 
-                            // But if user navigates back, it will be blank. That's acceptable for "Practice" mode usually.
-                            // Better: Pass selected if found.
-                            selected={userAnswers.find(a => a.question.id === questions[currentindex].id)?.selectedIndex}
-                            onAnswer={() => { }}
-                            progressLabel={`Question ${currentindex + 1} / ${questions.length}`}
-                        />
+                        {questions[currentindex] ? (
+                            <QuestionCard
+                                question={questions[currentindex]}
+                                onNext={handleNext}
+                                isLast={currentindex === questions.length - 1}
+                                mode="practice"
+                                selected={userAnswers.find(a => a.question?.id === questions[currentindex]?.id)?.selectedIndex}
+                                onAnswer={() => { }}
+                                progressLabel={`Question ${currentindex + 1} / ${questions.length}`}
+                            />
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontWeight: 500 }}>
+                                Loading question details...
+                            </div>
+                        )}
                     </div>
 
                     {/* Right Column: Navigator REMOVED */}
@@ -1002,7 +1352,17 @@ function QuizContent() {
             />
             <LimitModal
                 isOpen={showLimitModal}
-                onClose={() => setShowLimitModal(false)}
+                onClose={() => {
+                    setShowLimitModal(false);
+                    if (limitVariant === 'locked_test') {
+                        router.push('/masterymap');
+                        return;
+                    }
+                    const topicIndex = topicConfig ? masteryTopics.findIndex(t => t.id === topicConfig.id) : -1;
+                    if (topicConfig && !isPremium && topicIndex >= 3 && ((topicAttempts || 0) + userAnswers.length >= 10)) {
+                        router.push('/dashboard');
+                    }
+                }}
                 variant={limitVariant}
                 renewalDate={renewalDate}
             />

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./practice.module.css";
 import DashboardLayout from "@/components/DashboardLayout";
-import { BookOpen, AlertTriangle, Shuffle, Lock } from "lucide-react";
+import { BookOpen, AlertTriangle, Shuffle, Lock, Gem } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import LimitModal from "@/components/LimitModal";
 
@@ -12,7 +12,7 @@ export default function PracticePage() {
     const { isPremium, practiceCredits, renewalDate } = useAuth();
     const router = useRouter();
     const [showLimitModal, setShowLimitModal] = useState(false);
-    const [limitVariant, setLimitVariant] = useState<'practice_limit' | 'progressbar_upgrade'>('practice_limit');
+    const [limitVariant, setLimitVariant] = useState<'practice_limit' | 'progressbar_upgrade' | 'rules_road_limit' | 'road_signs_limit'>('practice_limit');
 
     const handleStart = (category: string) => {
         if (category === 'Mixed Practice') {
@@ -28,7 +28,11 @@ export default function PracticePage() {
             if (isPremium) {
                 router.push(`/quiz/practice?category=${encodeURIComponent(category)}`);
             } else {
-                setLimitVariant('progressbar_upgrade');
+                if (category === 'Rules of the Road') {
+                    setLimitVariant('rules_road_limit');
+                } else {
+                    setLimitVariant('road_signs_limit');
+                }
                 setShowLimitModal(true);
             }
         }
@@ -58,11 +62,9 @@ export default function PracticePage() {
 
                 {/* Rules of the Road */}
                 <div className={`${styles.card} ${!isPremium ? styles.lockedCard : ''}`}>
-                    {!isPremium && (
-                        <div className={styles.premiumBadge}>
-                            <Lock size={12} /> Premium
-                        </div>
-                    )}
+                    <div className={styles.premiumBadge}>
+                        <Gem size={10} className={styles.premiumBadgeGem} /> Premium
+                    </div>
                     <div className={styles.cardIcon}>
                         <BookOpen size={32} />
                     </div>
@@ -81,11 +83,9 @@ export default function PracticePage() {
 
                 {/* Road Signs */}
                 <div className={`${styles.card} ${!isPremium ? styles.lockedCard : ''}`}>
-                    {!isPremium && (
-                        <div className={styles.premiumBadge}>
-                            <Lock size={12} /> Premium
-                        </div>
-                    )}
+                    <div className={styles.premiumBadge}>
+                        <Gem size={10} className={styles.premiumBadgeGem} /> Premium
+                    </div>
                     <div className={styles.cardIcon}>
                         <AlertTriangle size={32} />
                     </div>

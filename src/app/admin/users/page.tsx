@@ -21,6 +21,11 @@ export default function AdminUsersPage() {
     const [checkoutFilter, setCheckoutFilter] = useState("All");
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
+    // Deletion states
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<any>(null);
+    const [deleteTextConfirm, setDeleteTextConfirm] = useState("");
+
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
@@ -171,6 +176,39 @@ export default function AdminUsersPage() {
         } catch (err: any) {
             console.error("Error updating user status:", err);
             alert(err.message || "Failed to update user");
+        } finally {
+            setUpdatingUserId(null);
+        }
+    };
+
+    // Handle user deletion
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return;
+        setUpdatingUserId(userToDelete.id);
+        try {
+            const res = await fetch(`/api/admin/users?userId=${userToDelete.id}`, {
+                method: "DELETE"
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to delete user");
+            }
+
+            // Reset selection if deleted
+            if (selectedUser?.id === userToDelete.id) {
+                setSelectedUser(null);
+            }
+
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+            setDeleteTextConfirm("");
+
+            // Fetch updated list
+            await fetchUsers();
+        } catch (err: any) {
+            console.error("Error deleting user:", err);
+            alert(err.message || "Failed to delete user");
         } finally {
             setUpdatingUserId(null);
         }
@@ -779,11 +817,115 @@ export default function AdminUsersPage() {
                                          selectedUser.isTest ? "Unflag Test Account" : "Flag as Test Account"}
                                     </button>
                                 </div>
+
+                                <div style={{ marginTop: "0.5rem", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "1rem" }}>
+                                    <div style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "0.5rem" }}>Delete User Account (Permanent):</div>
+                                    <button
+                                        onClick={() => {
+                                            setUserToDelete(selectedUser);
+                                            setDeleteTextConfirm("");
+                                            setShowDeleteModal(true);
+                                        }}
+                                        disabled={updatingUserId !== null}
+                                        style={{
+                                            width: "100%",
+                                            padding: "0.75rem",
+                                            background: "rgba(239, 68, 68, 0.12)",
+                                            color: "#ff6b6b",
+                                            border: "1px solid rgba(239, 68, 68, 0.25)",
+                                            borderRadius: "8px",
+                                            fontWeight: 600,
+                                            cursor: updatingUserId ? "not-allowed" : "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: "0.5rem"
+                                        }}
+                                    >
+                                        <Trash2 size={16} />
+                                        Delete User Account
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* User Deletion Confirmation Modal Overlay */}
+            {showDeleteModal && userToDelete && (
+                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+                    <div style={{ background: "#1f2937", padding: "2.5rem", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)", maxWidth: "450px", width: "90%", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", color: "#ef4444" }}>
+                            <Trash2 size={24} />
+                            <h3 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 800 }}>Permanently Delete User?</h3>
+                        </div>
+                        
+                        <p style={{ margin: 0, color: "rgba(255,255,255,0.8)", fontSize: "0.95rem", lineHeight: "1.5" }}>
+                            Are you absolutely sure you want to delete <strong>{userToDelete.email}</strong>?<br/><br/>
+                            This will permanently delete their account and wipe all test progress, history, and settings from the database. <strong>This action cannot be undone.</strong>
+                        </p>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                            <label style={{ fontSize: "0.85rem", opacity: 0.7 }}>Type <strong style={{ color: "white" }}>DELETE</strong> below to confirm:</label>
+                            <input
+                                type="text"
+                                value={deleteTextConfirm}
+                                onChange={(e) => setDeleteTextConfirm(e.target.value)}
+                                placeholder="DELETE"
+                                style={{
+                                    width: "100%",
+                                    padding: "0.75rem 1rem",
+                                    background: "rgba(0,0,0,0.2)",
+                                    border: "1px solid rgba(255,255,255,0.15)",
+                                    borderRadius: "8px",
+                                    color: "white",
+                                    boxSizing: "border-box",
+                                    fontSize: "1rem"
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setUserToDelete(null);
+                                    setDeleteTextConfirm("");
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: "0.75rem",
+                                    background: "rgba(255,255,255,0.05)",
+                                    border: "1px solid rgba(255,255,255,0.15)",
+                                    color: "white",
+                                    borderRadius: "8px",
+                                    fontWeight: 600,
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteUser}
+                                disabled={deleteTextConfirm !== "DELETE" || updatingUserId !== null}
+                                style={{
+                                    flex: 1,
+                                    padding: "0.75rem",
+                                    background: deleteTextConfirm === "DELETE" ? "#ef4444" : "rgba(239, 68, 68, 0.2)",
+                                    border: "none",
+                                    color: deleteTextConfirm === "DELETE" ? "white" : "rgba(255,255,255,0.4)",
+                                    borderRadius: "8px",
+                                    fontWeight: 700,
+                                    cursor: deleteTextConfirm === "DELETE" ? "pointer" : "not-allowed"
+                                }}
+                            >
+                                {updatingUserId === userToDelete.id ? "Deleting..." : "Permanently Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

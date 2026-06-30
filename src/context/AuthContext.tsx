@@ -5,6 +5,15 @@ import { supabase } from "@/lib/supabaseClient";
 
 import { User, Session } from "@supabase/supabase-js";
 
+interface MasteryProgressData {
+    attempted: number;
+    correct: number;
+    rulesAttempted: number;
+    rulesCorrect: number;
+    signsAttempted: number;
+    signsCorrect: number;
+}
+
 interface AuthContextType {
     user: User | null;
     loading: boolean;
@@ -17,6 +26,7 @@ interface AuthContextType {
     practiceCredits: number | null;
     simulationCredits: number | null;
     history: any[];
+    masteryProgress: Record<string, MasteryProgressData>;
     refreshProfile: (force?: boolean) => Promise<void>;
     renewalDate: Date | null;
     isOfferActive: boolean;
@@ -34,6 +44,7 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
 
     const [profile, setProfile] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
+    const [masteryProgress, setMasteryProgress] = useState<Record<string, MasteryProgressData>>({});
     const profileRef = useRef(profile); // Track latest profile for stale closures
     const userRef = useRef(user); // Track latest user for stable fetch callbacks
     const fetchingPromiseRef = useRef<Promise<void> | null>(null); // Track in-progress fetch promise
@@ -403,6 +414,33 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
                     }
                     setHistory(historyList);
 
+                    // Fetch Mastery Map Progress for readiness calculation
+                    try {
+                        const { data: masteryData, error: masteryError } = await supabase
+                            .from('user_topic_progress')
+                            .select('topic, questions_attempted, questions_correct, rules_attempted, rules_correct, signs_attempted, signs_correct')
+                            .eq('user_id', userId);
+                        
+                        if (masteryData && !masteryError) {
+                            const progressMap: Record<string, MasteryProgressData> = {};
+                            masteryData.forEach((row: any) => {
+                                progressMap[row.topic] = {
+                                    attempted: row.questions_attempted || 0,
+                                    correct: row.questions_correct || 0,
+                                    rulesAttempted: row.rules_attempted || 0,
+                                    rulesCorrect: row.rules_correct || 0,
+                                    signsAttempted: row.signs_attempted || 0,
+                                    signsCorrect: row.signs_correct || 0
+                                };
+                            });
+                            setMasteryProgress(progressMap);
+                        } else if (masteryError) {
+                            console.error("Error fetching mastery progress:", masteryError);
+                        }
+                    } catch (masteryErr) {
+                        console.error("Failed to fetch mastery progress:", masteryErr);
+                    }
+
                     // Compute Offer Expiration (35% OFF for New Sign Ups)
                     let oldestTestDate: Date | null = null;
                     if (historyList.length > 0) {
@@ -551,13 +589,14 @@ export const AuthProvider = ({ children, initialSession = null }: { children: Re
     const logout = async () => {
         await supabase.auth.signOut();
         setHistory([]);
+        setMasteryProgress({});
         setProfile(null);
         setIsOfferActive(false);
         setOfferExpiryDate(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, refreshProfile, renewalDate, isOfferActive, offerExpiryDate, premiumUntil: profile?.premium_until || null }}>
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout, isPremium, isAdmin, practiceCredits, simulationCredits, history, masteryProgress, refreshProfile, renewalDate, isOfferActive, offerExpiryDate, premiumUntil: profile?.premium_until || null }}>
             {children}
         </AuthContext.Provider>
     );

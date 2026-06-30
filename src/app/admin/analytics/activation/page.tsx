@@ -391,6 +391,182 @@ export default function ActivationPage() {
                         </div>
                     </div>
 
+                    {/* Mastery Map Performance Section */}
+                    <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Mastery Map Performance & Curriculum Analysis</h2>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', marginBottom: '2rem' }}>
+                            Evaluate completion funnels, progression speed, retake rates, and pathway choices for the Mastery Map program.
+                        </p>
+
+                        {/* Three Cards Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                            
+                            {/* Card 1: Path Preferences */}
+                            <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#fbbf24' }}>Study Path Preferences</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                    {[
+                                        { label: 'Map Only', count: data?.masteryMapStats?.pathPreferences?.mapOnlyCount || 0, emails: data?.masteryMapStats?.pathPreferences?.mapOnlyEmails || [], color: '#10b981' },
+                                        { label: 'Standalone Only', count: data?.masteryMapStats?.pathPreferences?.standaloneOnlyCount || 0, emails: data?.masteryMapStats?.pathPreferences?.standaloneOnlyEmails || [], color: '#3b82f6' },
+                                        { label: 'Hybrid Path (Both)', count: data?.masteryMapStats?.pathPreferences?.hybridCount || 0, emails: data?.masteryMapStats?.pathPreferences?.hybridEmails || [], color: '#8b5cf6' },
+                                        { label: 'Inactive (Neither)', count: data?.masteryMapStats?.pathPreferences?.inactiveCount || 0, emails: data?.masteryMapStats?.pathPreferences?.inactiveEmails || [], color: '#6b7280' }
+                                    ].map((path, idx) => {
+                                        const total = signUpCount || 1;
+                                        const pct = ((path.count / total) * 100).toFixed(1);
+                                        return (
+                                            <div key={idx}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                                                    <span 
+                                                        onClick={() => setSelectedUsers({ label: `Users in Study Path: ${path.label}`, ids: path.emails })}
+                                                        style={{ cursor: 'pointer', textDecoration: 'underline', color: 'rgba(255,255,255,0.8)' }}
+                                                    >
+                                                        {path.label}
+                                                    </span>
+                                                    <span style={{ fontWeight: 'bold' }}>{path.count} ({pct}%)</span>
+                                                </div>
+                                                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${pct}%`, height: '100%', background: path.color, borderRadius: '4px' }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Card 2: Free-to-Premium Upgrade Funnel */}
+                            <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#3b82f6' }}>Free-to-Premium (Map Guided)</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {[
+                                        { label: '1. Completed Free Map (Topic 1-3)', count: data?.masteryMapStats?.upgradeFunnel?.completedFree3Count || 0, emails: data?.masteryMapStats?.upgradeFunnel?.completedFree3Emails || [], color: '#6366f1' },
+                                        { label: '2. Initiated Checkout', count: data?.masteryMapStats?.upgradeFunnel?.free3InitiatedCheckoutCount || 0, emails: data?.masteryMapStats?.upgradeFunnel?.free3InitiatedCheckoutEmails || [], color: '#ec4899', prevCount: data?.masteryMapStats?.upgradeFunnel?.completedFree3Count },
+                                        { label: '3. Upgraded to Premium', count: data?.masteryMapStats?.upgradeFunnel?.free3PaidCount || 0, emails: data?.masteryMapStats?.upgradeFunnel?.free3PaidEmails || [], color: '#10b981', prevCount: data?.masteryMapStats?.upgradeFunnel?.free3InitiatedCheckoutCount }
+                                    ].map((row, idx) => {
+                                        const conv = row.prevCount ? `${((row.count / (row.prevCount || 1)) * 100).toFixed(1)}% step conversion` : 'Funnel entry';
+                                        const totalPct = data?.masteryMapStats?.upgradeFunnel?.completedFree3Count
+                                            ? `${((row.count / data.masteryMapStats.upgradeFunnel.completedFree3Count) * 100).toFixed(1)}% of free completers`
+                                            : '0%';
+                                        return (
+                                            <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '2px' }}>
+                                                    <span 
+                                                        onClick={() => setSelectedUsers({ label: `Free Map: ${row.label}`, ids: row.emails })}
+                                                        style={{ cursor: 'pointer', textDecoration: 'underline', color: row.color }}
+                                                    >
+                                                        {row.label}
+                                                    </span>
+                                                    <span style={{ fontWeight: 'bold' }}>{row.count}</span>
+                                                </div>
+                                                <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+                                                    {conv} • {totalPct}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Card 3: Completion Velocity */}
+                            <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#10b981' }}>Progression Speed (Velocity)</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.4rem' }}>
+                                        <span>Fully Completed Map:</span>
+                                        <span style={{ fontWeight: 'bold' }}>{data?.masteryMapStats?.velocity?.completedCount || 0} users</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.4rem' }}>
+                                        <span>Average Time:</span>
+                                        <span style={{ fontWeight: 'bold' }}>{data?.masteryMapStats?.velocity?.avgHours || 0} hours</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.4rem' }}>
+                                        <span>Median Time:</span>
+                                        <span style={{ fontWeight: 'bold' }}>{data?.masteryMapStats?.velocity?.medianHours || 0} hours</span>
+                                    </div>
+                                    <div style={{ marginTop: '0.4rem' }}>
+                                        <span style={{ opacity: 0.6, fontSize: '0.8rem' }}>Pacing Distribution:</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.8, fontSize: '0.75rem', marginTop: '4px' }}>
+                                            <span>&lt;1h: <b>{data?.masteryMapStats?.velocity?.buckets?.under1Hour || 0}</b></span>
+                                            <span>1-12h: <b>{data?.masteryMapStats?.velocity?.buckets?.hours1To12 || 0}</b></span>
+                                            <span>12-24h: <b>{data?.masteryMapStats?.velocity?.buckets?.hours12To24 || 0}</b></span>
+                                            <span>1-3d: <b>{data?.masteryMapStats?.velocity?.buckets?.days1To3 || 0}</b></span>
+                                            <span>&gt;3d: <b>{data?.masteryMapStats?.velocity?.buckets?.over3Days || 0}</b></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Curriculum & Funnel Completion Table */}
+                        <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Curriculum & Milestone Drop-Off Detail</h3>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#fff', fontSize: '0.9rem' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
+                                        <th style={{ textAlign: 'left', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Milestone Node</th>
+                                        <th style={{ textAlign: 'left', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Category</th>
+                                        <th style={{ textAlign: 'center', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Tier</th>
+                                        <th style={{ textAlign: 'right', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Unique Completers</th>
+                                        <th style={{ textAlign: 'right', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Drop-Off from Previous</th>
+                                        <th style={{ textAlign: 'center', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Avg attempts</th>
+                                        <th style={{ textAlign: 'center', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Avg accuracy</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(data?.masteryMapStats?.topicStats || []).map((row: any, idx: number) => {
+                                        const prevRow = idx > 0 ? data.masteryMapStats.topicStats[idx - 1] : null;
+                                        const dropPct = prevRow && prevRow.uniqueCompletions > 0
+                                            ? `${((1 - (row.uniqueCompletions / prevRow.uniqueCompletions)) * 100).toFixed(1)}% drop`
+                                            : idx === 0 ? 'Entry node' : 'N/A';
+
+                                        const info = TOPIC_NAMES[row.topic_id] || { name: row.topic_id, category: 'Unknown', isFree: false };
+                                        const pctOfTotal = signUpCount > 0 ? `(${((row.uniqueCompletions / signUpCount) * 100).toFixed(1)}%)` : '';
+
+                                        return (
+                                            <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: idx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
+                                                <td style={{ padding: '0.8rem 1rem', fontWeight: 500 }}>
+                                                    <span 
+                                                        onClick={() => setSelectedUsers({ label: `Users who completed: ${info.name}`, ids: data.masteryMapStats.funnel[row.topic_id] || [] })}
+                                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                                    >
+                                                        {info.name}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.8rem 1rem', opacity: 0.8 }}>{info.category}</td>
+                                                <td style={{ padding: '0.8rem 1rem', textAlign: 'center' }}>
+                                                    <span style={{
+                                                        fontSize: '0.7rem',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        background: info.isFree ? 'rgba(34,197,94,0.1)' : 'rgba(234,179,8,0.1)',
+                                                        color: info.isFree ? '#22c55e' : '#eab308'
+                                                    }}>
+                                                        {info.isFree ? 'FREE' : 'PREMIUM'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: 'bold' }}>
+                                                    <span
+                                                        onClick={() => setSelectedUsers({ label: `Users who completed: ${info.name}`, ids: data.masteryMapStats.funnel[row.topic_id] || [] })}
+                                                        style={{ cursor: 'pointer', textDecoration: 'underline', color: '#10b981' }}
+                                                    >
+                                                        {row.uniqueCompletions.toLocaleString()}
+                                                    </span>
+                                                    <span style={{ fontSize: '0.75rem', opacity: 0.5, marginLeft: '4px' }}>{pctOfTotal}</span>
+                                                </td>
+                                                <td style={{ padding: '0.8rem 1rem', textAlign: 'right', color: prevRow ? '#ef4444' : 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                                                    {dropPct}
+                                                </td>
+                                                <td style={{ padding: '0.8rem 1rem', textAlign: 'center', fontWeight: 'bold' }}>{row.avgAttempts > 0 ? `${row.avgAttempts}x` : '—'}</td>
+                                                <td style={{ padding: '0.8rem 1rem', textAlign: 'center', fontWeight: 'bold', color: row.avgAccuracy >= 80 ? '#22c55e' : row.avgAccuracy ? '#eab308' : 'inherit' }}>
+                                                    {row.avgAccuracy ? `${row.avgAccuracy}%` : '—'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     {/* Event Timeline Widget */}
                     <div style={{ marginTop: '2rem' }}>
                         <EventTimelineWidget startDate={dateRange.startDate} endDate={dateRange.endDate} />
@@ -574,3 +750,17 @@ function KpiCard({ title, value, icon: Icon, color, subtitle }: any) {
         </div>
     );
 }
+
+const TOPIC_NAMES: Record<string, { name: string, category: string, isFree: boolean }> = {
+    'essentials_test_1': { name: 'G1 Practice Test 1', category: 'Foundational', isFree: true },
+    'essentials_test_2': { name: 'G1 Practice Test 2', category: 'Foundational', isFree: true },
+    'essentials_test_3': { name: 'G1 Practice Test 3', category: 'Foundational', isFree: true },
+    'essentials_test_4': { name: 'G1 Practice Test 4', category: 'Foundational', isFree: false },
+    'complicated_test_1': { name: 'G1 Practice Test 5', category: 'Complex Ops', isFree: false },
+    'complicated_test_2': { name: 'G1 Road Rules Test', category: 'Complex Ops', isFree: false },
+    'complicated_test_3': { name: '200-Question G1 Test', category: 'Complex Ops', isFree: false },
+    'trouble_test_1': { name: 'G1 Practice Test 6', category: 'Demerits/Safety', isFree: false },
+    'trouble_test_2': { name: 'Safety & Emergencies Test', category: 'Demerits/Safety', isFree: false },
+    'trouble_test_3': { name: 'Licence & Vehicle Regulations', category: 'Demerits/Safety', isFree: false },
+    'final_simulation': { name: 'Final Exam Simulation', category: 'Simulation', isFree: false }
+};

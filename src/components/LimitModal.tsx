@@ -13,7 +13,7 @@ interface LimitModalProps {
     isOpen: boolean;
     onClose: () => void;
     message?: string;
-    variant?: 'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_quiz' | 'all_limit' | 'progressbar_upgrade';
+    variant?: 'default' | 'chapter_quiz' | 'practice_limit' | 'simulation_quiz' | 'all_limit' | 'progressbar_upgrade' | 'locked_test' | 'rules_road_limit' | 'road_signs_limit';
     renewalDate?: Date | null;
 }
 
@@ -80,6 +80,9 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
     const isSimulationLimit = variant === 'simulation_quiz';
     const isAllLimit = variant === 'all_limit';
     const isProgressBarUpgrade = variant === 'progressbar_upgrade';
+    const isLockedTest = variant === 'locked_test';
+    const isRulesLimit = variant === 'rules_road_limit';
+    const isRoadSignsLimit = variant === 'road_signs_limit';
 
     const getHeadline = () => {
         if (isChapterQuiz) return "Unlock All Chapter Tests";
@@ -87,6 +90,9 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
         if (isSimulationLimit) return "Unlock Unlimited Simulations";
         if (isAllLimit) return "You’ve Reached the Free Limit";
         if (isProgressBarUpgrade) return "Upgrade to G1 Master Premium to unlock:";
+        if (isLockedTest) return "Test Locked";
+        if (isRulesLimit) return "Unlock Unlimited Rules of the Road Test";
+        if (isRoadSignsLimit) return "Unlock Unlimited Road Signs Test";
         return "Limit Reached";
     };
 
@@ -99,65 +105,77 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                     {getHeadline()}
                 </h2>
 
-                <p className={styles.description}>
-                    <strong>Upgrade to G1 Master Premium to unlock:</strong>
-                </p>
+                {!isLockedTest ? (
+                    <>
+                        <p className={styles.description}>
+                            <strong>Upgrade to G1 Master Premium to unlock:</strong>
+                        </p>
 
-                <div className={styles.featureList}>
-                    <div className={styles.featureItem}>
-                        <span className={styles.lockIcon}>🔓</span> Unlimited practice tests
-                    </div>
-                    <div className={styles.featureItem}>
-                        <span className={styles.lockIcon}>🔓</span> Unlimited simulations
-                    </div>
-                    <div className={styles.featureItem}>
-                        <span className={styles.lockIcon}>🔓</span> All chapter quizzes
-                    </div>
-                    <div className={styles.featureItem}>
-                        <span className={styles.lockIcon}>🔓</span> Progress tracking & readiness meter
-                    </div>
-                </div>
+                        <div className={styles.featureList}>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> Unlimited practice tests
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> Unlimited simulations
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> All chapter quizzes
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.lockIcon}>🔓</span> Progress tracking & readiness meter
+                            </div>
+                        </div>
 
-                <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-                    <PricingCardGrid onSelectTier={handleSelectTier} />
-                </div>
+                        <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+                            <PricingCardGrid onSelectTier={handleSelectTier} />
+                        </div>
+                    </>
+                ) : (
+                    <p className={styles.description} style={{ fontSize: '1.1rem', margin: '2.5rem 0', textAlign: 'center', color: '#475569', lineHeight: '1.6' }}>
+                        Please pass the previous test with a score of 80% or higher to unlock this test.
+                    </p>
+                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {isChapterQuiz && (
-                        <p className={styles.secondaryText}>
-                            Other apps charge $49/week or $159 lifetime
-                        </p>
-                    )}
-                    {(isPracticeLimit || isSimulationLimit) && (
-                        <p className={styles.secondaryText}>
-                            {isSimulationLimit ? "Other apps charge $49/week or $159 lifetime" : "One single payment. No renewals or hidden fees."}
-                        </p>
-                    )}
-                    {(isAllLimit || isProgressBarUpgrade) && (
-                        <p className={styles.secondaryText}>
-                            Some G1 apps charge $49/week or $159 lifetime.
-                        </p>
-                    )}
+                    {!isLockedTest && (
+                        <>
+                            {isChapterQuiz && (
+                                <p className={styles.secondaryText}>
+                                    Other apps charge $49/week or $159 lifetime
+                                </p>
+                            )}
+                            {(isPracticeLimit || isSimulationLimit) && (
+                                <p className={styles.secondaryText}>
+                                    {isSimulationLimit ? "Other apps charge $49/week or $159 lifetime" : "One single payment. No renewals or hidden fees."}
+                                </p>
+                            )}
+                            {(isAllLimit || isProgressBarUpgrade) && (
+                                <p className={styles.secondaryText}>
+                                    Some G1 apps charge $49/week or $159 lifetime.
+                                </p>
+                            )}
 
-                    <button
-                        type="button"
-                        onClick={handleShareWithParent}
-                        disabled={isSharing}
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#2563eb',
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
-                            cursor: isSharing ? 'not-allowed' : 'pointer',
-                            textDecoration: 'underline',
-                            textAlign: 'center',
-                            margin: '0.25rem 0 0.5rem 0',
-                            padding: '0.25rem'
-                        }}
-                    >
-                        {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
-                    </button>
+                            <button
+                                type="button"
+                                onClick={handleShareWithParent}
+                                disabled={isSharing}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#2563eb',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 700,
+                                    cursor: isSharing ? 'not-allowed' : 'pointer',
+                                    textDecoration: 'underline',
+                                    textAlign: 'center',
+                                    margin: '0.25rem 0 0.5rem 0',
+                                    padding: '0.25rem'
+                                }}
+                            >
+                                {isSharing ? 'Generating link...' : '🔗 Ask parent to pay (Share payment link)'}
+                            </button>
+                        </>
+                    )}
 
                     <button
                         type="button"
@@ -169,7 +187,7 @@ export default function LimitModal({ isOpen, onClose, message, variant = 'defaul
                         }}
                         className={`${styles.backBtn} ${styles.backBtnSpecial}`}
                     >
-                        {isProgressBarUpgrade ? "Not Now" : (isAllLimit ? "Back to Dashboard" : "Not now, take me back")}
+                        {isLockedTest ? "Back to Mastery Map" : (isProgressBarUpgrade ? "Not Now" : (isAllLimit ? "Back to Dashboard" : "Not now, take me back"))}
                     </button>
                 </div>
             </div>

@@ -12,6 +12,7 @@ export interface ResultsContentConfig {
     showStakes: boolean;
     showProof: boolean;
     showWeakestSectionName: boolean;
+    showEarlyBenefitsTeaser: boolean;
   };
   pricing: PricingTier[];
   scoreBands: {
@@ -42,6 +43,7 @@ export const resultsConfig: ResultsContentConfig = {
     showStakes: true,
     showProof: true,
     showWeakestSectionName: true,
+    showEarlyBenefitsTeaser: true,
   },
   pricing: [
     {

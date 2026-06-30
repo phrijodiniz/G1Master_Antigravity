@@ -44,14 +44,10 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
     const rulesPercentage = Math.round((rulesScore / totalRules) * 100);
     const signsPercentage = Math.round((signsScore / totalSigns) * 100);
 
-    const handlePracticeClick = (category: string) => {
+    const handleContinueToDashboard = () => {
         onClose();
-        router.push(`/quiz/practice?category=${encodeURIComponent(category)}`);
+        router.push('/dashboard');
     };
-
-    // Dynamic Recommendation & CTAs
-    const recommendedCategory = rulesScore < signsScore ? 'Rules of the Road' : 'Road Signs';
-    const secondaryCategory = recommendedCategory === 'Rules of the Road' ? 'Road Signs' : 'Rules of the Road';
 
     return (
         <div className={styles.container}>
@@ -102,48 +98,35 @@ export default function FreeMockTestResultModal({ isOpen, results, onClose }: Fr
                     {/* Dynamic suggestion and CTAs based on premium status */}
                     {isPremium ? (
                         <>
-                            {/* Smart suggestion bubble */}
-                            <div className={styles.suggestionBubble}>
-                                <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>💡</span>
-                                <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5', textAlign: 'left' }}>
-                                    <strong>Target Area:</strong> {recommendedCategory}. You lost the most points here. Let's fix that with a quick, focused run...
-                                </p>
-                            </div>
+                            {/* Supporting subline */}
+                            <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.6', textAlign: 'center' }}>
+                                You’ve finished your diagnostic. Choose any of the 4 unlocked study modes on your dashboard to start prepping.
+                            </p>
 
                             {/* CTAs Stack */}
                             <div className={styles.ctaWrapper}>
                                 <button 
-                                    onClick={() => handlePracticeClick(recommendedCategory)} 
+                                    onClick={handleContinueToDashboard} 
                                     className={styles.primaryPulseBtn}
                                 >
-                                    ⚡ Start 10-Question {recommendedCategory} Test Now!
-                                </button>
-                                
-                                <button 
-                                    onClick={() => handlePracticeClick(secondaryCategory)} 
-                                    className={styles.secondaryTextLink}
-                                >
-                                    Or, try a {secondaryCategory} Test
+                                    Go to Study Dashboard
                                 </button>
                             </div>
                         </>
                     ) : (
                         <>
-                            {/* Smart suggestion bubble */}
-                            <div className={styles.suggestionBubble}>
-                                <span style={{ fontSize: '1.2rem', marginTop: '-2px' }}>💡</span>
-                                <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5', textAlign: 'left' }}>
-                                    <strong>Target Area:</strong> {recommendedCategory}. You lost the most points here. Take another 10-question Practice test to calibrate your G1 Readiness and build consistency.
-                                </p>
-                            </div>
+                            {/* Supporting subline */}
+                            <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.6', textAlign: 'center' }}>
+                                You’ve finished your diagnostic. Now choose from 4 smart preps: Practice, Mastery Map, Chapters, or Simulations.
+                            </p>
 
                             {/* CTAs Stack */}
                             <div className={styles.ctaWrapper}>
                                 <button 
-                                    onClick={() => handlePracticeClick('Mixed Practice')} 
+                                    onClick={handleContinueToDashboard} 
                                     className={styles.primaryPulseBtn}
                                 >
-                                    ⚡ Start Practice Test Now!
+                                    Go to Study Dashboard
                                 </button>
                             </div>
                         </>

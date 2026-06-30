@@ -8,9 +8,11 @@ interface BenefitsSectionProps {
   config: {
     benefitsFocus: string;
   };
+  onCtaClick?: () => void;
+  fullWidth?: boolean;
 }
 
-export default function BenefitsSection({ band, config }: BenefitsSectionProps) {
+export default function BenefitsSection({ band, config, onCtaClick, fullWidth }: BenefitsSectionProps) {
   const benefits = [
     'Unlimited practice tests — road signs and rules of the road',
     'All 700+ handbook questions, not just a sample',
@@ -21,7 +23,7 @@ export default function BenefitsSection({ band, config }: BenefitsSectionProps) 
   ];
 
   return (
-    <div className={styles.sectionContainer} id="benefits-section">
+    <div className={`${styles.sectionContainer} ${fullWidth ? styles.benefitsCardFullWidth : ''}`} id="benefits-section">
       <h3 className={styles.benefitsTitle}>👑 Upgrade to G1 Master Premium</h3>
       <p className={styles.benefitsSub}>Your Recommended Focus: {config.benefitsFocus}</p>
       
@@ -33,6 +35,16 @@ export default function BenefitsSection({ band, config }: BenefitsSectionProps) 
           </div>
         ))}
       </div>
+
+      {onCtaClick && (
+        <button
+          type="button"
+          onClick={onCtaClick}
+          className={styles.benefitsCta}
+        >
+          Unlock All Premium Features
+        </button>
+      )}
       
       <p style={{
         fontSize: '0.85rem',

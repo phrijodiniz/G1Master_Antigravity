@@ -348,3 +348,60 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }
+
+export async function DELETE(request: Request) {
+    try {
+        const authStatus = await verifyAdmin(request)
+        if (!authStatus.authorized) {
+            return authStatus.errorResponse!
+        }
+
+        const { searchParams } = new URL(request.url)
+        const userId = searchParams.get('userId')
+
+        if (!userId) {
+            return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+        }
+
+        // 1. Delete from simulation_results
+        const { error: simError } = await supabaseAdmin
+            .from('simulation_results')
+            .delete()
+            .eq('user_id', userId)
+        if (simError) console.error('Error deleting simulation_results for user:', simError)
+
+        // 2. Delete from user_topic_progress
+        const { error: topicError } = await supabaseAdmin
+            .from('user_topic_progress')
+            .delete()
+            .eq('user_id', userId)
+        if (topicError) console.error('Error deleting user_topic_progress for user:', topicError)
+
+        // 3. Delete from question_responses
+        const { error: responseError } = await supabaseAdmin
+            .from('question_responses')
+            .delete()
+            .eq('user_id', userId)
+        if (responseError) console.error('Error deleting question_responses for user:', responseError)
+
+        // 4. Delete from profiles
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .delete()
+            .eq('id', userId)
+        if (profileError) console.error('Error deleting profile for user:', profileError)
+
+        // 5. Delete user from auth.users (Authentication database)
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+        if (authError) {
+            console.error('Error deleting auth user:', authError)
+            return NextResponse.json({ error: authError.message }, { status: 500 })
+        }
+
+        return NextResponse.json({ success: true })
+
+    } catch (err: any) {
+        console.error('Unexpected error in admin users delete route:', err)
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    }
+}

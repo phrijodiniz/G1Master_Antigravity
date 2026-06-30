@@ -1,0 +1,524 @@
+.mapContainer {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin: 1.5rem auto;
+    padding: 1.5rem 0;
+    box-sizing: border-box;
+}
+
+/* Category Sections */
+.categorySection {
+    position: relative;
+    margin-bottom: 3.5rem;
+}
+
+/* Vertical dashed line between categories (Neutral Slate) */
+.categorySection::before {
+    content: '';
+    position: absolute;
+    top: 3.5rem;
+    bottom: -3.5rem;
+    left: 1.5rem; /* Center of unit badge */
+    border-left: 2px dashed #cbd5e1;
+    z-index: 1;
+    opacity: 0.8;
+}
+
+.categorySection:last-child::before {
+    display: none; /* No line after the last unit */
+}
+
+/* Category Header styling */
+.categoryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    z-index: 10;
+    margin-bottom: 1rem;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+}
+
+/* Brand Custom Unit Badge (Deep Slate + Neon-green border/text) */
+.unitBadge {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #e1ff21;
+    border: 2px solid #e1ff21;
+    font-size: 1.5rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(225, 255, 33, 0.15);
+    flex-shrink: 0;
+}
+
+.titleBlock {
+    display: flex;
+    flex-direction: column;
+}
+
+.categoryTitle {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.categorySubtitle {
+    font-size: 0.95rem;
+    color: #64748b;
+    font-weight: 500;
+    margin: 0.5rem 0 0 0;
+    max-width: 750px;
+    line-height: 1.5;
+}
+
+.headerRight {
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+.totalQuestionsText {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+/* Nodes Wrapper (Desktop: Horizontal row with horizontal timeline connector) */
+.nodesWrapper {
+    display: flex;
+    gap: 1.5rem;
+    position: relative;
+    padding: 1.5rem 0 1.5rem 4.25rem; /* Aligned with category text on desktop */
+    z-index: 2;
+    overflow-x: auto;
+    scrollbar-width: none; /* Hide scrollbars */
+}
+
+.nodesWrapper::-webkit-scrollbar {
+    display: none; /* Hide scrollbars for Chrome/Safari */
+}
+
+/* Horizontal dotted line behind card row */
+.nodesWrapper::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    border-top: 2px dashed #cbd5e1;
+    transform: translateY(-50%);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+/* Redesigned Card Node (Desktop view) */
+.nodeCard {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    width: 220px;
+    flex-shrink: 0;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), border-color 0.2s, box-shadow 0.3s;
+    z-index: 2;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Hover effects with Brand styling indicators */
+.nodeCard:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 25px -3px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(225, 255, 33, 0.25);
+    border-color: #e1ff21;
+}
+
+/* Thumbnail */
+.thumbnailWrapper {
+    position: relative;
+    width: 100%;
+    height: 120px;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+
+.thumbnailImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.25s ease-out;
+}
+
+.nodeCard:hover .thumbnailImg {
+    transform: scale(1.06);
+}
+
+/* Overlays & Badges */
+.lockedOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(1.5px);
+}
+
+.lockIcon {
+    color: #ffffff;
+}
+
+/* Brand Cohesive Active Next badge (Neon Yellow-Green + Black Text) */
+.nextOverlayBadge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #e1ff21;
+    color: #000000;
+    padding: 0.45rem 1.35rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(225, 255, 33, 0.4);
+    border: 1px solid rgba(225, 255, 33, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.miniProgressBadge {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    background: rgba(15, 23, 42, 0.85);
+    color: #e1ff21;
+    border: 1px solid rgba(225, 255, 33, 0.2);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+}
+
+.masteredBadge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background: #e1ff21;
+    color: #000000;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Card details text */
+.cardDetails {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 70px;
+    box-sizing: border-box;
+    background: #ffffff;
+}
+
+.cardTextGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.nodeName {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.nodeCountLabel {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+    margin: 0;
+}
+
+.diamondLockIcon {
+    color: #8b5cf6; /* Cohesive premium diamond color */
+    flex-shrink: 0;
+}
+
+/* Tooltip float container */
+.tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: #0f172a;
+    color: #ffffff;
+    padding: 1rem;
+    border-radius: 12px;
+    width: 200px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    text-align: left;
+    border: 1px solid #1e293b;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.tooltipTitle {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #ffffff;
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 0.25rem;
+}
+
+.tooltipStats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+}
+
+.statRow {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+.statRow span:last-child {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.statusText {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+.status_mastered {
+    background: rgba(225, 255, 33, 0.2);
+    color: #e1ff21 !important;
+}
+
+.status_in-progress {
+    background: rgba(37, 99, 235, 0.2);
+    color: #60a5fa !important;
+}
+
+.status_available {
+    background: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1 !important;
+}
+
+.status_premium-locked {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171 !important;
+}
+
+.status_blocked {
+    background: rgba(100, 116, 139, 0.2);
+    color: #94a3b8 !important;
+}
+
+.premiumBadgeCorner {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: #0f172a;
+    color: #e1ff21;
+    border: 1px solid #e1ff21;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    z-index: 10;
+    text-transform: uppercase;
+}
+
+.premiumBadgeGem {
+    color: #e1ff21;
+}
+
+.card_blocked,
+.card_premium-locked {
+    opacity: 0.85;
+}
+
+.tooltipResetBtn {
+    width: 100%;
+    margin-top: 0.75rem;
+    background: transparent;
+    border: 1px solid #334155;
+    color: #f87171;
+    padding: 0.35rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.tooltipResetBtn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(0) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-10px) scale(1);
+    }
+}
+
+/* Mobile & Tablet Responsive Layout (Vertical threads list matching design) */
+@media (max-width: 768px) {
+    .categorySection {
+        margin-bottom: 2.5rem;
+    }
+    
+    .categorySection::before {
+        display: none; /* Disable global section snaker on mobile */
+    }
+    
+    .categoryHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .headerLeft {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        width: 100%;
+    }
+    
+    .headerRight {
+        margin-top: 0.5rem;
+        padding-left: 0;
+    }
+    
+    .nodesWrapper {
+        flex-direction: column;
+        gap: 0; /* tight lists */
+        padding: 1rem 0;
+        margin-left: 0;
+        overflow-x: visible;
+    }
+    
+    /* Horizontal dashed line is replaced by vertical dashed line */
+    .nodesWrapper::before {
+        display: none;
+    }
+    
+    /* Vertical dashed connector line through the centers of the thumbnails */
+    .nodesWrapper::after {
+        content: '';
+        position: absolute;
+        top: 0.5rem;
+        bottom: 0.5rem;
+        left: 2.75rem; /* exactly centered relative to the 88px thumbnail */
+        border-left: 2px dashed #cbd5e1;
+        z-index: 1;
+        opacity: 0.8;
+    }
+    /* Row card format */
+    .nodeCard {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0.75rem 0;
+        gap: 1.25rem;
+        background: transparent;
+        z-index: 2;
+    }
+    
+    .nodeCard:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: transparent;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .thumbnailWrapper {
+        width: 88px;
+        height: 56px;
+        border-radius: 12px;
+        flex-shrink: 0;
+        z-index: 2; /* Stays above the vertical thread line */
+    }
+    
+    .cardDetails {
+        flex: 1;
+        padding: 0;
+        min-height: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .nodeName {
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+    
+    .nodeCountLabel {
+        font-size: 0.85rem;
+    }
+    
+    .nextOverlayBadge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.6rem;
+    }
+    
+    .premiumBadgeCorner {
+        top: 50%;
+        right: auto;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.55rem;
+        padding: 0.1rem 0.25rem;
+    }
+    
+    .tooltip {
+        left: 50%;
+        bottom: 100%;
+        transform: translateX(-50%);
+    }
+}

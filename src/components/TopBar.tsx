@@ -18,7 +18,8 @@ export default function TopBar() {
                 <Menu size={24} />
             </button>
             
-                {user && !isPremium && (
+                {/* Temporarily hidden */}
+                {false && user && !isPremium && (
                     <button 
                         onClick={() => {
                             sendGTMEvent('view_promotion', { source: 'topbar' });

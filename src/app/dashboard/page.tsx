@@ -4,17 +4,17 @@ import { supabase } from "@/lib/supabaseClient";
 import styles from "./dashboard.module.css";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Clock, Book, Video, FileText, Car } from "lucide-react";
+import { Clock, Book, Video, FileText, Car, Map, BookOpen, Lock, Gem } from "lucide-react";
 import Link from "next/link";
 
 import DashboardLayout from "@/components/DashboardLayout";
-// ... imports
 import { useRouter } from "next/navigation";
 import LimitModal from "@/components/LimitModal";
 import ParentShareModal from "@/components/ParentShareModal";
 import FreeMockTestResultModal from "@/components/FreeMockTestResultModal";
 import { sendGTMEvent } from "@/lib/gtm";
 import ReadinessCheckSection from "../quiz/practice/components/ReadinessCheckSection";
+
 
 function Countdown({ targetDate }: { targetDate: Date }) {
     const [timeLeft, setTimeLeft] = useState('');
@@ -55,8 +55,10 @@ function Countdown({ targetDate }: { targetDate: Date }) {
 }
 
 export default function Dashboard() {
-    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, loading, history, isOfferActive, offerExpiryDate, refreshProfile } = useAuth();
+    const { user, isPremium, practiceCredits, simulationCredits, renewalDate, loading, history, masteryProgress, isOfferActive, offerExpiryDate, refreshProfile } = useAuth();
     const router = useRouter();
+
+
 
     useEffect(() => {
         if (!loading && practiceCredits === null) {
@@ -99,6 +101,23 @@ export default function Dashboard() {
     const [isSharing, setIsSharing] = useState(false);
     const [shareUrl, setShareUrl] = useState('');
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const [selectedMode, setSelectedMode] = useState<'practice' | 'mastery' | 'simulation' | 'chapters' | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const selectModeParam = params.get('selectMode');
+            if (selectModeParam === 'mastery') {
+                setSelectedMode('mastery');
+                setTimeout(() => {
+                    const el = document.getElementById('mode-card-mastery');
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            }
+        }
+    }, []);
 
     const handleShareWithParent = async () => {
         sendGTMEvent('begin_checkout', { source: 'dashboard_diagnostic_widget_share' });
@@ -274,76 +293,90 @@ export default function Dashboard() {
         }
     };
 
-    // Compute rolling averages for Rules and Signs categories
-    // Option 2: last 3 category-specific tests rolling average (disregarding free/mixed tests)
-    const getRollingCategoryAverages = (historyList: any[]) => {
-        const rulesPercentages: number[] = [];
-        const signsPercentages: number[] = [];
-
-        for (const test of historyList) {
-            if (test.test_type === 'Rules of the Road') {
-                if (rulesPercentages.length < 3) rulesPercentages.push(test.score);
-            } else if (test.test_type === 'Road Signs') {
-                if (signsPercentages.length < 3) signsPercentages.push(test.score);
-            } else if (test.test_type === 'Mixed Practice') {
-                if (rulesPercentages.length < 3) {
-                    rulesPercentages.push((test.rules_score || 0) * 20);
-                }
-                if (signsPercentages.length < 3) {
-                    signsPercentages.push((test.signs_score || 0) * 20);
-                }
-            }
-            if (rulesPercentages.length >= 3 && signsPercentages.length >= 3) {
-                break;
-            }
+    const handleStartChapters = () => {
+        if (isPremium) {
+            router.push("/chapter");
+        } else {
+            setLimitVariant("chapter_quiz");
+            setShowLimitModal(true);
         }
-
-        const rulesAvg = rulesPercentages.length > 0
-            ? Math.round(rulesPercentages.reduce((a, b) => a + b, 0) / rulesPercentages.length)
-            : null;
-
-        const signsAvg = signsPercentages.length > 0
-            ? Math.round(signsPercentages.reduce((a, b) => a + b, 0) / signsPercentages.length)
-            : null;
-
-        return { rulesAvg, signsAvg };
     };
 
-    const { rulesAvg, signsAvg } = getRollingCategoryAverages(history || []);
-    const hasDiagnostic = rulesAvg !== null || signsAvg !== null;
-    const practiceHistoryCount = history 
-        ? history.filter((test: any) => test.test_type === 'Rules of the Road' || test.test_type === 'Road Signs' || test.test_type === 'Mixed Practice').length
-        : 0;
+    const handleStartMasteryMap = () => {
+        router.push("/masterymap");
+    };
 
-    let avgPercentage = 0;
-    if (rulesAvg !== null && signsAvg !== null) {
-        avgPercentage = (rulesAvg + signsAvg) / 2;
-    } else if (rulesAvg !== null) {
-        avgPercentage = rulesAvg;
-    } else if (signsAvg !== null) {
-        avgPercentage = signsAvg;
-    }
+    // ===== NEW READINESS CALCULATION (Option A: Question-Volume Weighted Accuracy) =====
+    // Aggregate question-level data from ALL study modes
 
-    const rawPassProb = Math.round(40 + (avgPercentage * 0.5));
-    
-    // Apply confidence weight based on number of tests completed
-    let weight = 1.0;
-    if (practiceHistoryCount <= 0) {
-        weight = 0.0;
-    } else if (practiceHistoryCount === 1) {
-        weight = 0.35;
-    } else if (practiceHistoryCount <= 3) {
-        weight = 0.56;
-    } else if (practiceHistoryCount <= 6) {
-        weight = 0.70;
-    } else if (practiceHistoryCount <= 9) {
-        weight = 0.78;
-    } else {
-        weight = 1.0;
-    }
+    // 1. Mastery Map totals
+    let masteryTotalAttempted = 0, masteryTotalCorrect = 0;
+    let masteryRulesAttempted = 0, masteryRulesCorrect = 0;
+    let masterySignsAttempted = 0, masterySignsCorrect = 0;
+    Object.values(masteryProgress || {}).forEach(tp => {
+        masteryTotalAttempted += tp.attempted || 0;
+        masteryTotalCorrect += tp.correct || 0;
+        masteryRulesAttempted += tp.rulesAttempted || 0;
+        masteryRulesCorrect += tp.rulesCorrect || 0;
+        masterySignsAttempted += tp.signsAttempted || 0;
+        masterySignsCorrect += tp.signsCorrect || 0;
+    });
 
-    const computedPassProb = Math.round(40 + (rawPassProb - 40) * weight);
-    const computedFailRisk = 100 - computedPassProb;
+    // 2. Practice Tests + Simulations totals (derived from simulation_results history)
+    let practiceTotalAttempted = 0, practiceTotalCorrect = 0;
+    let practiceRulesAttempted = 0, practiceRulesCorrect = 0;
+    let practiceSignsAttempted = 0, practiceSignsCorrect = 0;
+    (history || []).forEach((test: any) => {
+        if (test.test_type === 'Rules of the Road') {
+            practiceTotalAttempted += 10;
+            practiceTotalCorrect += Math.round((test.score / 100) * 10);
+            practiceRulesAttempted += 10;
+            practiceRulesCorrect += test.rules_score || Math.round((test.score / 100) * 10);
+        } else if (test.test_type === 'Road Signs') {
+            practiceTotalAttempted += 10;
+            practiceTotalCorrect += Math.round((test.score / 100) * 10);
+            practiceSignsAttempted += 10;
+            practiceSignsCorrect += test.signs_score || Math.round((test.score / 100) * 10);
+        } else if (test.test_type === 'Mixed Practice') {
+            practiceTotalAttempted += 10;
+            practiceTotalCorrect += Math.round((test.score / 100) * 10);
+            practiceRulesAttempted += 5;
+            practiceRulesCorrect += test.rules_score || 0;
+            practiceSignsAttempted += 5;
+            practiceSignsCorrect += test.signs_score || 0;
+        } else if (test.test_type === 'Simulation') {
+            practiceTotalAttempted += 40;
+            practiceTotalCorrect += Math.round((test.score / 100) * 40);
+            practiceRulesAttempted += 20;
+            practiceRulesCorrect += test.rules_score || 0;
+            practiceSignsAttempted += 20;
+            practiceSignsCorrect += test.signs_score || 0;
+        }
+    });
+
+    // 3. Combine all sources
+    const totalAttempted = masteryTotalAttempted + practiceTotalAttempted;
+    const totalCorrect = masteryTotalCorrect + practiceTotalCorrect;
+    const overallAccuracy = totalAttempted > 0 ? totalCorrect / totalAttempted : 0;
+    const volumeWeight = Math.min(totalAttempted / 500, 1.0);
+    const computedPassProb = totalAttempted > 0
+        ? Math.round(40 + (overallAccuracy * 50) * volumeWeight)
+        : 40;
+
+    // 4. Per-category accuracy (Rules vs Signs) from all sources
+    const totalRulesAttempted = masteryRulesAttempted + practiceRulesAttempted;
+    const totalRulesCorrect = masteryRulesCorrect + practiceRulesCorrect;
+    const totalSignsAttempted = masterySignsAttempted + practiceSignsAttempted;
+    const totalSignsCorrect = masterySignsCorrect + practiceSignsCorrect;
+
+    const rulesAvg = totalRulesAttempted > 0
+        ? Math.round((totalRulesCorrect / totalRulesAttempted) * 100)
+        : null;
+    const signsAvg = totalSignsAttempted > 0
+        ? Math.round((totalSignsCorrect / totalSignsAttempted) * 100)
+        : null;
+
+    const hasDiagnostic = true;
     const isTestReady = computedPassProb >= 80 && (rulesAvg === null || rulesAvg >= 80) && (signsAvg === null || signsAvg >= 80);
     const hasPracticeCredits = isPremium || (practiceCredits !== null && practiceCredits !== undefined && practiceCredits > 0);
 
@@ -382,6 +415,61 @@ export default function Dashboard() {
         );
     }
 
+    const modes = [
+        {
+            id: 'practice' as const,
+            title: "Practice Tests",
+            subtitle: "Over 1000 quick practice tests with instant feedback",
+            description: "Build your confidence step-by-step. Our bite-sized Practice Tests consist of 10-question quizzes that let you master individual driving topics at your own pace with instant correct-answer feedback and questions that mirror the actual Ontario G1 exam.",
+            isPremium: false,
+            icon: FileText,
+            image: '/dashboard_practice.png',
+            metaChips: ["10 Questions", "Instant Feedback", "Free Mode"],
+            ctaLabelFree: "Practice Now",
+            ctaLabelPremium: "Practice Now",
+            handler: handleStartPractice
+        },
+        {
+            id: 'mastery' as const,
+            title: "Mastery Map",
+            subtitle: "Follow a step-by-step program to track and master every G1 topic",
+            description: "A structured, step-by-step road map designed to guide you through all G1 exam topics. Track your progress visual-by-visual, complete milestones, and know exactly when you have completed the program and are ready to pass.",
+            isPremium: false,
+            icon: Map,
+            image: '/dashboard_mastery.png',
+            metaChips: ["11 Tests", "Progressive Logic", "Tests 1-3 Free"],
+            ctaLabelFree: "Open Mastery Map",
+            ctaLabelPremium: "Open Mastery Map",
+            handler: handleStartMasteryMap
+        },
+        {
+            id: 'simulation' as const,
+            title: "G1 Exam Simulator",
+            subtitle: "Experience the real G1 test under actual exam conditions",
+            description: "The ultimate dress rehearsal. Experience the strict rules of the real Ontario G1 exam—including the 40-question limit, identical pass thresholds for rules and signs, and a realistic countdown timer.",
+            isPremium: true,
+            icon: Car,
+            image: '/dashboard_simulation.png',
+            metaChips: ["40 Questions", "MTO Standard", "Timed"],
+            ctaLabelFree: "Unlock with Premium",
+            ctaLabelPremium: "Take a Full Test",
+            handler: handleStartSimulation
+        },
+        {
+            id: 'chapters' as const,
+            title: "Study by Chapter",
+            subtitle: "Learn rule-by-rule with bite-sized lessons and targeted quizzes",
+            description: "Go back to the basics with structured learning. Dive deep into specific sections of the Official MTO Handbook—from traffic signs and right-of-way rules to highway safety—accompanied by targeted practice questions.",
+            isPremium: true,
+            icon: BookOpen,
+            image: '/dashboard_chapters.png',
+            metaChips: ["Handbook Chapters", "Focused Progress", "Premium Mode"],
+            ctaLabelFree: "Unlock with Premium",
+            ctaLabelPremium: "Choose Chapter",
+            handler: handleStartChapters
+        }
+    ];
+
     return (
         <DashboardLayout>
             <div className={styles.dashboardGrid}>
@@ -403,60 +491,114 @@ export default function Dashboard() {
                             signsAvg={signsAvg}
                             passProbability={computedPassProb}
                             showWeakestName={true}
-                            practiceCount={practiceHistoryCount}
+                            totalQuestionsAnswered={totalAttempted}
                             style={{ maxWidth: 'none', margin: '0 0 1.5rem 0' }}
                             title="Smart Readiness Calibration"
                         />
                     )}
 
-                    <h2 className={styles.sectionTitle}>How do you feel like studying today?</h2>
-                    <div className={styles.actionCardsGrid}>
-                        <div className={styles.actionCard}>
-                            <div className={styles.cardHeader}>
-                                <div className={styles.cardIcon}>
-                                    <FileText size={48} strokeWidth={1.5} />
-                                </div>
-
-                            </div>
-                            <h3 className={styles.actionTitle}>Practice Tests</h3>
-                            <p className={styles.actionSubtitle}>Build confidence at your own pace.</p>
-                            <p className={styles.actionDescription}>
-                                Start building your knowledge the smart way. Review Road Signs or Rules of the Road with instant feedback after every question.
-                            </p>
-
-                            <button className={styles.actionBtn} onClick={handleStartPractice}>Practice Now</button>
-
-                            {!isPremium && user && (
-                                <p className={styles.creditText}>
-                                    You have {practiceCredits} practice test {practiceCredits === 1 ? 'credit' : 'credits'} left
-                                </p>
-                            )}
-                        </div>
-
-                        <div className={styles.actionCard}>
-                            <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div className={styles.cardIcon}>
-                                    <Car size={48} strokeWidth={1.5} />
-                                </div>
-                            </div>
-                            <h3 className={styles.actionTitle}>G1 Test Simulation</h3>
-                            <p className={styles.actionSubtitle}>Test yourself just like the real exam.</p>
-                            <p className={styles.actionDescription}>
-                                A true G1-style test with timed, mixed questions and no hints. Covers both Road Signs and Rules of the Road. See if you&apos;re ready to pass.
-                            </p>
-
-                            <button 
-                                className={styles.actionBtn} 
-                                onClick={handleStartSimulation}
-                                style={!isPremium ? { background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1' } : {}}
-                            >
-                                {!isPremium ? '👑 Unlock Simulation' : 'Take a Full Test'}
-                            </button>
-                        </div>
+                    <div className={styles.studySectionHeader}>
+                        <h2 className={styles.studySectionTitle}>How do you want to study today?</h2>
+                        <p className={styles.studySectionSubline}>Four ways to prep for your G1. Start with any one.</p>
                     </div>
+                    
+                    {/* Compact Grid of Buttons */}
+                    <div className={styles.studyGrid}>
+                        {modes.map((mode) => {
+                            const isSelected = selectedMode === mode.id;
+                            const isPremiumCard = mode.isPremium;
+                            
+                            // Visual accents
+                            const borderClass = isSelected
+                                ? (isPremiumCard ? styles.modeCardSelectedPremium : styles.modeCardSelectedFree)
+                                : '';
+                            const mutedClass = !isPremium && isPremiumCard ? styles.cardMuted : '';
 
+                            return (
+                                <button
+                                    key={mode.id}
+                                    type="button"
+                                    onClick={() => setSelectedMode(prev => prev === mode.id ? null : mode.id)}
+                                    className={`${styles.modeCard} ${borderClass} ${mutedClass}`}
+                                    aria-expanded={isSelected}
+                                    aria-controls="study-detail-panel"
+                                    id={`mode-card-${mode.id}`}
+                                >
+                                    {/* Thumbnail Image Wrapper */}
+                                    <div className={styles.thumbnailWrapper}>
+                                        <img 
+                                            src={mode.image} 
+                                            alt={mode.title} 
+                                            className={styles.thumbnailImg} 
+                                        />
+                                        {!isPremium && isPremiumCard && (
+                                            <div className={styles.premiumBadgeCorner}>
+                                                <Gem size={10} className={styles.premiumBadgeGem} />
+                                                <span>Premium</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Content Details */}
+                                    <div className={styles.cardTextContent}>
+                                        <h3 className={styles.cardTitleText}>{mode.title}</h3>
+                                        <p className={styles.cardSubtitleText}>{mode.subtitle}</p>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+ 
+                    {/* Inline Expandable Detail Panel */}
+                    {(() => {
+                        const activeMode = modes.find(m => m.id === selectedMode);
+                        return (
+                            <div
+                                id="study-detail-panel"
+                                className={`${styles.detailPanel} ${activeMode ? styles.detailPanelOpen : ''}`}
+                                aria-live="polite"
+                            >
+                                {activeMode && (
+                                    <div className={styles.panelContent}>
+                                        {/* Left Side: Info */}
+                                        <div className={styles.panelLeft}>
+                                            <div className={styles.panelTitleBlock}>
+                                                <h3 className={styles.panelTitle}>{activeMode.title}</h3>
+                                                {activeMode.isPremium && (
+                                                    <span className={styles.panelPremiumTag}>Premium</span>
+                                                )}
+                                            </div>
+                                            <p className={styles.panelDescription}>{activeMode.description}</p>
+                                        </div>
+
+                                        {/* Right Side: Meta & Actions */}
+                                        <div className={styles.panelRight}>
+                                            <div className={styles.chipsContainer}>
+                                                {activeMode.metaChips.map((chip, idx) => (
+                                                    <span key={idx} className={styles.metaChip}>{chip}</span>
+                                                ))}
+                                            </div>
+                                            <div className={styles.panelCtaBlock}>
+                                                <button
+                                                    type="button"
+                                                    onClick={activeMode.handler}
+                                                    className={`${styles.panelCtaBtn} ${!isPremium && activeMode.isPremium ? styles.panelCtaBtnPremium : ''}`}
+                                                >
+                                                    {!isPremium && activeMode.isPremium ? activeMode.ctaLabelFree : activeMode.ctaLabelPremium}
+                                                </button>
+                                                {!isPremium && activeMode.isPremium && (
+                                                    <p className={styles.panelCtaSub}>One-time purchase · keep it for good</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+ 
                     {/* Test History Card moved to bottom */}
-                    <div className={`${styles.widget} ${styles.testHistoryWidget} glass-panel`} style={{ marginTop: '2.5rem' }}>
+                    <div className={`${styles.widget} ${styles.testHistoryWidget} glass-panel`} style={{ marginTop: '1rem' }}>
                         <h3 className={styles.sectionTitle}>Test History</h3>
                         <TestHistoryTable />
                     </div>

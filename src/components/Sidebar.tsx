@@ -35,7 +35,7 @@ export default function Sidebar() {
         { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
         { name: "Account", icon: User, path: "/account" },
         { name: "History", icon: HistoryIcon, path: "/history" },
-        { name: "Study Now", icon: GraduationCap, path: "/study" },
+        { name: "Study Modes", icon: GraduationCap, path: "/study" },
         ...(isAdmin ? [{ name: "Admin Portal", icon: Settings, path: "/admin" }] : []),
     ];
 

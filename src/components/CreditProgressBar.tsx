@@ -47,6 +47,9 @@ function Countdown({ targetDate }: { targetDate: Date }) {
 const TARGET_ROUTES = ["/dashboard", "/account", "/history", "/study", "/practice"];
 
 export default function CreditProgressBar() {
+    // Temporarily hidden
+    return null;
+
     const pathname = usePathname();
     const { user, loading, isPremium, practiceCredits, renewalDate } = useAuth();
     const [showLimitModal, setShowLimitModal] = useState(false);
@@ -68,7 +71,7 @@ export default function CreditProgressBar() {
         if (renewalDate) {
             message = (
                 <span>
-                    ⏱️ Next free practice test unlocks in: <Countdown targetDate={renewalDate} />
+                    ⏱️ Next free practice test unlocks in: <Countdown targetDate={renewalDate!} />
                 </span>
             );
         } else {

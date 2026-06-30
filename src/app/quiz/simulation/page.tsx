@@ -221,6 +221,21 @@ function SimulationContent() {
             const totalScore = Math.round(((rulesScore + signsScore) / (rulesTotal + signsTotal)) * 100);
 
             const save = async () => {
+                // Batch insert question attempts in database for authenticated users
+                const questionAttemptsPayload = questions.map((q, idx) => ({
+                    user_id: user.id,
+                    question_id: q.id,
+                    is_correct: answers[idx]?.correct || false
+                }));
+
+                const { error: attemptsError } = await supabase
+                    .from('question_responses')
+                    .insert(questionAttemptsPayload);
+                
+                if (attemptsError) {
+                    console.error('Error saving simulation question attempts:', attemptsError);
+                }
+
                 const { data, error } = await supabase.from('simulation_results').insert({
                     user_id: user.id,
                     score: totalScore,

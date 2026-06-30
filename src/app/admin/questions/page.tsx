@@ -17,6 +17,8 @@ export default function QuestionsReviewPage() {
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [statusFilter, setStatusFilter] = useState("All");
     const [chapterFilter, setChapterFilter] = useState("All");
+    const [difficultyFilter, setDifficultyFilter] = useState("All");
+    const [sortBy, setSortBy] = useState("Newest");
     const [availableChapters, setAvailableChapters] = useState<string[]>([]);
 
     const PAGE_SIZE = 20;
@@ -27,7 +29,7 @@ export default function QuestionsReviewPage() {
 
         try {
             let query = supabase
-                .from('questions')
+                .from('view_admin_questions')
                 .select('*', { count: 'exact' });
 
             if (term && term.trim() !== "") {
@@ -51,10 +53,38 @@ export default function QuestionsReviewPage() {
                 query = query.eq('chapter', chapterFilter);
             }
 
+            // Apply difficulty filter
+            if (difficultyFilter !== "All") {
+                if (difficultyFilter === "Easy") {
+                    query = query.gt('difficulty_percentage', 85).gte('first_attempts_count', 10);
+                } else if (difficultyFilter === "Medium") {
+                    query = query.gte('difficulty_percentage', 60).lte('difficulty_percentage', 85).gte('first_attempts_count', 10);
+                } else if (difficultyFilter === "Hard") {
+                    query = query.lt('difficulty_percentage', 60).gte('first_attempts_count', 10);
+                } else if (difficultyFilter === "Unsampled") {
+                    query = query.lt('first_attempts_count', 10);
+                }
+            }
+
             const from = pageIndex * PAGE_SIZE;
             const to = from + PAGE_SIZE - 1;
 
-            query = query.range(from, to).order('created_at', { ascending: false });
+            query = query.range(from, to);
+
+            // Apply sorting order
+            if (sortBy === "Newest") {
+                query = query.order('created_at', { ascending: false });
+            } else if (sortBy === "Oldest") {
+                query = query.order('created_at', { ascending: true });
+            } else if (sortBy === "Hardest") {
+                query = query.order('difficulty_percentage', { ascending: true, nullsFirst: false })
+                             .order('first_attempts_count', { ascending: false });
+            } else if (sortBy === "Easiest") {
+                query = query.order('difficulty_percentage', { ascending: false, nullsFirst: false })
+                             .order('first_attempts_count', { ascending: false });
+            } else if (sortBy === "Most Attempted") {
+                query = query.order('first_attempts_count', { ascending: false });
+            }
 
             const { data, count, error } = await query;
             console.log("Supabase response - Data Length:", data?.length, "Count:", count, "Error:", error);
@@ -84,7 +114,7 @@ export default function QuestionsReviewPage() {
         } finally {
             setLoading(false);
         }
-    }, [categoryFilter, statusFilter, chapterFilter]); // Stable dependencies
+    }, [categoryFilter, statusFilter, chapterFilter, difficultyFilter, sortBy]); // Stable dependencies
 
     const handleSearch = () => {
         searchTermRef.current = searchTerm; // Apply the new search term
@@ -252,6 +282,54 @@ export default function QuestionsReviewPage() {
                         ))}
                     </select>
                 </div>
+
+                <div style={{ position: 'relative', width: '200px' }}>
+                    <Filter style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} size={18} />
+                    <select
+                        value={difficultyFilter}
+                        onChange={(e) => setDifficultyFilter(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem 0.8rem 2.8rem',
+                            background: 'white',
+                            cursor: 'pointer',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '8px',
+                            color: 'black',
+                            appearance: 'none'
+                        }}
+                    >
+                        <option value="All">All Difficulties</option>
+                        <option value="Hard">Hard (&lt;60%)</option>
+                        <option value="Medium">Medium (60–85%)</option>
+                        <option value="Easy">Easy (&gt;85%)</option>
+                        <option value="Unsampled">Unsampled (&lt;10 attempts)</option>
+                    </select>
+                </div>
+
+                <div style={{ position: 'relative', width: '200px' }}>
+                    <Filter style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} size={18} />
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.8rem 1rem 0.8rem 2.8rem',
+                            background: 'white',
+                            cursor: 'pointer',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '8px',
+                            color: 'black',
+                            appearance: 'none'
+                        }}
+                    >
+                        <option value="Newest">Newest First</option>
+                        <option value="Oldest">Oldest First</option>
+                        <option value="Hardest">Hardest First</option>
+                        <option value="Easiest">Easiest First</option>
+                        <option value="Most Attempted">Most Attempted</option>
+                    </select>
+                </div>
             </div>
 
             {/* Content Area */}
@@ -270,17 +348,50 @@ export default function QuestionsReviewPage() {
                                     cursor: 'pointer'
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                                    <span style={{
-                                        fontSize: '0.75rem',
-                                        padding: '2px 8px',
-                                        borderRadius: '100px',
-                                        background: q.category === 'Road Signs' ? 'rgba(255,0,0,0.1)' : 'rgba(0,0,255,0.1)',
-                                        color: q.category === 'Road Signs' ? '#ff6b6b' : '#6b93ff',
-                                        border: `1px solid ${q.category === 'Road Signs' ? '#ff6b6b40' : '#6b93ff40'}`
-                                    }}>
-                                        {q.category}
-                                    </span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <span style={{
+                                            fontSize: '0.75rem',
+                                            padding: '2px 8px',
+                                            borderRadius: '100px',
+                                            background: q.category === 'Road Signs' ? 'rgba(255,0,0,0.1)' : 'rgba(0,0,255,0.1)',
+                                            color: q.category === 'Road Signs' ? '#ff6b6b' : '#6b93ff',
+                                            border: `1px solid ${q.category === 'Road Signs' ? '#ff6b6b40' : '#6b93ff40'}`
+                                        }}>
+                                            {q.category}
+                                        </span>
+                                        {/* Difficulty Badge */}
+                                        {q.first_attempts_count >= 10 ? (
+                                            <span style={{
+                                                fontSize: '0.75rem',
+                                                padding: '2px 8px',
+                                                borderRadius: '100px',
+                                                background: q.difficulty_percentage > 85 ? 'rgba(34,197,94,0.1)' : q.difficulty_percentage >= 60 ? 'rgba(234,179,8,0.1)' : 'rgba(239,68,68,0.1)',
+                                                color: q.difficulty_percentage > 85 ? '#22c55e' : q.difficulty_percentage >= 60 ? '#eab308' : '#ef4444',
+                                                border: `1px solid ${q.difficulty_percentage > 85 ? 'rgba(34,197,94,0.25)' : q.difficulty_percentage >= 60 ? 'rgba(234,179,8,0.25)' : 'rgba(239,68,68,0.25)'}`
+                                            }}>
+                                                {q.difficulty_percentage > 85 ? 'Easy' : q.difficulty_percentage >= 60 ? 'Medium' : 'Hard'} ({q.difficulty_percentage}%)
+                                            </span>
+                                        ) : (
+                                            <span style={{
+                                                fontSize: '0.75rem',
+                                                padding: '2px 8px',
+                                                borderRadius: '100px',
+                                                background: 'rgba(148,163,184,0.1)',
+                                                color: '#94a3b8',
+                                                border: '1px solid rgba(148,163,184,0.25)'
+                                            }}>
+                                                Unsampled
+                                            </span>
+                                        )}
+                                        {/* Attempt Count & Confidence */}
+                                        {q.first_attempts_count > 0 && (
+                                            <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
+                                                {q.first_attempts_count} {q.first_attempts_count === 1 ? 'attempt' : 'attempts'}
+                                                {q.first_attempts_count >= 20 ? ' (High Conf.)' : ' (Low Conf.)'}
+                                            </span>
+                                        )}
+                                    </div>
                                     {q.is_validated ?
                                         <CheckCircle size={16} color="var(--success)" /> :
                                         <Clock size={16} color="#F59E0B" />

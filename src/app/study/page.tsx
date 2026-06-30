@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./study.module.css";
 import DashboardLayout from "@/components/DashboardLayout";
 import Link from "next/link";
-import { FileText, Car, BookOpen, Lock } from "lucide-react";
+import { FileText, Car, BookOpen, Lock, Gem, Map } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import LimitModal from "@/components/LimitModal";
 
@@ -35,7 +35,7 @@ export default function StudyPage() {
 
     return (
         <DashboardLayout>
-            <h1 className={styles.title}>Study Now</h1>
+            <h1 className={styles.title}>Study Modes</h1>
 
             <div className={styles.grid}>
                 {/* Practice Tests */}
@@ -45,26 +45,38 @@ export default function StudyPage() {
                     </div>
                     <h2 className={styles.cardTitle}>Practice Tests</h2>
                     <p className={styles.cardDescription}>
-                        Focus on specific topics. Choose between Road Signs or Rules of the Road questions.
+                        Over 1000 quick practice tests with instant feedback.
                     </p>
                     <Link href="/practice" className={styles.cardBtn}>
                         Choose Category
                     </Link>
                 </div>
 
-                {/* Simulations */}
+                {/* Mastery Map */}
+                <div className={styles.card}>
+                    <div className={styles.cardIcon}>
+                        <Map size={32} />
+                    </div>
+                    <h2 className={styles.cardTitle}>Mastery Map</h2>
+                    <p className={styles.cardDescription}>
+                        Follow a step-by-step program to track and master every G1 topic.
+                    </p>
+                    <Link href="/masterymap" className={styles.cardBtn}>
+                        Open Mastery Map
+                    </Link>
+                </div>
+
+                {/* G1 Exam Simulator */}
                 <div className={`${styles.card} ${!isPremium ? styles.lockedCard : ''}`}>
-                    {!isPremium && (
-                        <div className={styles.premiumBadge}>
-                            <Lock size={12} /> Premium
-                        </div>
-                    )}
+                    <div className={styles.premiumBadge}>
+                        <Gem size={10} className={styles.premiumBadgeGem} /> Premium
+                    </div>
                     <div className={styles.cardIcon}>
                         <Car size={32} />
                     </div>
-                    <h2 className={styles.cardTitle}>Simulations</h2>
+                    <h2 className={styles.cardTitle}>G1 Exam Simulator</h2>
                     <p className={styles.cardDescription}>
-                        Take a realistic G1 mock exam. Timed, mixed questions with no hints allowed.
+                        Experience the real G1 test under actual exam conditions.
                     </p>
                     <button
                         onClick={handleStartSimulation}
@@ -77,17 +89,15 @@ export default function StudyPage() {
 
                 {/* Chapters */}
                 <div className={`${styles.card} ${!isPremium ? styles.lockedCard : ''}`}>
-                    {!isPremium && (
-                        <div className={styles.premiumBadge}>
-                            <Lock size={12} /> Premium
-                        </div>
-                    )}
+                    <div className={styles.premiumBadge}>
+                        <Gem size={10} className={styles.premiumBadgeGem} /> Premium
+                    </div>
                     <div className={styles.cardIcon}>
                         <BookOpen size={32} />
                     </div>
-                    <h2 className={styles.cardTitle}>Chapters</h2>
+                    <h2 className={styles.cardTitle}>Study by Chapter</h2>
                     <p className={styles.cardDescription}>
-                        Study the G1 handbook chapter by chapter. Learn the material before testing.
+                        Learn rule-by-rule with bite-sized lessons and targeted quizzes.
                     </p>
                     <button
                         onClick={handleStartChapters}

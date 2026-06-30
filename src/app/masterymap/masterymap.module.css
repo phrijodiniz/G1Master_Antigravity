@@ -1,0 +1,85 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.titleBlock {
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 1rem;
+    color: #475569;
+    margin-top: 0.25rem;
+    max-width: 700px;
+    line-height: 1.5;
+}
+
+.resetBtn {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    padding: 0.6rem 1.5rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.resetBtn:hover {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+}
+
+.mapCard {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f1f5f9;
+}
+
+.mapLoading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: #64748b;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+
+    .title {
+        font-size: 1.75rem;
+    }
+    .resetBtn {
+        align-self: stretch;
+        text-align: center;
+    }
+}

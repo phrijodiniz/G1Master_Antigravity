@@ -8,7 +8,7 @@ interface ReadinessCheckSectionProps {
   signsAvg: number | null;
   passProbability: number;
   showWeakestName: boolean;
-  practiceCount?: number;
+  totalQuestionsAnswered?: number;
   className?: string;
   style?: React.CSSProperties;
   title?: string;
@@ -36,7 +36,7 @@ export default function ReadinessCheckSection({
   signsAvg,
   passProbability,
   showWeakestName,
-  practiceCount = 3,
+  totalQuestionsAnswered = 0,
   className,
   style,
   title
@@ -81,24 +81,28 @@ export default function ReadinessCheckSection({
     captionText = 'Vertical line = pass line. Road signs is below it.';
   }
 
-  // 4. Dynamic Reliability Calculations
+  // 4. Dynamic Reliability Calculations (based on total questions answered)
   let reliabilityText = 'low';
   let filledSegments = 2;
   let segmentColorClass = styles.reliabilityBarActiveOrange;
 
-  if (practiceCount <= 1) {
+  if (totalQuestionsAnswered <= 0) {
+    reliabilityText = 'none';
+    filledSegments = 0;
+    segmentColorClass = '';
+  } else if (totalQuestionsAnswered < 30) {
     reliabilityText = 'very low';
     filledSegments = 1;
     segmentColorClass = styles.reliabilityBarActiveRed;
-  } else if (practiceCount <= 3) {
+  } else if (totalQuestionsAnswered < 100) {
     reliabilityText = 'low';
     filledSegments = 2;
     segmentColorClass = styles.reliabilityBarActiveOrange;
-  } else if (practiceCount <= 6) {
+  } else if (totalQuestionsAnswered < 200) {
     reliabilityText = 'medium';
     filledSegments = 3;
     segmentColorClass = styles.reliabilityBarActiveAmber;
-  } else if (practiceCount <= 9) {
+  } else if (totalQuestionsAnswered < 350) {
     reliabilityText = 'good';
     filledSegments = 4;
     segmentColorClass = styles.reliabilityBarActiveGreenBlue;
@@ -115,24 +119,24 @@ export default function ReadinessCheckSection({
       id="readiness-check-section"
     >
       {/* Title & Subtitle */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
-        <h3 className={styles.scoreTitle} style={{ fontSize: '1.4rem', margin: 0 }}>
+      <div style={{ marginBottom: '0.25rem' }}>
+        <h3 className={styles.scoreTitle} style={{ fontSize: '1.4rem', margin: 0, paddingRight: '2rem' }}>
           {title || "How ready are you, really?"}
         </h3>
-        <button 
-          className={styles.infoIconBtn}
-          onClick={() => setShowMathInfo(!showMathInfo)}
-          title="Explain how readiness is calculated"
-          aria-label="Explain how readiness is calculated"
-          type="button"
-        >
-          <InfoIcon />
-        </button>
       </div>
+      <button 
+        className={styles.infoIconBtn}
+        onClick={() => setShowMathInfo(!showMathInfo)}
+        title="Explain how readiness is calculated"
+        aria-label="Explain how readiness is calculated"
+        type="button"
+      >
+        <InfoIcon />
+      </button>
       <p className={styles.scoreSub} style={{ marginBottom: '1.25rem' }}>
-        {practiceCount >= 3 
-          ? `${practiceCount === 3 ? 'Three' : practiceCount} tests gives us a rough idea. A few more, and you'll know for sure.`
-          : 'Complete at least 3 practice tests to fully calibrate your G1 Readiness check.'}
+        {totalQuestionsAnswered >= 100 
+          ? `${totalQuestionsAnswered} questions answered across all study modes. The more you practice, the sharper your readiness.`
+          : 'Answer questions across any study mode to calibrate your G1 Readiness check.'}
       </p>
 
       {/* Math Explanation Info Card */}
@@ -142,15 +146,15 @@ export default function ReadinessCheckSection({
             <InfoIcon /> G1 Readiness Pass Probability
           </h4>
           <p style={{ margin: '0 0 0.5rem 0' }}>
-            Your pass probability is computed using a baseline adjusted by your active practice averages:
+            Your pass probability is computed by combining your accuracy across all study modes with a volume-based confidence weight:
           </p>
           <div className={styles.mathFormula}>
-            Readiness = 40% + (Average Practice Score × 0.5) × Confidence Weight
+            Readiness = 40% + (Overall Accuracy × 50) × Volume Weight
           </div>
           <ul className={styles.mathInfoList}>
-            <li><strong>Baseline Probability:</strong> Starts at 40% before taking practice tests.</li>
-            <li><strong>Performance Weight:</strong> Up to 50% additional probability is earned based on your performance.</li>
-            <li><strong>Confidence Weighting:</strong> To guarantee readiness is based on consistent success, scores are balanced by the number of practice tests you have completed (at least 10 completed tests are required to unlock the "Ready" status band).</li>
+            <li><strong>Baseline Probability:</strong> Starts at 40% before answering any questions.</li>
+            <li><strong>Overall Accuracy:</strong> The ratio of correct answers to total questions across Practice Tests, Mastery Map, and Simulations.</li>
+            <li><strong>Volume Weight:</strong> Ramps from 0 to 1.0 as you answer more questions. Full confidence unlocks at 500 questions answered.</li>
             <li><strong>Ontario Passing Rule:</strong> Passing the official Ontario G1 exam requires scoring at least 80% on both Rules of the Road and Road Signs separately.</li>
           </ul>
         </div>
@@ -197,8 +201,7 @@ export default function ReadinessCheckSection({
       {/* Labels below Segmented Bar */}
       <div className={styles.trackLabels}>
         <span className={styles.trackLabelItem} style={{ width: '50%', textAlign: 'left' }}>Not ready</span>
-        <span className={styles.trackLabelItem} style={{ width: '30%', textAlign: 'center' }}>Almost</span>
-        <span className={styles.trackLabelItem} style={{ width: '20%', textAlign: 'right' }}>Ready</span>
+        <span className={styles.trackLabelItem} style={{ width: '50%', textAlign: 'right' }}>Ready</span>
       </div>
 
       {/* Category Level Breakdown */}
@@ -254,7 +257,7 @@ export default function ReadinessCheckSection({
           <div>
             <h5 className={styles.reliabilityTitle}>Reliability: {reliabilityText}</h5>
             <p className={styles.reliabilitySubtext}>
-              Based on {practiceCount} {practiceCount === 1 ? 'test' : 'tests'} — sharpens with every test you take
+              Based on {totalQuestionsAnswered} {totalQuestionsAnswered === 1 ? 'question' : 'questions'} — sharpens with every question you answer
             </p>
           </div>
         </div>
