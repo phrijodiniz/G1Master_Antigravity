@@ -18,6 +18,15 @@ export default function ReportPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Comparison Mode States
+    const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [acquisitionDataB, setAcquisitionDataB] = useState<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [activationDataB, setActivationDataB] = useState<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [revenueDataB, setRevenueDataB] = useState<any>(null);
+
     // Default Date Range: June 6th, 2026 to Today
     const [dateRange, setDateRange] = useState({
         startDate: new Date('2026-06-06'),
@@ -25,8 +34,27 @@ export default function ReportPage() {
         label: 'Custom Range'
     });
 
+    // Default Date Range B helper (preceding offset matching duration of Range A)
+    const getDefaultRangeB = (rangeA: { startDate: Date; endDate: Date }) => {
+        const durationMs = rangeA.endDate.getTime() - rangeA.startDate.getTime();
+        const end = new Date(rangeA.startDate.getTime() - 24 * 60 * 60 * 1000); // 1 day before A start
+        const start = new Date(end.getTime() - durationMs);
+        return {
+            startDate: start,
+            endDate: end,
+            label: 'Previous Period'
+        };
+    };
+
+    const [dateRangeB, setDateRangeB] = useState<{ startDate: Date; endDate: Date; label: string }>(() => {
+        return getDefaultRangeB({ startDate: new Date('2026-06-06'), endDate: new Date() });
+    });
+
     const startStr = dateRange.startDate.toLocaleDateString('en-CA');
     const endStr = dateRange.endDate.toLocaleDateString('en-CA');
+
+    const startStrB = dateRangeB.startDate.toLocaleDateString('en-CA');
+    const endStrB = dateRangeB.endDate.toLocaleDateString('en-CA');
 
     useEffect(() => {
         async function fetchReportData() {
@@ -38,25 +66,56 @@ export default function ReportPage() {
                 if (!acqRes.ok) {
                     throw new Error('Failed to load acquisition data');
                 }
-                const acqJson = await acqRes.ok ? await acqRes.json() : null;
+                const acqJson = await acqRes.json();
 
                 // Fetch Activation data
                 const actRes = await fetch(`/api/analytics/activation?startDate=${startStr}&endDate=${endStr}`);
                 if (!actRes.ok) {
                     throw new Error('Failed to load activation data');
                 }
-                const actJson = await actRes.ok ? await actRes.json() : null;
+                const actJson = await actRes.json();
 
                 // Fetch Revenue data
                 const revRes = await fetch(`/api/analytics/revenue?startDate=${startStr}&endDate=${endStr}`);
                 if (!revRes.ok) {
                     throw new Error('Failed to load revenue data');
                 }
-                const revJson = await revRes.ok ? await revRes.json() : null;
+                const revJson = await revRes.json();
 
                 setAcquisitionData(acqJson);
                 setActivationData(actJson);
                 setRevenueData(revJson);
+
+                if (isComparisonEnabled) {
+                    // Fetch Acquisition data B
+                    const acqResB = await fetch(`/api/analytics/acquisition?startDate=${startStrB}&endDate=${endStrB}`);
+                    if (!acqResB.ok) {
+                        throw new Error('Failed to load comparison acquisition data');
+                    }
+                    const acqJsonB = await acqResB.json();
+
+                    // Fetch Activation data B
+                    const actResB = await fetch(`/api/analytics/activation?startDate=${startStrB}&endDate=${endStrB}`);
+                    if (!actResB.ok) {
+                        throw new Error('Failed to load comparison activation data');
+                    }
+                    const actJsonB = await actResB.json();
+
+                    // Fetch Revenue data B
+                    const revResB = await fetch(`/api/analytics/revenue?startDate=${startStrB}&endDate=${endStrB}`);
+                    if (!revResB.ok) {
+                        throw new Error('Failed to load comparison revenue data');
+                    }
+                    const revJsonB = await revResB.json();
+
+                    setAcquisitionDataB(acqJsonB);
+                    setActivationDataB(actJsonB);
+                    setRevenueDataB(revJsonB);
+                } else {
+                    setAcquisitionDataB(null);
+                    setActivationDataB(null);
+                    setRevenueDataB(null);
+                }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (err: any) {
                 console.error(err);
@@ -67,7 +126,7 @@ export default function ReportPage() {
         }
 
         fetchReportData();
-    }, [startStr, endStr]);
+    }, [startStr, endStr, isComparisonEnabled, startStrB, endStrB]);
 
     const handlePrint = () => {
         window.print();
@@ -109,6 +168,123 @@ export default function ReportPage() {
     const returnedAfterCreditRenewal = creditStats.returnedUsersCount || 0;
     const retentionRate = exhaustedFreeCredits > 0 ? (returnedAfterCreditRenewal / exhaustedFreeCredits) * 100 : 0;
 
+    // Calculation variables B
+    const acqSummaryB = acquisitionDataB?.summary || {};
+    const actFunnelB = activationDataB?.activationFunnel || {};
+    const freeTestB = activationDataB?.freeTest || {};
+    const creditStatsB = activationDataB?.creditRenewalStats || {};
+    const revSummaryB = revenueDataB?.summary || {};
+
+    const grossRevenueB = revSummaryB.totalGross || 0;
+    const refundedRevenueB = revSummaryB.totalRefunded || 0;
+    const totalCostsB = revSummaryB.totalOutflow || 0;
+    const netProfitB = revSummaryB.netProfit || 0;
+    const paidUpgradesB = revSummaryB.totalPaidConversions || 0;
+
+    const totalAdSpentB = acqSummaryB.totalSpend || 0;
+    const totalSignupsB = acqSummaryB.totalSignups || 0;
+    const costPerSignupB = totalSignupsB > 0 ? totalAdSpentB / totalSignupsB : 0;
+    const googleSignupsB = acqSummaryB.totalGoogleSignups || 0;
+    const emailSignupsB = acqSummaryB.totalEmailSignups || 0;
+
+    const freeTestStartsB = freeTestB.started || 0;
+    const completedFreeTestsB = freeTestB.completed || 0;
+    const usersInitiatedSignUpB = freeTestB.conversions || 0;
+    const totalSignUpsActivationB = actFunnelB.signUp?.length || 0;
+
+    const signUpCountB = actFunnelB.signUp?.length || 0;
+    const tookFreeTestCountB = actFunnelB.tookFreeTest?.length || 0;
+    const tookAtLeastOnePracticeCountB = actFunnelB.tookAtLeastOnePractice?.length || 0;
+    const tookTwoOrMorePracticeCountB = actFunnelB.tookTwoOrMorePractice?.length || 0;
+    const tookThreeOrMorePracticeCountB = actFunnelB.tookThreeOrMorePractice?.length || 0;
+    const initiatedCheckoutCountB = actFunnelB.initiatedCheckout?.length || 0;
+    const paidCountB = actFunnelB.paid?.length || 0;
+
+    const exhaustedFreeCreditsB = creditStatsB.exhaustedUsersCount || 0;
+    const returnedAfterCreditRenewalB = creditStatsB.returnedUsersCount || 0;
+    const retentionRateB = exhaustedFreeCreditsB > 0 ? (returnedAfterCreditRenewalB / exhaustedFreeCreditsB) * 100 : 0;
+
+    // Date range details & scaling helpers
+    const getDaysDifference = (start: Date, end: Date) => {
+        const timeDiff = Math.abs(end.getTime() - start.getTime());
+        return Math.max(1, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+    };
+
+    const daysA = getDaysDifference(dateRange.startDate, dateRange.endDate);
+    const daysB = getDaysDifference(dateRangeB.startDate, dateRangeB.endDate);
+    const durationScaleFactor = isComparisonEnabled ? daysA / daysB : 1;
+    const isDurationMismatch = isComparisonEnabled && daysA !== daysB;
+
+    const getPercentageChange = (valA: number, valB: number, shouldScale: boolean = false) => {
+        const normalizedB = shouldScale ? valB * durationScaleFactor : valB;
+        if (normalizedB === 0) {
+            return valA > 0 ? 100 : 0;
+        }
+        return Math.round(((valA - normalizedB) / normalizedB) * 100);
+    };
+
+    const renderVarianceBadge = (valA: number, valB: number, shouldScale: boolean = false, inverse: boolean = false) => {
+        if (!isComparisonEnabled) return null;
+        const change = getPercentageChange(valA, valB, shouldScale);
+        const isPositive = change >= 0;
+        const isGood = inverse ? !isPositive : isPositive;
+        const sign = isPositive ? '▲' : '▼';
+        const color = change === 0 ? '#94a3b8' : (isGood ? '#10b981' : '#ef4444');
+        
+        return (
+            <span style={{ color, fontSize: '0.8rem', fontWeight: 'bold', marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                {sign} {Math.abs(change)}%
+            </span>
+        );
+    };
+
+    const renderKPICard = (
+        title: string,
+        valA: number,
+        valB: number,
+        formatFn: (v: number) => string,
+        shouldScale: boolean = false,
+        inverse: boolean = false,
+        subtextA: string = '',
+        subtextB: string = ''
+    ) => {
+        return (
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="kpi-title" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{title}</span>
+                    {renderVarianceBadge(valA, valB, shouldScale, inverse)}
+                </div>
+                {!isComparisonEnabled ? (
+                    <>
+                        <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
+                            {formatFn(valA)}
+                        </div>
+                        {subtextA && (
+                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
+                                {subtextA}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div style={{ marginTop: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.4rem', marginBottom: '0.4rem' }}>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Period A</div>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>{formatFn(valA)}</div>
+                                {subtextA && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>{subtextA}</div>}
+                            </div>
+                            <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1rem' }}>
+                                <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Period B</div>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.7)' }}>{formatFn(valB)}</div>
+                                {subtextB && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>{subtextB}</div>}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const getStepPercentage = (current: number, previous: number) => {
         if (!previous) return '0.0%';
         return `${((current / previous) * 100).toFixed(1)}%`;
@@ -121,9 +297,28 @@ export default function ReportPage() {
         return `Conversion: ${conversionVal.toFixed(1)}% | Drop: ${dropVal.toFixed(1)}%`;
     };
 
-    const getTotalPercentage = (current: number) => {
-        if (!signUpCount) return '0.0%';
-        return `${((current / signUpCount) * 100).toFixed(1)}%`;
+    const getTotalPercentage = (current: number, total: number = signUpCount) => {
+        if (!total) return '0.0%';
+        return `${((current / total) * 100).toFixed(1)}%`;
+    };
+
+    const renderPercentageDiff = (pctStrA: string, pctStrB: string) => {
+        if (!isComparisonEnabled) return null;
+        const valA = parseFloat(pctStrA);
+        const valB = parseFloat(pctStrB);
+        if (isNaN(valA) || isNaN(valB)) return null;
+        const diff = valA - valB;
+        if (Math.abs(diff) < 0.05) {
+            return <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 'bold' }}>0.0%</span>;
+        }
+        const isPositive = diff > 0;
+        const sign = isPositive ? '▲ +' : '▼ ';
+        const color = isPositive ? '#10b981' : '#ef4444';
+        return (
+            <span style={{ color, fontWeight: 'bold', fontSize: '0.8rem' }}>
+                {sign}{Math.abs(diff).toFixed(1)}%
+            </span>
+        );
     };
 
     // Check if a date is today
@@ -260,8 +455,42 @@ export default function ReportPage() {
                         Generate and print a formatted performance report.
                     </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <AnalyticsDatePicker onDateChange={setDateRange} currentLabel={dateRange.label} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.5rem 0.8rem', borderRadius: '8px', color: 'white' }}>
+                        <label style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer', userSelect: 'none' }}>
+                            <input 
+                                type="checkbox" 
+                                checked={isComparisonEnabled} 
+                                onChange={(e) => setIsComparisonEnabled(e.target.checked)} 
+                                style={{ cursor: 'pointer' }}
+                            />
+                            Compare Ranges
+                        </label>
+                    </div>
+                    <AnalyticsDatePicker 
+                        onDateChange={(newRange) => {
+                            setDateRange(newRange);
+                            // Auto-suggest preceding range B
+                            const durationMs = newRange.endDate.getTime() - newRange.startDate.getTime();
+                            const end = new Date(newRange.startDate.getTime() - 24 * 60 * 60 * 1000);
+                            const start = new Date(end.getTime() - durationMs);
+                            setDateRangeB({
+                                startDate: start,
+                                endDate: end,
+                                label: 'Previous Period'
+                            });
+                        }} 
+                        currentLabel={dateRange.label} 
+                    />
+                    {isComparisonEnabled && (
+                        <>
+                            <span style={{ opacity: 0.5, fontSize: '0.9rem', color: 'white' }}>vs</span>
+                            <AnalyticsDatePicker 
+                                onDateChange={setDateRangeB} 
+                                currentLabel={dateRangeB.label} 
+                            />
+                        </>
+                    )}
                     {!loading && !error && (
                         <button
                             onClick={handlePrint}
@@ -297,12 +526,21 @@ export default function ReportPage() {
             ) : (
                 <div className="report-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     
+                    {isDurationMismatch && (
+                        <div className="no-print" style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '8px', color: '#f59e0b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>⚠️</span>
+                            <span><strong>Duration Mismatch:</strong> Period A ({daysA} days) and Period B ({daysB} days) have different lengths. Cumulative metrics for Period B are scaled by <strong>{durationScaleFactor.toFixed(2)}x</strong> to ensure comparison validity.</span>
+                        </div>
+                    )}
+
                     {/* Cover Header Section */}
                     <div className="report-card glass-panel" style={{ padding: '2.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
                             <div>
                                 <span style={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '2px', color: 'var(--primary)', fontWeight: 'bold' }}>Executive Summary</span>
-                                <h1 style={{ fontSize: '2.25rem', marginTop: '0.25rem', fontWeight: 700 }}>G1 Master Performance Report</h1>
+                                <h1 style={{ fontSize: '2.25rem', marginTop: '0.25rem', fontWeight: 700 }}>
+                                    {isComparisonEnabled ? 'G1 Master Comparison Report' : 'G1 Master Performance Report'}
+                                </h1>
                             </div>
                             <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>GENERATED ON</div>
@@ -311,13 +549,27 @@ export default function ReportPage() {
                         </div>
                         <div className="grid-3-cols" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                             <div>
-                                <div className="kpi-title" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>START DATE</div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '0.25rem' }}>{formatDate(dateRange.startDate)}</div>
+                                <div className="kpi-title" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>PERIOD A RANGE</div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '0.25rem' }}>
+                                    {formatDate(dateRange.startDate)} — {formatDate(dateRange.endDate)}{isToday(dateRange.endDate) ? ' (Today)' : ''}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '2px' }}>Duration: {daysA} {daysA === 1 ? 'day' : 'days'}</div>
                             </div>
-                            <div>
-                                <div className="kpi-title" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>END DATE</div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '0.25rem' }}>{formatDate(dateRange.endDate)}{isToday(dateRange.endDate) ? ' (Today)' : ''}</div>
-                            </div>
+                            {isComparisonEnabled ? (
+                                <div>
+                                    <div className="kpi-title" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>PERIOD B RANGE</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '0.25rem', color: 'rgba(255,255,255,0.8)' }}>
+                                        {formatDate(dateRangeB.startDate)} — {formatDate(dateRangeB.endDate)}{isToday(dateRangeB.endDate) ? ' (Today)' : ''}
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '2px' }}>Duration: {daysB} {daysB === 1 ? 'day' : 'days'}</div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="kpi-title" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>REPORT SCOPE</div>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '0.25rem' }}>Single Period Evaluation</div>
+                                    <div style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: '2px' }}>No comparison target selected</div>
+                                </div>
+                            )}
                             <div>
                                 <div className="kpi-title" style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>STATUS</div>
                                 <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#10b981', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -338,24 +590,9 @@ export default function ReportPage() {
                         </div>
 
                         <div className="grid-3-cols" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Total Ad Spent</div>
-                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
-                                    {formatCurrency(totalAdSpent)}
-                                </div>
-                            </div>
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Total Sign Ups</div>
-                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
-                                    {totalSignups.toLocaleString()}
-                                </div>
-                            </div>
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Cost per Sign Up (CAC)</div>
-                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
-                                    {formatCurrency(costPerSignup)}
-                                </div>
-                            </div>
+                            {renderKPICard('Total Ad Spent', totalAdSpent, totalAdSpentB, formatCurrency, true, true)}
+                            {renderKPICard('Total Sign Ups', totalSignups, totalSignupsB, (v) => v.toLocaleString(), true, false)}
+                            {renderKPICard('Cost per Sign Up (CAC)', costPerSignup, costPerSignupB, formatCurrency, false, true)}
                         </div>
 
                         {/* Breakdown Google and Email Sign Up */}
@@ -394,42 +631,46 @@ export default function ReportPage() {
                         </div>
 
                         <div className="grid-4-cols grid-4-cols-desktop" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Gross Revenue</div>
-                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
-                                    {formatCurrency(grossRevenue)}
-                                </div>
-                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                    Refunds: {formatCurrency(refundedRevenue)}
-                                </div>
-                            </div>
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Total Costs</div>
-                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
-                                    {formatCurrency(totalCosts)}
-                                </div>
-                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                    Ad Spend: {formatCurrency(revSummary.totalAdSpend || 0)} | Stripe: {formatCurrency(revSummary.totalStripeFees || 0)}
-                                </div>
-                            </div>
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Net Profit</div>
-                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: netProfit >= 0 ? '#10b981' : '#ef4444', marginTop: '0.25rem' }}>
-                                    {formatCurrency(netProfit)}
-                                </div>
-                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                    ROAS: {revSummary.roas || 0}x
-                                </div>
-                            </div>
-                            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                                <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Paid Upgrades</div>
-                                <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginTop: '0.25rem' }}>
-                                    {paidUpgrades.toLocaleString()}
-                                </div>
-                                <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                    AOV: {formatCurrency(revSummary.aov || 0)} | CAC: {formatCurrency(revSummary.cac || 0)}
-                                </div>
-                            </div>
+                            {renderKPICard(
+                                'Gross Revenue',
+                                grossRevenue,
+                                grossRevenueB,
+                                formatCurrency,
+                                true,
+                                false,
+                                `Refunds: ${formatCurrency(refundedRevenue)}`,
+                                `Refunds: ${formatCurrency(refundedRevenueB)}`
+                            )}
+                            {renderKPICard(
+                                'Total Costs',
+                                totalCosts,
+                                totalCostsB,
+                                formatCurrency,
+                                true,
+                                true,
+                                `Ad Spend: ${formatCurrency(revSummary.totalAdSpend || 0)} | Stripe: ${formatCurrency(revSummary.totalStripeFees || 0)}`,
+                                `Ad Spend: ${formatCurrency(revSummaryB.totalAdSpend || 0)} | Stripe: ${formatCurrency(revSummaryB.totalStripeFees || 0)}`
+                            )}
+                            {renderKPICard(
+                                'Net Profit',
+                                netProfit,
+                                netProfitB,
+                                formatCurrency,
+                                true,
+                                false,
+                                `ROAS: ${revSummary.roas || 0}x`,
+                                `ROAS: ${revSummaryB.roas || 0}x`
+                            )}
+                            {renderKPICard(
+                                'Paid Upgrades',
+                                paidUpgrades,
+                                paidUpgradesB,
+                                (v) => v.toLocaleString(),
+                                true,
+                                false,
+                                `AOV: ${formatCurrency(revSummary.aov || 0)} | CAC: ${formatCurrency(revSummary.cac || 0)}`,
+                                `AOV: ${formatCurrency(revSummaryB.aov || 0)} | CAC: ${formatCurrency(revSummaryB.cac || 0)}`
+                            )}
                         </div>
                     </div>
 
@@ -448,34 +689,46 @@ export default function ReportPage() {
                                 Free Test Engagement
                             </h3>
                             <div className="grid-4-cols grid-4-cols-desktop" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
-                                    <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Free Landing Page Test Starts</div>
-                                    <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{freeTestStarts.toLocaleString()}</div>
-                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                        Baseline
-                                    </div>
-                                </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
-                                    <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Completed Free Tests</div>
-                                    <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{completedFreeTests.toLocaleString()}</div>
-                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                        {getConversionAndDropStr(completedFreeTests, freeTestStarts)}
-                                    </div>
-                                </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
-                                    <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}># Users Initiated Sign Up</div>
-                                    <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{usersInitiatedSignUp.toLocaleString()}</div>
-                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                        {getConversionAndDropStr(usersInitiatedSignUp, completedFreeTests)}
-                                    </div>
-                                </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '8px' }}>
-                                    <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}># Sign Ups</div>
-                                    <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.25rem' }}>{totalSignUpsActivation.toLocaleString()}</div>
-                                    <div className="kpi-sub" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>
-                                        {getConversionAndDropStr(totalSignUpsActivation, usersInitiatedSignUp)}
-                                    </div>
-                                </div>
+                                {renderKPICard(
+                                    'Free Landing Page Test Starts',
+                                    freeTestStarts,
+                                    freeTestStartsB,
+                                    (v) => v.toLocaleString(),
+                                    true,
+                                    false,
+                                    'Baseline',
+                                    'Baseline'
+                                )}
+                                {renderKPICard(
+                                    'Completed Free Tests',
+                                    completedFreeTests,
+                                    completedFreeTestsB,
+                                    (v) => v.toLocaleString(),
+                                    true,
+                                    false,
+                                    getConversionAndDropStr(completedFreeTests, freeTestStarts),
+                                    getConversionAndDropStr(completedFreeTestsB, freeTestStartsB)
+                                )}
+                                {renderKPICard(
+                                    '# Users Initiated Sign Up',
+                                    usersInitiatedSignUp,
+                                    usersInitiatedSignUpB,
+                                    (v) => v.toLocaleString(),
+                                    true,
+                                    false,
+                                    getConversionAndDropStr(usersInitiatedSignUp, completedFreeTests),
+                                    getConversionAndDropStr(usersInitiatedSignUpB, completedFreeTestsB)
+                                )}
+                                {renderKPICard(
+                                    '# Sign Ups',
+                                    totalSignUpsActivation,
+                                    totalSignUpsActivationB,
+                                    (v) => v.toLocaleString(),
+                                    true,
+                                    false,
+                                    getConversionAndDropStr(totalSignUpsActivation, usersInitiatedSignUp),
+                                    getConversionAndDropStr(totalSignUpsActivationB, usersInitiatedSignUpB)
+                                )}
                             </div>
                         </div>
 
@@ -489,20 +742,99 @@ export default function ReportPage() {
                                     <thead>
                                         <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
                                             <th style={{ textAlign: 'left', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Funnel Stage</th>
-                                            <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Users</th>
-                                            <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Step-to-Step Conversion</th>
-                                            <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>% of Total Signups</th>
+                                            {!isComparisonEnabled ? (
+                                                <>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Users</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Step-to-Step Conversion</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>% of Total Signups</th>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>A Users</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>B Users</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Variance</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>A Step Conv</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>B Step Conv</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>Step Conv Var</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>A % Total</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>B % Total</th>
+                                                    <th style={{ textAlign: 'right', padding: '0.75rem 1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>% Total Var</th>
+                                                </>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {[
-                                            { label: "1. Signed Up", value: signUpCount, stepConv: "100.0%", totalConv: "100.0%", color: "#6366f1" },
-                                            { label: "2. Saved Free Test", value: tookFreeTestCount, stepConv: getStepPercentage(tookFreeTestCount, signUpCount), totalConv: getTotalPercentage(tookFreeTestCount), color: "#8b5cf6" },
-                                            { label: "3. Took >= 1 Practice", value: tookAtLeastOnePracticeCount, stepConv: getStepPercentage(tookAtLeastOnePracticeCount, tookFreeTestCount), totalConv: getTotalPercentage(tookAtLeastOnePracticeCount), color: "#d946ef" },
-                                            { label: "4. Took >= 2 Practice", value: tookTwoOrMorePracticeCount, stepConv: getStepPercentage(tookTwoOrMorePracticeCount, tookAtLeastOnePracticeCount), totalConv: getTotalPercentage(tookTwoOrMorePracticeCount), color: "#ec4899" },
-                                            { label: "5. Took All 3 Free Tests", value: tookThreeOrMorePracticeCount, stepConv: getStepPercentage(tookThreeOrMorePracticeCount, tookTwoOrMorePracticeCount), totalConv: getTotalPercentage(tookThreeOrMorePracticeCount), color: "#f43f5e" },
-                                            { label: "6. Initiated Checkout", value: initiatedCheckoutCount, stepConv: getStepPercentage(initiatedCheckoutCount, tookThreeOrMorePracticeCount), totalConv: getTotalPercentage(initiatedCheckoutCount), color: "#fbbf24" },
-                                            { label: "7. Paid for Unlimited Plan", value: paidCount, stepConv: getStepPercentage(paidCount, initiatedCheckoutCount), totalConv: getTotalPercentage(paidCount), color: "#10b981" }
+                                            { 
+                                                label: "1. Signed Up", 
+                                                valA: signUpCount, 
+                                                valB: signUpCountB, 
+                                                stepA: "100.0%", 
+                                                stepB: "100.0%", 
+                                                totA: "100.0%", 
+                                                totB: "100.0%", 
+                                                color: "#6366f1" 
+                                            },
+                                            { 
+                                                label: "2. Saved Free Test", 
+                                                valA: tookFreeTestCount, 
+                                                valB: tookFreeTestCountB, 
+                                                stepA: getStepPercentage(tookFreeTestCount, signUpCount), 
+                                                stepB: getStepPercentage(tookFreeTestCountB, signUpCountB), 
+                                                totA: getTotalPercentage(tookFreeTestCount, signUpCount), 
+                                                totB: getTotalPercentage(tookFreeTestCountB, signUpCountB), 
+                                                color: "#8b5cf6" 
+                                            },
+                                            { 
+                                                label: "3. Took >= 1 Practice", 
+                                                valA: tookAtLeastOnePracticeCount, 
+                                                valB: tookAtLeastOnePracticeCountB, 
+                                                stepA: getStepPercentage(tookAtLeastOnePracticeCount, tookFreeTestCount), 
+                                                stepB: getStepPercentage(tookAtLeastOnePracticeCountB, tookFreeTestCountB), 
+                                                totA: getTotalPercentage(tookAtLeastOnePracticeCount, signUpCount), 
+                                                totB: getTotalPercentage(tookAtLeastOnePracticeCountB, signUpCountB), 
+                                                color: "#d946ef" 
+                                            },
+                                            { 
+                                                label: "4. Took >= 2 Practice", 
+                                                valA: tookTwoOrMorePracticeCount, 
+                                                valB: tookTwoOrMorePracticeCountB, 
+                                                stepA: getStepPercentage(tookTwoOrMorePracticeCount, tookAtLeastOnePracticeCount), 
+                                                stepB: getStepPercentage(tookTwoOrMorePracticeCountB, tookAtLeastOnePracticeCountB), 
+                                                totA: getTotalPercentage(tookTwoOrMorePracticeCount, signUpCount), 
+                                                totB: getTotalPercentage(tookTwoOrMorePracticeCountB, signUpCountB), 
+                                                color: "#ec4899" 
+                                            },
+                                            { 
+                                                label: "5. Took All 3 Free Tests", 
+                                                valA: tookThreeOrMorePracticeCount, 
+                                                valB: tookThreeOrMorePracticeCountB, 
+                                                stepA: getStepPercentage(tookThreeOrMorePracticeCount, tookTwoOrMorePracticeCount), 
+                                                stepB: getStepPercentage(tookThreeOrMorePracticeCountB, tookTwoOrMorePracticeCountB), 
+                                                totA: getTotalPercentage(tookThreeOrMorePracticeCount, signUpCount), 
+                                                totB: getTotalPercentage(tookThreeOrMorePracticeCountB, signUpCountB), 
+                                                color: "#f43f5e" 
+                                            },
+                                            { 
+                                                label: "6. Initiated Checkout", 
+                                                valA: initiatedCheckoutCount, 
+                                                valB: initiatedCheckoutCountB, 
+                                                stepA: getStepPercentage(initiatedCheckoutCount, tookThreeOrMorePracticeCount), 
+                                                stepB: getStepPercentage(initiatedCheckoutCountB, tookThreeOrMorePracticeCountB), 
+                                                totA: getTotalPercentage(initiatedCheckoutCount, signUpCount), 
+                                                totB: getTotalPercentage(initiatedCheckoutCountB, signUpCountB), 
+                                                color: "#fbbf24" 
+                                            },
+                                            { 
+                                                label: "7. Paid for Unlimited Plan", 
+                                                valA: paidCount, 
+                                                valB: paidCountB, 
+                                                stepA: getStepPercentage(paidCount, initiatedCheckoutCount), 
+                                                stepB: getStepPercentage(paidCountB, initiatedCheckoutCountB), 
+                                                totA: getTotalPercentage(paidCount, signUpCount), 
+                                                totB: getTotalPercentage(paidCountB, signUpCountB), 
+                                                color: "#10b981" 
+                                            }
                                         ].map((row, idx) => (
                                             <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                                 <td style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 500 }}>
@@ -511,9 +843,31 @@ export default function ReportPage() {
                                                         {row.label}
                                                     </div>
                                                 </td>
-                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 'bold' }}>{row.value.toLocaleString()}</td>
-                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.stepConv}</td>
-                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.totalConv}</td>
+                                                {!isComparisonEnabled ? (
+                                                    <>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 'bold' }}>{row.valA.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.stepA}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.totA}</td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 'bold' }}>{row.valA.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 'bold', color: 'rgba(255,255,255,0.7)' }}>{row.valB.toLocaleString()}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                                            {renderVarianceBadge(row.valA, row.valB, true, false)}
+                                                        </td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.stepA}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.stepB}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                                            {renderPercentageDiff(row.stepA, row.stepB)}
+                                                        </td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.totA}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{row.totB}</td>
+                                                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                                            {renderPercentageDiff(row.totA, row.totB)}
+                                                        </td>
+                                                    </>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -527,24 +881,9 @@ export default function ReportPage() {
                                 Credit Renewal & Retention (Non-Premium Users)
                             </h3>
                             <div className="grid-3-cols" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                                    <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Exhausted Free Credits</div>
-                                    <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f43f5e', marginTop: '0.25rem' }}>
-                                        {exhaustedFreeCredits.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                                    <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Returned After Credit Renewal</div>
-                                    <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6', marginTop: '0.25rem' }}>
-                                        {returnedAfterCreditRenewal.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                                    <div className="kpi-title" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Retention Rate</div>
-                                    <div className="kpi-val" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', marginTop: '0.25rem' }}>
-                                        {retentionRate.toFixed(1)}%
-                                    </div>
-                                </div>
+                                {renderKPICard('Exhausted Free Credits', exhaustedFreeCredits, exhaustedFreeCreditsB, (v) => v.toLocaleString(), true, true)}
+                                {renderKPICard('Returned After Credit Renewal', returnedAfterCreditRenewal, returnedAfterCreditRenewalB, (v) => v.toLocaleString(), true, false)}
+                                {renderKPICard('Retention Rate', retentionRate, retentionRateB, (v) => `${v.toFixed(1)}%`, false, false)}
                             </div>
                         </div>
                     </div>
